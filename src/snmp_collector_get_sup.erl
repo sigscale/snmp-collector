@@ -41,7 +41,7 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init(_Args) ->
+init([]) ->
 	StartMod = snmp_collector_get_fsm,
 	StartFunc = {gen_fsm, start_link, [StartMod]},
 	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},
