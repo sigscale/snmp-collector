@@ -52,7 +52,52 @@
 start(normal = _StartType, _Args) ->
 	{error, not_implemented}.
 
+-spec start_phase(Phase, StartType, PhaseArgs) -> Result
+	when
+		Phase :: atom(),
+		StartType :: start_type(),
+		PhaseArgs :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Called for each start phase in the application and included
+%% 	applications.
+%% @see //kernel/app
+%%
+start_phase(_Phase, _StartType, _PhaseArgs) ->
+	ok.
+
+-spec prep_stop(State) -> #state{}
+	when
+		State :: #state{}.
+%% @doc Called when the application is about to be shut down,
+%% 	before any processes are terminated.
+%% @see //kernel/application:stop/1
+%%
+prep_stop(State) ->
+	State.
+
+-spec stop(State) -> any()
+	when
+		State :: #state{}.
+%% @doc Called after the application has stopped to clean up.
+%%
+stop(_State) ->
+	ok.
+
+-spec config_change(Changed, New, Removed) -> ok
+	when
+		Changed:: [{Par, Val}],
+		New :: [{Par, Val}],
+		Removed :: [Par],
+		Par :: atom(),
+		Val :: atom().
+%% @doc Called after a code  replacement, if there are any 
+%% 	changes to the configuration  parameters.
+%%
+config_change(_Changed, _New, _Removed) ->
+	ok.
+
 %%----------------------------------------------------------------------
-%%  The snmp_collector_app private API
+%%  internal functions
 %%----------------------------------------------------------------------
 
