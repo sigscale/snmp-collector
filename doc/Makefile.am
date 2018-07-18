@@ -4,7 +4,9 @@
 ## Process this file with automake to produce Makefile.in
 
 modhtml = snmp_collector_app.html \
-			snmp_collector_sup.html
+			snmp_collector_sup.html \
+			snmp_collector_get_sup.html \
+			snmp_collector_get_fsm.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \

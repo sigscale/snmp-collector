@@ -38,7 +38,7 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([LogRotateTime, LogRotateInterval] = _Args) ->
+init([]) ->
 	ChildSpecs = [supervisor(snmp_collector_get_sup, []),
 			server(snmp_collector_server, [self()]),
 			server(snmp_collector_ves_fsm, [self()])],
@@ -75,5 +75,4 @@ server(StartMod, Args) ->
 	StartArgs = [{local, ocs}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
-	{{StartMod, Type},  StartFunc, permanent, 4000, worker, [StartMod]}.
 
