@@ -1,0 +1,23 @@
+# SigScale SNMP Collector (snmp_collector)
+
+## Prerequisites
+	Install erlang(>18)
+	$ sudo apt install erlang
+
+## Building
+	$ mkdir ../snmp_collector.build  (create build directory)
+	$ cd ../snmp_collector.build     (change working directory for build)
+	$ ../snmp_collector/configure    (creates Makefiles)
+	$ make                           (builds entire package)
+	$ make check                     (run dialyzer and common_test)
+
+## Installing
+	$ sudo make install         (installs embedded application in system)
+
+## Cleaning
+	$ make clean                (removes files created with make)
+	$ make distclean            (removes files created with configure also)
+
+## Options
+	$ ../snmp_collector/configure --enable-debug
+

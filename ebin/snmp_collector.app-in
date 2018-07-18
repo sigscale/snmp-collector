@@ -1,0 +1,8 @@
+{application, %APP_NAME%,
+	[{description, "SigScale SNMP Collector"},
+		{vsn, "%APP_VERSION%"},
+		{modules, [snmp_collector_app]},
+		{registered, []},
+		{applications, [kernel, stdlib, snmp]},
+		{env, []},
+		{mod, {snmp_collector_app, []}}]}.
