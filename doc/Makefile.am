@@ -6,6 +6,7 @@
 modhtml = snmp_collector_app.html \
 			snmp_collector_sup.html \
 			snmp_collector_get_sup.html \
+			snmp_collector_server.html \
 			snmp_collector_get_fsm.html \
 			snmp_collector_ves_fsm.html
 

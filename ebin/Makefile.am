@@ -10,6 +10,7 @@ EXTRA_DIST = snmp_collector.app
 beam_DATA = snmp_collector_app.beam \
 			snmp_collector_sup.beam \
 			snmp_collector_get_sup.beam \
+			snmp_collector_server.beam \
 			snmp_collector_get_fsm.beam \
 			snmp_collector_ves_fsm.beam
 
