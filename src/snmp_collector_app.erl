@@ -49,8 +49,13 @@
 %% @see //kernel/application:start/1
 %% @see //kernel/application:start/2
 %%
-start(normal = _StartType, _Args) ->
-	{error, not_implemented}.
+start(normal = StartType, _Args) ->
+	case supervisor:start_link(snmp_collector_sup, []) of
+		{ok, PID} ->
+			{ok, PID};
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
 	when
