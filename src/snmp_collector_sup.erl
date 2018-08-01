@@ -40,9 +40,8 @@
 %%
 init([]) ->
 	ChildSpecs = [supervisor(snmp_collector_get_sup, []),
-			server(snmp_collector_server, [self()]),
-			server(snmp_collector_ves_fsm, [self()])],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+					fsm(snmp_collector_ves_fsm, [])],
+					{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -58,21 +57,12 @@ init([]) ->
 %% @private
 %%
 supervisor(StartMod, Args) ->
-	StartArgs = [StartMod, Args],
+	StartArgs = [{local, StartMod}, StartMod, Args],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
--spec server(StartMod, Args) -> Result
-	when
-		StartMod :: atom(),
-		Args :: [term()],
-		Result :: supervisor:child_spec().
-%% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/gen_server. gen_server} behaviour.
-%% @private
-%%
-server(StartMod, Args) ->
-	StartArgs = [{local, ocs}, StartMod, Args, []],
-	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+fsm(StartMod, Args) ->
+   StartArgs = [{local, StartMod}, StartMod, Args, []],
+   StartFunc = {gen_fsm, start_link, StartArgs},
+   {StartMod, StartFunc, permanent, infinity, worker, [StartMod]}.
 
