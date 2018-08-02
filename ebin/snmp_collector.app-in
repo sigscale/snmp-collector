@@ -6,7 +6,8 @@
 					snmp_collector_get_sup,
 					snmp_collector_get_fsm,
 					snmom_collector_server,
-					snmp_collector_ves_fsm]},
+					snmp_collector_ves_fsm
+					snmp_collector_traps]},
 		{registered, []},
 		{applications, [kernel, stdlib, snmp]},
 		{env, []},
