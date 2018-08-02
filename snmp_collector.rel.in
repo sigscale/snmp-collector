@@ -1,0 +1,9 @@
+{release, {"@PACKAGE@", "@VERSION@"}, {erts, "@ERLANG_ERTS_VER@"},
+	[{kernel, "@ERLANG_LIB_VER_kernel@"},
+	{stdlib, "@ERLANG_LIB_VER_stdlib@"},
+	{mnesia, "@ERLANG_LIB_VER_mnesia@"},
+   {crypto, "@ERLANG_LIB_VER_crypto@"},
+   {runtime_tools, "@ERLANG_LIB_VER_runtime_tools@"},
+	{snmp, "@ERLANG_LIB_VER_snmp@"},
+	{sasl, "@ERLANG_LIB_VER_sasl@"},
+	{@PACKAGE@, "@VERSION@"}]}.
