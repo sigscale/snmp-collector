@@ -52,7 +52,15 @@
 start(normal = StartType, _Args) ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, PID} ->
-			{ok, PID};
+			SupRef = snmp_collector_get_sup,
+			ChildSpec = 
+			case timer:apply_interval(?INTERVAL, supervisor,
+					start_child, [snmp_collector_get_sup, []])
+				{ok, _TRef} ->
+					{ok, PID};
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, Reason} ->
 			{error, Reason}
 	end.
