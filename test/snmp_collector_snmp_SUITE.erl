@@ -107,16 +107,16 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[].
+	[trap].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-start() ->
-	[{userdata, [{doc, ""}]}].
+trap() ->
+	[{userdata, [{doc, "Send an SNMP trap."}]}].
 
-start(_Config) ->
+trap(_Config) ->
 	ok.
 
 %%---------------------------------------------------------------------
