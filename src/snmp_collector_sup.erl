@@ -32,7 +32,7 @@
 -spec init(Args) -> Result
 	when
 		Args :: [term()],
-		Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
+			Result :: {ok, {{supervisor:strategy(), non_neg_integer(), pos_integer()},
 			[supervisor:child_spec()]}} | ignore.
 %% @doc Initialize the {@module} supervisor.
 %% @see //stdlib/supervisor:init/1
@@ -40,8 +40,8 @@
 %%
 init([]) ->
 	ChildSpecs = [supervisor(snmp_collector_get_sup, []),
-					fsm(snmp_collector_ves_fsm, [])],
-					{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+		fsm(snmp_collector_ves_fsm, [])],
+		{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -53,7 +53,7 @@ init([]) ->
 		Args :: [term()],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
-%% 	{@link //stdlib/supervisor. supervisor} behaviour.
+%%      {@link //stdlib/supervisor. supervisor} behaviour.
 %% @private
 %%
 supervisor(StartMod, Args) ->
@@ -62,7 +62,6 @@ supervisor(StartMod, Args) ->
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
 fsm(StartMod, Args) ->
-   StartArgs = [{local, StartMod}, StartMod, Args, []],
-   StartFunc = {gen_fsm, start_link, StartArgs},
-   {StartMod, StartFunc, permanent, infinity, worker, [StartMod]}.
-
+	StartArgs = [{local, StartMod}, StartMod, Args, []],
+	StartFunc = {gen_fsm, start_link, StartArgs},
+	{StartMod, StartFunc, permanent, infinity, worker, [StartMod]}.
