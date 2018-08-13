@@ -29,8 +29,10 @@
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
+-define(INTERVAL, interval).
+
 -include_lib("common_test/include/ct.hrl").
--include("m3ua.hrl").
+-include("snmp_collector.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
@@ -78,7 +80,7 @@ init_per_suite(Config) ->
 	TestDir = filename:dirname(DataDir),
 	BuildDir = filename:dirname(TestDir),
 	MibDir =  BuildDir ++ "/priv/mibs/",
-	ok = ct_snmp:load_mibs(Mibs),
+	ok = ct_snmp:load_mibs(MibDir),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().

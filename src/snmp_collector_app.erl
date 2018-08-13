@@ -29,6 +29,8 @@
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
 
+-define(INTERVAL, interval).
+
 -include("snmp_collector.hrl").
 
 -record(state, {}).
@@ -49,13 +51,13 @@
 %% @see //kernel/application:start/1
 %% @see //kernel/application:start/2
 %%
-start(normal = StartType, _Args) ->
+start(normal = _StartType, _Args) ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, PID} ->
-			SupRef = snmp_collector_get_sup,
-			ChildSpec = 
+			_SupRef = snmp_collector_get_sup,
+			_ChildSpec =
 			case timer:apply_interval(?INTERVAL, supervisor,
-					start_child, [snmp_collector_get_sup, []])
+					start_child, [snmp_collector_get_sup, []]) of
 				{ok, _TRef} ->
 					{ok, PID};
 				{error, Reason} ->

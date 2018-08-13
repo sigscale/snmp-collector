@@ -92,5 +92,5 @@ AC_ERLANG_CHECK_LIB([sasl], [], [AC_MSG_ERROR([sasl was not found!])])
 ## 
 
 AC_OUTPUT([Makefile include/Makefile ebin/Makefile doc/Makefile
-		$PACKAGE_NAME.rel sys.config])
+		test/Makefile $PACKAGE_NAME.rel sys.config])
 
