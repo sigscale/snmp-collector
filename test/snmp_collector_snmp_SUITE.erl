@@ -30,6 +30,7 @@
 -compile(export_all).
 
 -define(INTERVAL, interval).
+-define(sigscalePEN, 50386).
 
 -include_lib("common_test/include/ct.hrl").
 -include("snmp_collector.hrl").
@@ -42,18 +43,22 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	Port = rand:uniform(32767) + 32768,
+	ManagerPort = rand:uniform(32767) + 32768,
+	AgentPort = rand:uniform(32767) + 32768,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
-			[{start_agent, true},
-			{agent_udp, Port},
-			{agent_engine_id, engine_id()},
+			[{start_manager, true},
+			{mgr_port, ManagerPort},
+			{engine_id, engine_id()},
 			{users,
-					[{snmp_collector_mibs_test, [snmpm_user_default, []]}]},
+					[{?MODULE, [snmp_collector_trap, []]}]},
 			{managed_agents,
-					[{snmp_collector_mibs_test,
-							[snmp_collector_mibs_test, {127,0,0,1}, Port, []]}]}]},
+					[{?MODULE, [?MODULE, {127,0,0,1}, AgentPort, []]}]},
+			{start_agent, true},
+			{agent_engine_id, engine_id()},
+			{agent_udp, AgentPort},
+			{agent_trap_udp, ManagerPort}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -70,17 +75,7 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-	PrivDir = ?config(priv_dir, Config),
-	application:load(mnesia),
-	ok = application:set_env(mnesia, dir, PrivDir),
-	{ok, []} = snmp_collector_app:install(),
-	ok = application:start(m3ua),
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	DataDir = filename:absname(?config(data_dir, Config)),
-	TestDir = filename:dirname(DataDir),
-	BuildDir = filename:dirname(TestDir),
-	MibDir =  BuildDir ++ "/priv/mibs/",
-	ok = ct_snmp:load_mibs(MibDir),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -128,6 +123,14 @@ start(_Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
+%% @doc Create a unique SNMP EngineID for SigScale Enterprise.
+%% @hidden
 engine_id() ->
-	[].
+   PEN = binary_to_list(<<1:1, ?sigscalePEN:31>>),
+	engine_id(PEN, []).
+%% @hidden
+engine_id(PEN, Acc) when length(Acc) == 27 ->
+	PEN ++ [5 | Acc];
+engine_id(PEN, Acc) ->
+   engine_id(PEN, [rand:uniform(255) | Acc]).
 
