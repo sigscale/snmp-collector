@@ -29,7 +29,7 @@
 
 %% export the callbacks needed for gen_server behaviour
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-                        terminate/2, code_change/3]).
+			terminate/2, code_change/3]).
 
 -record(state, {}).
 
@@ -134,7 +134,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-
 ~                                                                                                                                                                                               
 ~                                                                                                                                                                                               
 ~                                                                                                                                                                                               
