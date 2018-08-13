@@ -50,13 +50,11 @@ suite() ->
 	{default_config, snmp,
 			[{start_manager, true},
 			{mgr_port, ManagerPort},
-			{engine_id, engine_id()},
 			{users,
 					[{?MODULE, [snmp_collector_trap, []]}]},
 			{managed_agents,
 					[{?MODULE, [?MODULE, {127,0,0,1}, AgentPort, []]}]},
 			{start_agent, true},
-			{agent_engine_id, engine_id()},
 			{agent_udp, AgentPort},
 			{agent_trap_udp, ManagerPort}]},
 	{require, snmp_app},
@@ -76,6 +74,9 @@ suite() ->
 %%
 init_per_suite(Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
+	DataDir = ?config(data_dir, Config),
+	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
+	ok = snmpa:load_mib(TrapMib),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -107,17 +108,17 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[].
+	[trap].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-start() ->
-	[{userdata, [{doc, ""}]}].
+trap() ->
+	[{userdata, [{doc, "Receive an SNMP trap."}]}].
 
-start(_Config) ->
-	ok.
+trap(_Config) ->
+	snmpa:send_notification(snmp_master_agent, ctTrap, no_receiver, "", "", []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
