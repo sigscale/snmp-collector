@@ -46,4 +46,3 @@ init([]) ->
 	StartFunc = {gen_fsm, start_link, [StartMod]},
 	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},
 	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
-

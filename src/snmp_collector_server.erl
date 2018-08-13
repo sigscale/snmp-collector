@@ -16,8 +16,8 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
-%%% 	module implements a service access point (SAP) for the public API of the
-%%% 	{@link //ocs. ocs} application.
+%%%     module implements a service access point (SAP) for the public API of the
+%%%     {@link //ocs. ocs} application.
 %%%
 -module(snmp_collector_server).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
@@ -59,18 +59,18 @@ init([]) ->
 
 -spec handle_call(Request, From, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		From :: {pid(), Tag :: any()},
 		State :: #state{},
 		Result :: {reply, Reply :: term(), NewState :: #state{}}
-			| {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate}
-			| {noreply, NewState :: #state{}}
-			| {noreply, NewState :: #state{}, timeout() | hibernate}
-			| {stop, Reason :: term(), Reply :: term(), NewState :: #state{}}
-			| {stop, Reason :: term(), NewState :: #state{}}.
+		| {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate}
+		| {noreply, NewState :: #state{}}
+		| {noreply, NewState :: #state{}, timeout() | hibernate}
+		| {stop, Reason :: term(), Reply :: term(), NewState :: #state{}}
+		| {stop, Reason :: term(), NewState :: #state{}}.
 %% @doc Handle a request sent using {@link //stdlib/gen_server:call/2.
-%% 	gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
-%% 	gen_server:multi_call/2,3,4}.
+%%      gen_server:call/2,3} or {@link //stdlib/gen_server:multi_call/2.
+%%      gen_server:multi_call/2,3,4}.
 %% @see //stdlib/gen_server:handle_call/3
 %% @private
 %%
@@ -79,14 +79,14 @@ handle_call(_Request, _From, _State) ->
 
 -spec handle_cast(Request, State) -> Result
 	when
-		Request :: term(), 
+		Request :: term(),
 		State :: #state{},
 		Result :: {noreply, NewState :: #state{}}
-			| {noreply, NewState :: #state{}, timeout() | hibernate}
-			| {stop, Reason :: term(), NewState :: #state{}}.
+		| {noreply, NewState :: #state{}, timeout() | hibernate}
+		| {stop, Reason :: term(), NewState :: #state{}}.
 %% @doc Handle a request sent using {@link //stdlib/gen_server:cast/2.
-%% 	gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
-%% 	gen_server:abcast/2,3}.
+%%      gen_server:cast/2} or {@link //stdlib/gen_server:abcast/2.
+%%      gen_server:abcast/2,3}.
 %% @see //stdlib/gen_server:handle_cast/2
 %% @private
 %%
@@ -95,11 +95,11 @@ handle_cast(stop, State) ->
 
 -spec handle_info(Info, State) -> Result
 	when
-		Info :: timeout | term(), 
+		Info :: timeout | term(),
 		State:: #state{},
 		Result :: {noreply, NewState :: #state{}}
-			| {noreply, NewState :: #state{}, timeout() | hibernate}
-			| {stop, Reason :: term(), NewState :: #state{}}.
+		| {noreply, NewState :: #state{}, timeout() | hibernate}
+		| {stop, Reason :: term(), NewState :: #state{}}.
 %% @doc Handle a received message.
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
@@ -110,7 +110,7 @@ handle_info(_Info, State) ->
 -spec terminate(Reason, State) -> any()
 	when
 		Reason :: normal | shutdown | {shutdown, term()} | term(),
-      State::#state{}.
+		State::#state{}.
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_server:terminate/3
 %% @private
@@ -120,7 +120,7 @@ terminate(_Reason, _State) ->
 
 -spec code_change(OldVsn, State, Extra) -> Result
 	when
-		OldVsn :: term() | {down, term()}, 
+		OldVsn :: term() | {down, term()},
 		State :: #state{},
 		Extra :: term(),
 		Result :: {ok, NewState :: #state{}} | {error, Reason :: term()}.
