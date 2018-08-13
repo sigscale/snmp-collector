@@ -29,7 +29,7 @@
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
 
--define(INTERVAL, interval).
+-define(INTERVAL, 300000).
 
 -include("snmp_collector.hrl").
 
