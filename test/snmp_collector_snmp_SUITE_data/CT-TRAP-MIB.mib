@@ -2,12 +2,14 @@ CT-TRAP-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
 	MODULE-IDENTITY, NOTIFICATION-TYPE, enterprises
-		FROM SNMPv2-SMI;
+		FROM SNMPv2-SMI
+	NOTIFICATION-GROUP
+		FROM SNMPv2-CONF
+	sysContact, sysName, sysLocation
+		FROM SNMPv2-MIB;
 
-sigscale OBJECT IDENTIFIER ::= { enterprises 50386 }
-sigscaleExperiment OBJECT IDENTIFIER ::= { sigscale 5 }
 
-ctTrap MODULE-IDENTITY
+ctTrapModule MODULE-IDENTITY
 		LAST-UPDATED "201808130000Z"
 		ORGANIZATION "SigScale Global Inc."
 		CONTACT-INFO
@@ -21,9 +23,30 @@ ctTrap MODULE-IDENTITY
 			"Test MIB for TRAPs in snmp_collector application"
 	::= { sigscaleExperiment 5051 }
 
-trap1 NOTIFICATION-TYPE
+sigscale OBJECT IDENTIFIER ::= { enterprises 50386 }
+sigscaleExperiment OBJECT IDENTIFIER ::= { sigscale 5 }
+ctTrapMib OBJECT IDENTIFIER ::= { ctTrapModule 1 } 
+ctTrapConformance OBJECT IDENTIFIER ::= { ctTrapMib 1 }
+
+ctTrap1 NOTIFICATION-TYPE
+		OBJECTS  {
+			sysContact,
+			sysName,
+			sysLocation
+			}
 		STATUS  current
 		DESCRIPTION
-	::= { ctTrap 1 }
+			"This event is sent when a SNMP trap is
+			being tested."
+	::= { ctTrapMib 2 }
+
+ctTrapMIBGroups OBJECT IDENTIFIER ::= { ctTrapConformance 1 }
+
+ctTrapMIBGroup NOTIFICATION-GROUP
+	NOTIFICATIONS { ctTrap1 }
+	STATUS current
+	DESCRIPTION 
+		"This is a generated notification from sigscale."
+	::= { ctTrapMIBGroups 1 }
 
 END
