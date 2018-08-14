@@ -118,7 +118,7 @@ trap() ->
 	[{userdata, [{doc, "Receive an SNMP trap."}]}].
 
 trap(_Config) ->
-	snmpa:send_notification(snmp_master_agent, ctTrap, no_receiver, "", "", []).
+	snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver, "", "", []).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
