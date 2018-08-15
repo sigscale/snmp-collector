@@ -120,16 +120,16 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[trap].
+	[send_trap].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
-trap() ->
+send_trap() ->
 	[{userdata, [{doc, "Receive an SNMP trap."}]}].
 
-trap(_Config) ->
+send_trap(_Config) ->
 	snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver, "", "", []).
 
 %%---------------------------------------------------------------------
