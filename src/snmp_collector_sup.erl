@@ -39,9 +39,8 @@
 %% @private
 %%
 init([]) ->
-	ChildSpecs = [supervisor(snmp_collector_get_sup, []),
-		fsm(snmp_collector_ves_fsm, [])],
-		{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+	ChildSpecs = [supervisor(snmp_collector_get_sup, [])],
+	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -61,7 +60,3 @@ supervisor(StartMod, Args) ->
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
-fsm(StartMod, Args) ->
-	StartArgs = [{local, StartMod}, StartMod, Args, []],
-	StartFunc = {gen_fsm, start_link, StartArgs},
-	{StartMod, StartFunc, permanent, infinity, worker, [StartMod]}.
