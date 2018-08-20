@@ -44,7 +44,7 @@
 	when
 		StartType :: start_type(),
 		StartArgs :: term(),
-		Result :: {'ok', pid()} | {'ok', pid(), State} | {'error', Reason},
+		Result :: {ok, pid()} | {ok, pid(), State} | {error, Reason},
 		State :: #state{},
 		Reason :: term().
 %% @doc Starts the application processes.
@@ -52,14 +52,22 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
-	case supervisor:start_link(snmp_collector_sup, []) of
-		{ok, PID} ->
-			_SupRef = snmp_collector_get_sup,
-			_ChildSpec =
-			case timer:apply_interval(?INTERVAL, supervisor,
-					start_child, [snmp_collector_get_sup, [[], []]]) of
-				{ok, _TRef} ->
-					{ok, PID};
+	{ok, Size} = application:get_env(queue_size),
+	{ok, File} = application:get_env(queue_files),
+	{ok, Dir} = application:get_env(queue_dir),
+	case disk_log:open([{name, snmp_queue}, {file, Dir ++ "snmp_queue"}, 
+			{type, wrap}, {size, {Size, File}}]) of
+		{ok, _Name} ->
+			case supervisor:start_link(snmp_collector_sup, []) of
+				{ok, PID} ->
+					_ChildSpec =
+					case timer:apply_interval(?INTERVAL, supervisor,
+							start_child, [snmp_collector_get_sup, [[], []]]) of
+						{ok, _TRef} ->
+							{ok, PID};
+						{error, Reason} ->
+							{error, Reason}
+					end;
 				{error, Reason} ->
 					{error, Reason}
 			end;
