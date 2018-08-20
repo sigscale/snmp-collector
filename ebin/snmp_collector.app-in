@@ -6,9 +6,11 @@
 					snmp_collector_get_sup,
 					snmp_collector_get_fsm,
 					snmp_collector_server,
-					snmp_collector_ves_fsm,
 					snmp_collector_trap]},
 		{registered, []},
 		{applications, [kernel, stdlib, snmp]},
-		{env, []},
+		{env,
+				[{queue_files, 5},
+				{queue_size, 1024000},
+				{queue_dir, "logs"}]},
 		{mod, {snmp_collector_app, []}}]}.
