@@ -12,7 +12,6 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_get_sup.beam \
 			snmp_collector_server.beam \
 			snmp_collector_get_fsm.beam \
-			snmp_collector_ves_fsm.beam \
 			snmp_collector_trap.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/snmp_collector.hrl
