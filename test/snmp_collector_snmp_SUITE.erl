@@ -73,22 +73,14 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-erlang:display({?MODULE, ?LINE, Config}),
-erlang:display({?MODULE, ?LINE, start_init}),
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-erlang:display({?MODULE, ?LINE, snmp_mgr_agent_started}),
 	ok = application:start(snmp_collector),
-erlang:display({?MODULE, ?LINE, collector_started}),
 	DataDir = ?config(data_dir, Config),
-erlang:display({?MODULE, ?LINE, data_varible_configured}),
 	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
 	SPv2Mib = DataDir ++ "SNMPv2-MIB.bin",
-erlang:display({?MODULE, ?LINE, trapmib_varible_configured}),
 	ok = snmpa:load_mib(TrapMib),
-erlang:display({?MODULE, ?LINE, agent_loaded_mib}),
 	ok = snmpm:load_mib(TrapMib),
 	ok = snmpm:load_mib(SPv2Mib),
-erlang:display({?MODULE, ?LINE, manager_loaded_mib}),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
