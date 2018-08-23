@@ -55,7 +55,7 @@ start(normal = _StartType, _Args) ->
 	{ok, Size} = application:get_env(queue_size),
 	{ok, File} = application:get_env(queue_files),
 	{ok, Dir} = application:get_env(queue_dir),
-	case disk_log:open([{name, snmp_queue}, {file, Dir ++ "snmp_queue"}, 
+	case disk_log:open([{name, snmp_queue}, {file, Dir ++ "/snmp_queue"}, 
 			{type, wrap}, {size, {Size, File}}]) of
 		{ok, _Name} ->
 			case supervisor:start_link(snmp_collector_sup, []) of
@@ -71,6 +71,20 @@ start(normal = _StartType, _Args) ->
 				{error, Reason} ->
 					{error, Reason}
 			end;
+		{repaired, _Log, {recovered, _Rec}, {badbytes, _Bad}} ->
+			case supervisor:start_link(snmp_collector_sup, []) of
+            {ok, PID} ->
+               _ChildSpec =
+               case timer:apply_interval(?INTERVAL, supervisor,
+                     start_child, [snmp_collector_get_sup, [[], []]]) of
+                  {ok, _TRef} ->
+                     {ok, PID};
+                  {error, Reason} ->
+                     {error, Reason}
+               end;
+            {error, Reason} ->
+               {error, Reason}
+         end; 
 		{error, Reason} ->
 			{error, Reason}
 	end.
