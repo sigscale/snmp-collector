@@ -11,6 +11,8 @@
 		{applications, [kernel, stdlib, snmp]},
 		{env,
 				[{queue_files, 5},
+				{queue_name, snmp_queue},
+				{queue_type, wrap},
 				{queue_size, 1024000},
-				{queue_dir, "logs"}]},
+				{queue_dir, "log"}]},
 		{mod, {snmp_collector_app, []}}]}.
