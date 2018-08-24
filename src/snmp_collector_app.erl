@@ -52,15 +52,16 @@
 %% @see //kernel/application:start/2
 %%
 start(normal = _StartType, _Args) ->
+	{ok, Name} = application:get_env(queue_name),
+	{ok, Type} = application:get_env(queue_type),
 	{ok, Size} = application:get_env(queue_size),
 	{ok, File} = application:get_env(queue_files),
 	{ok, Dir} = application:get_env(queue_dir),
-	case disk_log:open([{name, snmp_queue}, {file, Dir ++ "/snmp_queue"}, 
-			{type, wrap}, {size, {Size, File}}]) of
-		{ok, _Name} ->
+	case open_log(Dir, Name, Type ,File, Size) of
+		ok ->
 			case supervisor:start_link(snmp_collector_sup, []) of
 				{ok, PID} ->
-					_ChildSpec =
+					_ChildSup =
 					case timer:apply_interval(?INTERVAL, supervisor,
 							start_child, [snmp_collector_get_sup, [[], []]]) of
 						{ok, _TRef} ->
@@ -71,22 +72,8 @@ start(normal = _StartType, _Args) ->
 				{error, Reason} ->
 					{error, Reason}
 			end;
-		{repaired, _Log, {recovered, _Rec}, {badbytes, _Bad}} ->
-			case supervisor:start_link(snmp_collector_sup, []) of
-            {ok, PID} ->
-               _ChildSpec =
-               case timer:apply_interval(?INTERVAL, supervisor,
-                     start_child, [snmp_collector_get_sup, [[], []]]) of
-                  {ok, _TRef} ->
-                     {ok, PID};
-                  {error, Reason} ->
-                     {error, Reason}
-               end;
-            {error, Reason} ->
-               {error, Reason}
-         end; 
-		{error, Reason} ->
-			{error, Reason}
+		{error , Reason} ->
+			{error , Reason}
 	end.
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
@@ -137,4 +124,58 @@ config_change(_Changed, _New, _Removed) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec open_log(Dir, Name, Type ,File, Size) -> Result
+   when
+      Dir :: string(),
+      Name :: atom(),
+      Type :: atom(),
+      File :: integer(),
+      Size :: integer(),
+      Result :: ok | {error, Reason},
+      Reason :: term().
+%% @doc Open a disk log file.
+open_log(Dir, Name, Type ,File, Size) ->
+	case file:make_dir(Dir) of
+		ok ->
+			open_log1(Dir, Name, Type ,File, Size);
+		{error, exist} ->
+			open_log1(Dir, Name, Type ,File, Size);
+		{error, Reason} ->
+			{error, Reason}
+   end.
+open_log1(Dir, Name, Type ,File, Size) ->
+	FileName = Dir ++ "/" ++ atom_to_list(Name),
+	case disk_log:open([{name, Name}, 
+			{file, FileName},
+			{type, Type}, {size, {Size, File}}]) of
+		{ok, _} = Result ->
+			open_log2(Name, [{node(), Result}], [], undefined);
+		{repaired, _, _, _} = Result ->
+			open_log2(Name, [{node(), Result}], [], undefined);
+		{error, _} = Result ->
+			open_log2(Name, [], [{node(), Result}], undefined);
+		{OkNodes, ErrNodes} ->
+			open_log2(Name, OkNodes, ErrNodes, undefined)
+   end.
+%% @hidden
+open_log2(Name, OkNodes,
+		[{Node, {error, {node_already_open, _}}} | T], Reason)
+		when Node == node() ->
+	open_log2(Name, [{Node, {ok, Name}} | OkNodes], T, Reason);
+open_log2(Name, OkNodes, [{_, {error, {node_already_open, _}}} | T], Reason) ->
+	open_log2(Name, OkNodes, T, Reason);
+open_log2(Name, OkNodes, [{Node, Reason1} | T], Reason2) ->
+	Descr = lists:flatten(disk_log:format_error(Reason1)),
+	Trunc = lists:sublist(Descr, length(Descr) - 1),
+	error_logger:error_report([Trunc, {module, ?MODULE},
+		{log, Name}, {node, Node}, {error, Reason1}]),
+	open_log2(Name, OkNodes, T, Reason2);
+open_log2(_Name, OkNodes, [], Reason) ->
+	case lists:keymember(node(), 1, OkNodes) of
+		true ->
+			ok;
+		false ->
+			{error, Reason}
+	end.
 
