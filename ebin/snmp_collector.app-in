@@ -10,9 +10,9 @@
 		{registered, []},
 		{applications, [kernel, stdlib, snmp]},
 		{env,
-				[{queue_files, 5},
+				[{queue_files, 10},
 				{queue_name, snmp_queue},
 				{queue_type, wrap},
-				{queue_size, 1024000},
-				{queue_dir, "log"}]},
+				{queue_size, 10485760},
+				{queue_dir, "traps"}]},
 		{mod, {snmp_collector_app, []}}]}.
