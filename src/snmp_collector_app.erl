@@ -139,7 +139,7 @@ open_log(Dir, Name, Type ,File, Size) ->
 	case file:make_dir(Dir) of
 		ok ->
 			open_log1(Dir, Name, Type ,File, Size);
-		{error, exist} ->
+		{error, eexist} ->
 			open_log1(Dir, Name, Type ,File, Size);
 		{error, Reason} ->
 			{error, Reason}
