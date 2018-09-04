@@ -65,7 +65,12 @@ start(normal = _StartType, _Args) ->
 					case timer:apply_interval(?INTERVAL, supervisor,
 							start_child, [snmp_collector_get_sup, [[], []]]) of
 						{ok, _TRef} ->
-							{ok, PID};
+							case mnesia:create_table(alarm, [{ram_copies, [node()]}]) of
+								{atomic, ok} ->
+									{ok, PID};
+								{aborted, Reason} ->
+									{aborted, Reason}
+							end;
 						{error, Reason} ->
 							{error, Reason}
 					end;
