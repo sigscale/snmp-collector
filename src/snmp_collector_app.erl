@@ -35,6 +35,14 @@
 
 -record(state, {}).
 
+-record(alarm,
+      {id :: {ReportingEntity :: string(), ID :: string()},
+      event_id :: string(),
+      source_id :: string(),
+      raised :: pos_integer(),
+      updated :: pos_integer(),
+      fault_fields :: map()}).
+
 %%----------------------------------------------------------------------
 %%  The snmp_collector_app aplication callbacks
 %%----------------------------------------------------------------------
@@ -65,7 +73,9 @@ start(normal = _StartType, _Args) ->
 					case timer:apply_interval(?INTERVAL, supervisor,
 							start_child, [snmp_collector_get_sup, [[], []]]) of
 						{ok, _TRef} ->
-							case mnesia:create_table(alarm, [{ram_copies, [node()]}]) of
+							case mnesia:create_table(alarm,
+									[{attributes, record_info(fields, alarm)},
+									{ram_copies, [node()]}]) of
 								{atomic, ok} ->
 									{ok, PID};
 								{aborted, Reason} ->
@@ -120,7 +130,7 @@ stop(_State) ->
 		Removed :: [Par],
 		Par :: atom(),
 		Val :: atom().
-%% @doc Called after a code  replacement, if there are any 
+%% @doc Called after a code  replacement, if there are any
 %% 	changes to the configuration  parameters.
 %%
 config_change(_Changed, _New, _Removed) ->
@@ -151,7 +161,7 @@ open_log(Dir, Name, Type ,File, Size) ->
    end.
 open_log1(Dir, Name, Type ,File, Size) ->
 	FileName = Dir ++ "/" ++ atom_to_list(Name),
-	case disk_log:open([{name, Name}, 
+	case disk_log:open([{name, Name},
 			{file, FileName},
 			{type, Type}, {size, {Size, File}}]) of
 		{ok, _} = Result ->
