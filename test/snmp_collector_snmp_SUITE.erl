@@ -67,7 +67,7 @@ suite() ->
 					[{config, [{verbosity, silence}]},
 					{agent_verbosity, silence},
 					{net_if, [{verbosity, silence}]}]}]},
-	{timetrap, {minutes, 1}}].
+	{timetrap, {minutes, 2}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before the whole suite.
