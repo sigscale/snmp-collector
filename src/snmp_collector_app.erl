@@ -50,9 +50,6 @@
 		State :: #state{},
 		Reason :: term().
 %% @doc Starts the application processes.
-%% @see //kernel/application:start/1
-%% @see //kernel/application:start/2
-%%
 start(normal = _StartType, _Args) ->
 	Tables = [alarm],
 	case mnesia:wait_for_tables(Tables, 60000) of
@@ -70,6 +67,7 @@ start(normal = _StartType, _Args) ->
 		{error, Reason} ->
 			{error, Reason}
    end.
+%% @hidden
 start1(_StartType, _Args) ->
 	{ok, Name} = application:get_env(queue_name),
 	{ok, Type} = application:get_env(queue_type),
@@ -84,7 +82,6 @@ start1(_StartType, _Args) ->
 					case timer:apply_interval(?INTERVAL, supervisor,
 							start_child, [snmp_collector_get_sup, [[], []]]) of
 						{ok, _TRef} ->
-							
 							{ok, PID};
 						{error, Reason} ->
 							{error, Reason}
@@ -206,6 +203,8 @@ open_log2(_Name, OkNodes, [], Reason) ->
 		TableName :: atom(),
 		Reason :: term().
 %% @doc Try to force load bad tables.
+force([alarm | T ]) ->
+	force(T);
 force([H | T]) ->
 	case mnesia:force_load_table(H) of
 		yes ->
