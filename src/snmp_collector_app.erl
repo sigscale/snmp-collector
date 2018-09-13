@@ -51,7 +51,7 @@
 		Reason :: term().
 %% @doc Starts the application processes.
 start(normal = _StartType, _Args) ->
-	Tables = [alarm],
+	Tables = [],
 	case mnesia:wait_for_tables(Tables, 60000) of
 		ok ->
 			start1(normal = _StartType, []);
