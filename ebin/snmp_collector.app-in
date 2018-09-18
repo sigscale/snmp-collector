@@ -9,7 +9,7 @@
 					snmp_collector_trap,
 					snmp_collector_rest_res_mib,
 					snmp_collector_rest_accepted_content,
-					snmp_collector_mib,
+					snmp_collector,
 					snmp_collector_rest,
 					snmp_collector_rest_get]},
 		{registered, []},
