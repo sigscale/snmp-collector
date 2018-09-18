@@ -51,24 +51,6 @@
 		Reason :: term().
 %% @doc Starts the application processes.
 start(normal = _StartType, _Args) ->
-	Tables = [],
-	case mnesia:wait_for_tables(Tables, 60000) of
-		ok ->
-			start1(normal = _StartType, []);
-		{timeout, BadTabList} ->
-			case force(BadTabList) of
-				ok ->
-					start1(normal = _StartType, []);
-				{error, Reason} ->
-					error_logger:error_report(["snmp_collector application failed to start",
-							{reason, Reason}, {module, ?MODULE}]),
-					{error, Reason}
-			end;
-		{error, Reason} ->
-			{error, Reason}
-   end.
-%% @hidden
-start1(_StartType, _Args) ->
 	{ok, Name} = application:get_env(queue_name),
 	{ok, Type} = application:get_env(queue_type),
 	{ok, Size} = application:get_env(queue_size),
@@ -196,21 +178,3 @@ open_log2(_Name, OkNodes, [], Reason) ->
 			{error, Reason}
 	end.
 
--spec force(Tables) -> Result
-	when
-		Tables :: [TableName],
-		Result :: ok | {error, Reason},
-		TableName :: atom(),
-		Reason :: term().
-%% @doc Try to force load bad tables.
-force([alarm | T ]) ->
-	force(T);
-force([H | T]) ->
-	case mnesia:force_load_table(H) of
-		yes ->
-			force(T);
-		ErrorDescription ->
-			{error, ErrorDescription}
-	end;
-force([]) ->
-	ok.
