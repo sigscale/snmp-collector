@@ -20,8 +20,6 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 %% export the snmp_collector public API
--export([get_mib/1, delete_mib/1]).
-
 -export([content_types_provided/0, content_types_accepted/0]).
 
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
@@ -186,48 +184,6 @@ update_user(Username, Password, Language) ->
 					{error, Reason}
 			end
 	end.
-
--spec get_mib(ID) -> Result
-	when
-		ID :: string(),
-		Result :: {ok, User} | {error, Reason},
-		User :: #httpd_user{},
-		Reason :: term().
-%% @doc Get an HTTP mib record.
-%% @equiv mod_auth:get_mib(ID, Address, Port, Dir)
-get_mib(ID) ->
-	get_mib(ID, get_params()).
-%% @hidden
-get_mib(ID, {Port, Address, Dir, _}) ->
-	mod_auth:get_user(ID, Address, Port, Dir);
-get_mib(_, {error, Reason}) ->
-	{error, Reason}.
-
--spec delete_mib(ID) -> Result
-	when
-		ID :: string(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Delete an existing HTTP user.
-delete_mib(ID) ->
-	delete_mib1(ID, get_params()).
-%% @hidden
-delete_mib1(ID, {Port, Address, Dir, GroupName}) ->
-	delete_mib2(GroupName, ID, Address, Port, Dir,
-			mod_auth:delete_mib(ID, Address, Port, Dir));
-delete_mib1(_, {error, Reason}) ->
-	{error, Reason}.
-%% @hidden
-delete_mib2(GroupName, ID, Address, Port, Dir, true) ->
-	delete_mib3(mod_auth:delete_group_member(GroupName,
-			ID, Address, Port, Dir));
-delete_mib2(_, _, _, _, _, {error, Reason}) ->
-	{error, Reason}.
-%% @hidden
-delete_mib3(true) ->
-	ok;
-delete_mib3({error, Reason}) ->
-	{error, Reason}.
 
 %
 %%----------------------------------------------------------------------
