@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This {@link //stdlib/gen_server. gen_server} behaviour callback
 %%%     module implements a service access point (SAP) for the public API of the
-%%%     {@link //ocs. ocs} application.
+%%%     {@link //snmp_collector. snmp_collector} application.
 %%%
 -module(snmp_collector_server).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
