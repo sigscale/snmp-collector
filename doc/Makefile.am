@@ -12,7 +12,6 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_rest_res_mib.html \
 			snmp_collector_rest_accepted_content.html \
 			snmp_collector.html \
-			snmp_collector_rest_get.html \
 			snmp_collector_rest_get.html
 
 doc_DATA = overview.edoc $(modhtml) \
