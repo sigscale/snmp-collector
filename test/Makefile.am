@@ -5,7 +5,9 @@
 
 CERT_DIR = certificates
 
-testmods = snmp_collector_snmp_SUITE
+testmods = snmp_collector_snmp_SUITE \
+		snmp_collector_api_SUITE \
+		snmp_collector_rest_SUITE
 
 check_DATA = .dialyzer_ok .common_test_ok
 
