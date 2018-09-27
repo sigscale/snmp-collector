@@ -68,7 +68,7 @@ do(#mod{method = Method, request_uri = Uri, data = Data} = ModData) ->
 
 %% @hidden
 do_delete(Resource, ModData, ["snmp", "v1", "mibs", ID]) ->
-	do_response(ModData, Resource:delete_client(ID));
+	do_response(ModData, Resource:delete_mib(ID));
 do_delete(_Resource, _ModData, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.
