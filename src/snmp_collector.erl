@@ -20,10 +20,10 @@
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
 %% export the snmp_collector public API
--export([content_types_provided/0, content_types_accepted/0]).
-
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
 		update_user/3]).
+%% export the snmp_collector private API
+-export([generate_identity/1]).
 
 -include_lib("inets/include/httpd.hrl").
 
@@ -38,20 +38,6 @@
 %%----------------------------------------------------------------------
 %%  The snmp_collector public API
 %%----------------------------------------------------------------------
-
--spec content_types_accepted() -> ContentTypes
-	when
-		ContentTypes :: list().
-%% @doc Provides list of resource representations accepted.
-content_types_accepted() ->
-	["application/json"].
-
--spec content_types_provided() -> ContentTypes
-	when
-		ContentTypes :: list().
-%% @doc Provides list of resource representations available.
-content_types_provided() ->
-	["application/json"].
 
 -spec add_user(Username, Password, Locale) -> Result
 	when
@@ -185,6 +171,24 @@ update_user(Username, Password, Language) ->
 			end
 	end.
 
+-spec generate_identity(Length) -> string()
+	when
+		Length :: pos_integer().
+%% @doc Generate a random uniform numeric identity.
+%% @private
+generate_identity(Length) when Length > 0 ->
+	Charset = lists:seq($0, $9),
+	NumChars = length(Charset),
+	Random = crypto:strong_rand_bytes(Length),
+	generate_identity(Random, Charset, NumChars,[]).
+%% @hidden
+generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
+	CharNum = (N rem NumChars) + 1,
+	NewAcc = [lists:nth(CharNum, Charset) | Acc],
+	generate_identity(Rest, Charset, NumChars, NewAcc);
+generate_identity(<<>>, _Charset, _NumChars, Acc) ->
+	Acc.
+
 %
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -233,3 +237,4 @@ get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->
 	{Port, Address, Directory, Group};
 get_params5(_, _, _, false) ->
 	{error, httpd_group_undefined}.
+
