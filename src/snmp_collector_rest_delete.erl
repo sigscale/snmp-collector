@@ -83,7 +83,7 @@ do_response(_ModData, {error, 202}) ->
 	Response = "<h2>HTTP Error 202 - Accepted</h2>",
 	{break, [{response, {202, Response}}]};
 do_response(_ModData, {error, 400}) ->
-	Response = "<h2>HTTP Error 400 - Bad Reques</h2>",
+	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	{break, [{response, {400, Response}}]};
 do_response(_ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
