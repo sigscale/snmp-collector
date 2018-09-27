@@ -107,7 +107,8 @@ post_mib(RequestBody) ->
 				ok ->
 					case snmpc:compile(MibName, [module_identity,
 							{outdir, BinDir}, {group_check, false}]) of
-						{ok, _BinFileName} ->
+						{ok, BinFileName} ->
+							snmpm:load_mib(BinFileName),
 							ID = get_name(binary_to_list(File)),
 							case read_mib(BinDir, ID) of
 								{ok, Name, Mes, Traps} ->
@@ -138,11 +139,23 @@ post_mib(RequestBody) ->
 %% @doc Respond to `DELETE /snmp/v1/mibs' and remove a `MIB'
 %% resource.
 delete_mib(ID) ->
+	{ok, MibDir} = application:get_env(snmp_collector, mib_dir),
 	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
-	MibFile = BinDir ++ "/" ++ ID ++ ".bin",
-	case file:delete(MibFile) of
+	MibFile = MibDir ++ "/" ++ ID ++ ".mib",
+	BinFile = BinDir ++ "/" ++ ID ++ ".bin",
+	case snmpm:unload_mib(BinFile) of
 		ok ->
-			{ok, [], []};
+			case file:delete(BinFile) of
+				ok ->
+					case file:delete(MibFile) of
+						ok->
+							{ok, [], []};
+						{error,Reason} ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, _Reason} ->
 			{error, 400}
 	end.
