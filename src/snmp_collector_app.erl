@@ -56,8 +56,11 @@ start(normal = _StartType, _Args) ->
 	{ok, Size} = application:get_env(queue_size),
 	{ok, File} = application:get_env(queue_files),
 	{ok, Dir} = application:get_env(queue_dir),
+	{ok, MibDir} = application:get_env(mib_dir),
+	{ok, BinDir} = application:get_env(bin_dir),
 	case open_log(Dir, Name, Type ,File, Size) of
 		ok ->
+			create_dirs(MibDir, BinDir),
 			case supervisor:start_link(snmp_collector_sup, []) of
 				{ok, PID} ->
 					_ChildSup =
@@ -123,6 +126,23 @@ config_change(_Changed, _New, _Removed) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec create_dirs(MibDir, BinDir) -> Result
+	when
+		MibDir :: string(),
+		BinDir :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Create the MIB directory.
+create_dirs(MibDir, BinDir) ->
+	case file:make_dir(MibDir) of
+		ok ->
+			file:make_dir(BinDir);
+		{error, eexist} ->
+			file:make_dir(BinDir);
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec open_log(Dir, Name, Type ,File, Size) -> Result
 	when
