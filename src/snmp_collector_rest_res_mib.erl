@@ -20,7 +20,7 @@
 -copyright('Copyright (c) 2018 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_mibs/1, get_mib/2, post_mib/1]).
+		get_mibs/1, get_mib/2, post_mib/1, delete_mib/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("snmp_collector.hrl").
@@ -107,7 +107,7 @@ post_mib(RequestBody) ->
 				ok ->
 					case snmpc:compile(MibName, [module_identity,
 							{outdir, BinDir}, {group_check, false}]) of
-						{ok, BinFileName} ->
+						{ok, _BinFileName} ->
 							ID = get_name(binary_to_list(File)),
 							case read_mib(BinDir, ID) of
 								{ok, Name, Mes, Traps} ->
@@ -128,6 +128,23 @@ post_mib(RequestBody) ->
 			end;
 		{error, Reason} ->
 			{error, Reason}
+	end.
+
+-spec delete_mib(ID) -> Result
+	when
+		ID :: string(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Respond to `DELETE /snmp/v1/mibs' and remove a `MIB'
+%% resource.
+delete_mib(ID) ->
+	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
+	MibFile = BinDir ++ "/" ++ ID ++ ".bin",
+	case file:delete(MibFile) of
+		ok ->
+			{ok, [], []};
+		{error, _Reason} ->
+			{error, 400}
 	end.
 
 -spec get_params() -> Result
