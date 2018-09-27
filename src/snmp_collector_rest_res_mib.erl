@@ -169,7 +169,7 @@ delete_mib(ID) ->
 %% @private
 when
 		Mes :: [#me{}],
-		Acc :: [],
+		Acc :: list(),
 		Result :: [map()].
 mes([H | T], Acc) ->
 	Me = me(H),
@@ -181,7 +181,7 @@ mes([], Acc) ->
 -spec notifications(Notifications, Acc) -> Result
 	when
 		Notifications :: [#me{}],
-		Acc :: [],
+		Acc :: list(),
 		Result :: [map()].
 notifications([H | T], Acc) ->
 	Me = notification(H),
@@ -195,7 +195,7 @@ notifications([], Acc) ->
 		OidObjects:: [{OID, Asn1Type}],
 		OID :: list(),
 		Asn1Type :: #asn1_type{},
-		Acc :: [],
+		Acc :: list(),
 		Result :: [map()].
 oidobjects([{OID, Asn1Type} | T], Acc) ->
 	Map = #{"name" => oid_to_name(OID),
@@ -285,7 +285,7 @@ create_map(Name, Mes, Traps)
 		MibRecords :: [{Name, Mes}],
 		Name :: string(),
 		Mes :: [map()],
-		Acc :: [],
+		Acc :: list(),
 		Result :: [map()].
 %% @doc Create maps with the MIB Names and Mes.
 %% @private
