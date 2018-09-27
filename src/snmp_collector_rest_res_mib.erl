@@ -19,7 +19,7 @@
 -module(snmp_collector_rest_res_mib).
 -copyright('Copyright (c) 2018 SigScale Global Inc.').
 
--export([content_types_accepted/0, content_types_provided/0, get_params/0,
+-export([content_types_accepted/0, content_types_provided/0,
 		get_mibs/1, get_mib/2, post_mib/1, delete_mib/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
@@ -158,28 +158,6 @@ delete_mib(ID) ->
 			end;
 		{error, _Reason} ->
 			{error, 400}
-	end.
-
--spec get_params() -> Result
-	when
-		Result :: {Port, Address, Directory, Group},
-		Port :: integer(),
-		Address :: string(),
-		Directory :: string(),
-		Group :: string().
-%% @doc Get {@link //inets/httpd. httpd} configuration parameters.
-get_params() ->
-	{_, _, Info} = lists:keyfind(httpd, 1, inets:services_info()),
-	{_, Port} = lists:keyfind(port, 1, Info),
-	{_, Address} = lists:keyfind(bind_address, 1, Info),
-	{ok, EnvObj} = application:get_env(inets, services),
-	{httpd, HttpdObj} = lists:keyfind(httpd, 1, EnvObj),
-	{directory, {Directory, AuthObj}} = lists:keyfind(directory, 1, HttpdObj),
-	case lists:keyfind(require_group, 1, AuthObj) of
-		{require_group, [Group | _T]} ->
-			{Port, Address, Directory, Group};
-		false ->
-			exit(not_found)
 	end.
 
 %%----------------------------------------------------------------------
