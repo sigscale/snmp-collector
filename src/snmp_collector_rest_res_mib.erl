@@ -20,8 +20,9 @@
 -copyright('Copyright (c) 2018 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0, get_params/0,
-		get_mibs/1, get_mib/2]).
+		get_mibs/1, get_mib/2, post_mib/1]).
 
+-include_lib("inets/include/mod_auth.hrl").
 -include("snmp_collector.hrl").
 -include_lib("snmp/include/snmp_types.hrl").
 
@@ -34,14 +35,14 @@
 		ContentTypes :: list().
 %% @doc Provides list of resource representations accepted.
 content_types_accepted() ->
-	["application/json", "application/json-patch+json"].
+	["application/json", "application/json-patch+json", "text/plain"].
 
 -spec content_types_provided() -> ContentTypes
 	when
 		ContentTypes :: list().
 %% @doc Provides list of resource representations available.
 content_types_provided() ->
-	["application/json"].
+	["application/json", "text/plain"].
 
 -spec get_mib(ID, Query) -> Result
 	when
@@ -52,7 +53,7 @@ content_types_provided() ->
 %% @doc Body producing function for `GET snmp/v1/mibs/{id}'
 %% requests.
 get_mib(ID, _Query) ->
-	{ok, Dir} = application:get_env(snmp_collector, mib_dir),
+	{ok, Dir} = application:get_env(snmp_collector, bin_dir),
 	case read_mib(Dir, ID) of
 		{ok, Name, Mes, Traps} ->
 			Map = create_map(Name, Mes, Traps),
@@ -61,8 +62,8 @@ get_mib(ID, _Query) ->
 				{content_type, "application/json"}],
 			Body = zj:encode(Map),
 			{ok, Headers, Body};
-		{error, Reason} ->
-			{error, Reason}
+		{error, _Reason} ->
+			{error, 400}
 	end.
 	
 -spec get_mibs(Query) -> Result
@@ -73,15 +74,61 @@ get_mib(ID, _Query) ->
 %% @doc Body producing function for `GET snmp/v1/mibs/'
 %% requests.
 get_mibs(_Query) ->
-	{ok, Dir} = application:get_env(snmp_collector, mib_dir),
+	{ok, Dir} = application:get_env(snmp_collector, bin_dir),
 	{ok, Files} = file:list_dir(Dir),
-	MibRecords = read_mibs(Dir, Files, []),
-	Maps = create_maps(MibRecords, []),
-	Href = "snmp/v1/mibs",
-	Headers = [{location, Href},
-			{content_type, "application/json"}],
-	Body = zj:encode(Maps),
-	{ok, Headers, Body}.
+	case read_mibs(Dir, Files, []) of
+		{ok, MibRecords} ->
+			Maps = create_maps(MibRecords, []),
+			Href = "snmp/v1/mibs",
+			Headers = [{location, Href},
+					{content_type, "application/json"}],
+			Body = zj:encode(Maps),
+			{ok, Headers, Body};
+		{error, _Reason} ->
+			{error, 400}
+	end.
+
+-spec post_mib(RequestBody) -> Result
+	when
+		RequestBody :: list(),
+		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
+				| {error, ErrorCode :: integer()}.
+%% @doc Respond to `POST /snmp/v1/mibs' and add a new `MIB'
+%% resource.
+post_mib(RequestBody) ->
+	{ok, MibDir} = application:get_env(snmp_collector, mib_dir),
+	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
+	TempName = MibDir ++ "/" ++ "temp.mib",
+	case file:write_file(TempName, RequestBody) of
+		ok ->
+			{ok, File} = file:read_file(TempName),
+			MibName = MibDir ++ "/" ++ get_name(binary_to_list(File)) ++ ".mib",
+			case file:rename(TempName, MibName) of
+				ok ->
+					case snmpc:compile(MibName, [module_identity,
+							{outdir, BinDir}, {group_check, false}]) of
+						{ok, BinFileName} ->
+							ID = get_name(binary_to_list(File)),
+							case read_mib(BinDir, ID) of
+								{ok, Name, Mes, Traps} ->
+									Map = create_map(Name, Mes, Traps),
+									Href = "snmp/v1/mibs/{id}",
+									Headers = [{location, Href},
+											{content_type, "application/json"}],
+									Body = zj:encode(Map),
+									{ok, Headers, Body};
+								{error, Reason} ->
+									{error, Reason}
+							end;
+						{error, _Reason} ->
+							{error, 400}
+					end;
+				{error, Reason}->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec get_params() -> Result
 	when
@@ -112,16 +159,16 @@ get_params() ->
 -spec mes(Mes, Acc) -> Result
 %% @doc Check all the Mes.
 %% @private
-   when
-      Mes :: [#me{}],
-      Acc :: [],
-      Result :: [map()].
+when
+		Mes :: [#me{}],
+		Acc :: [],
+		Result :: [map()].
 mes([H | T], Acc) ->
-   Me = me(H),
-   mes(T, [Me | Acc]);
+	Me = me(H),
+	mes(T, [Me | Acc]);
 mes([], Acc) ->
-   NewAcc = lists:reverse(Acc),
-   NewAcc.
+	NewAcc = lists:reverse(Acc),
+	NewAcc.
 
 -spec notifications(Notifications, Acc) -> Result
 	when
@@ -211,12 +258,19 @@ notification([], _N, Acc) ->
 		Result :: map().
 %% @doc Create a map with the MIB Name and Mes.
 %% @private
-create_map(Name, Mes, Traps) ->
+create_map(Name, Mes, Traps)
+		when Traps =/= [] ->
 	#{"id" => Name,
 		"href" => "snmp/v1/mibs/" ++ Name,
 		"name" => Name,
 		"mes" => mes(Mes, []),
-		"traps" => notifications(Traps, [])}.
+		"traps" => notifications(Traps, [])};
+create_map(Name, Mes, Traps)
+		when Traps == [] ->
+	#{"id" => Name,
+		"href" => "snmp/v1/mibs/" ++ Name,
+		"name" => Name,
+		"mes" => mes(Mes, [])}.
 
 -spec create_maps(MibRecords, Acc) -> Result
 	when
@@ -227,12 +281,20 @@ create_map(Name, Mes, Traps) ->
 		Result :: [map()].
 %% @doc Create maps with the MIB Names and Mes.
 %% @private
-create_maps([{Name, Mes, Traps} | T], Acc) ->
+create_maps([{Name, Mes, Traps} | T], Acc)
+		when Traps =/= [] ->
 	Map = #{"id" => Name,
 				"href" => "snmp/v1/mibs/" ++ Name,
 				"name" => Name,
 				"mes" => Mes,
 				"traps" => Traps},
+	create_maps(T, [Map | Acc]);
+create_maps([{Name, Mes, Traps} | T], Acc)
+		when Traps == [] ->
+	Map = #{"id" => Name,
+				"href" => "snmp/v1/mibs/" ++ Name,
+				"name" => Name,
+				"mes" => Mes},
 	create_maps(T, [Map | Acc]);
 create_maps([], Acc) ->
 	NewAcc = lists:reverse(Acc),
@@ -271,24 +333,21 @@ read_mib(Dir, ID) ->
 		Reason :: term().
 %% @doc Read all mib files in the directory.
 %% @private
-read_mibs(Dir, [H | T], Acc)
-		when H =/= "Makefile" ->
+read_mibs(Dir, [H | T], Acc) ->
 	Read = Dir ++ "/" ++ H,
 	case snmp:read_mib(Read) of
 		{ok, MibRecord} ->
 			Name = MibRecord#mib.name,
 			Mes = MibRecord#mib.mes,
 			Traps = MibRecord#mib.traps,
-			read_mibs(Dir, T, [{Name, mes(Mes, []), 
+			read_mibs(Dir, T, [{Name, mes(Mes, []),
 					notifications(Traps, [])} | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-read_mibs(Dir, [_H | T], Acc) ->
-	read_mibs(Dir, T, Acc);
 read_mibs(_Dir, [], Acc) ->
 	NewAcc = lists:reverse(Acc),
-	NewAcc.
+	{ok, NewAcc}.
 
 -spec oid_to_name(OID) -> Name
 	when
@@ -311,3 +370,43 @@ oid_to_name(OID, [_H | T], {error, _Reason}) ->
 	oid_to_name(OID, T, snmpm:oid_to_name(lists:reverse(T)));
 oid_to_name(OID, [], {error, _Reason}) ->
 	lists:flatten(io_lib:fwrite("~p", [OID])).
+
+get_name([H | _] = Body) when H >= $A, H =< $Z ->
+	get_name1(Body, []);
+get_name([$ | T]) ->
+	get_name(T);
+get_name([$\t | T]) ->
+	get_name(T);
+get_name([$\r | T]) ->
+	get_name(T);
+get_name([$\n | T]) ->
+	get_name(T);
+get_name([$-, $- | T]) ->
+	get_name(skip_to_eol(T)).
+
+get_name1([H | T], Acc) when H >= $A, H =< $Z ->
+ 	get_name1(T, [H | Acc]);
+get_name1([H | T], Acc) when H >= $a, H =< $z ->
+	get_name1(T, [H | Acc]);
+get_name1([H | T], Acc) when H >= $0, H =< $9 ->
+	get_name1(T, [H | Acc]);
+get_name1([$- | T], Acc) ->
+	get_name1(T, [$- | Acc]);
+get_name1([$  | T], Acc) ->
+	get_name2(T, lists:reverse(Acc)).
+
+get_name2([$  | T], Name) ->
+	get_name2(T, Name);
+get_name2([$\t | T], Name) ->
+	get_name2(T, Name);
+get_name2([$\r | T], Name) ->
+	get_name2(T, Name);
+get_name2([$\n | T], Name) ->
+	get_name2(T, Name);
+get_name2("DEFINITIONS " ++ _,  Name) ->
+	Name.
+
+skip_to_eol([$\n | T]) ->
+	T;
+skip_to_eol([_ | T]) ->
+	skip_to_eol(T).
