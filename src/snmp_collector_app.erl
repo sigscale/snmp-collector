@@ -1,7 +1,7 @@
 %%% snmp_collector_app.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2018 SigScale Global Inc.
+%%% @copyright 2017 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 %%%   {@link //sigcale_snmp_collector. sigscale_snmp_collector} application.
 %%%
 -module(snmp_collector_app).
--copyright('Copyright (c) 2018 SigScale Global Inc.').
+-copyright('Copyright (c) 2017 SigScale Global Inc.').
 
 -behaviour(application).
 
@@ -28,11 +28,15 @@
 -export([start/2, stop/1, config_change/3]).
 %% optional callbacks for application behaviour
 -export([prep_stop/1, start_phase/3]).
+%% export the snmp_collector_app private API for installation
+-export([install/0, install/1]).
 
 -define(INTERVAL, 300000).
+-define(WAITFORSCHEMA, 9000).
+-define(WAITFORTABLES, 9000).
 
 -include("snmp_collector.hrl").
-
+-include_lib("inets/include/mod_auth.hrl").
 -include_lib("sigscale_fm/include/fm.hrl").
 
 -record(state, {}).
@@ -126,6 +130,232 @@ config_change(_Changed, _New, _Removed) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec install() -> Result
+	when
+		Result :: {ok, Tables},
+		Tables :: [atom()].
+%% @equiv install([node() | nodes()])
+install() ->
+	Nodes = [node() | nodes()],
+	install(Nodes).
+
+-spec install(Nodes) -> Result
+	when
+		Nodes :: [node()],
+		Result :: {ok, Tables},
+		Tables :: [atom()].
+%% @doc Initialize Snmp Collector Application tables.
+%% 	`Nodes' is a list of the nodes where
+%%
+%% 	If {@link //mnesia. mnesia} is not running an attempt
+%% 	will be made to create a schema on all available nodes.
+%% 	If a schema already exists on any node
+%% 	{@link //mnesia. mnesia} will be started on all nodes
+%% 	using the existing schema.
+%%
+%% @private
+%%
+install(Nodes) when is_list(Nodes) ->
+	case mnesia:system_info(is_running) of
+		no ->
+			case mnesia:create_schema(Nodes) of
+				ok ->
+					error_logger:info_report("Created mnesia schema",
+							[{nodes, Nodes}]),
+					install1(Nodes);
+				{error, Reason} ->
+					error_logger:error_report(["Failed to create schema",
+							mnesia:error_description(Reason),
+							{nodes, Nodes}, {error, Reason}]),
+					{error, Reason}
+			end;
+		_ ->
+			install2(Nodes)
+	end.
+%% @hidden
+install1([Node] = Nodes) when Node == node() ->
+	case mnesia:start() of
+		ok ->
+			error_logger:info_msg("Started mnesia~n"),
+			install2(Nodes);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+					{error, Reason}]),
+			{error, Reason}
+	end;
+install1(Nodes) ->
+	case rpc:multicall(Nodes, mnesia, start, [], 50000) of
+		{Results, []} ->
+			F = fun(ok) ->
+						false;
+					(_) ->
+						true
+			end,
+			case lists:filter(F, Results) of
+				[] ->
+					error_logger:info_report(["Started mnesia on all nodes",
+							{nodes, Nodes}]),
+					install2(Nodes);
+				NotOKs ->
+					error_logger:error_report(["Failed to start mnesia"
+							" on all nodes", {nodes, Nodes}, {errors, NotOKs}]),
+					{error, NotOKs}
+			end;
+		{Results, BadNodes} ->
+			error_logger:error_report(["Failed to start mnesia"
+					" on all nodes", {nodes, Nodes}, {results, Results},
+					{badnodes, BadNodes}]),
+			{error, {Results, BadNodes}}
+	end.
+%% @hidden
+install2(Nodes) ->
+	case mnesia:wait_for_tables([schema], ?WAITFORSCHEMA) of
+		ok ->
+			install3(Nodes, []);
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason};
+		{timeout, Tables} ->
+			error_logger:error_report(["Timeout waiting for tables",
+					{tables, Tables}]),
+			{error, timeout}
+	end.
+%% @hidden
+install3(Nodes, Acc) ->
+	case application:load(inets) of
+		ok ->
+			error_logger:info_msg("Loaded inets.~n"),
+			install4(Nodes, Acc);
+		{error, {already_loaded, inets}} ->
+			install4(Nodes, Acc)
+	end.
+%% @hidden
+install4(Nodes, Acc) ->
+	case application:get_env(inets, services) of
+		{ok, InetsServices} ->
+			install5(Nodes, Acc, InetsServices);
+		undefined ->
+			error_logger:info_msg("Inets services not defined. "
+					"User table not created~n"),
+			install9(Nodes, Acc)
+	end.
+%% @hidden
+install5(Nodes, Acc, InetsServices) ->
+	case lists:keyfind(httpd, 1, InetsServices) of
+		{httpd, HttpdInfo} ->
+			install6(Nodes, Acc, lists:keyfind(directory, 1, HttpdInfo));
+		false ->
+			error_logger:info_msg("Httpd service not defined. "
+					"User table not created~n"),
+			install9(Nodes, Acc)
+	end.
+%% @hidden
+install6(Nodes, Acc, {directory, {_, DirectoryInfo}}) ->
+	case lists:keyfind(auth_type, 1, DirectoryInfo) of
+		{auth_type, mnesia} ->
+			install7(Nodes, Acc);
+		_ ->
+			error_logger:info_msg("Auth type not mnesia. "
+					"User table not created~n"),
+			install9(Nodes, Acc)
+	end;
+install6(Nodes, Acc, false) ->
+	error_logger:info_msg("Auth directory not defined. "
+			"User table not created~n"),
+	install9(Nodes, Acc).
+%% @hidden
+install7(Nodes, Acc) ->
+	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
+			{attributes, record_info(fields, httpd_user)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new httpd_user table.~n"),
+			install8(Nodes, [httpd_user | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, httpd_user}} ->
+			error_logger:info_msg("Found existing httpd_user table.~n"),
+			install8(Nodes, [httpd_user | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install8(Nodes, Acc) ->
+	case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
+			{attributes, record_info(fields, httpd_group)}]) of
+		{atomic, ok} ->
+			error_logger:info_msg("Created new httpd_group table.~n"),
+			install9(Nodes, [httpd_group | Acc]);
+		{aborted, {not_active, _, Node} = Reason} ->
+			error_logger:error_report(["Mnesia not started on node",
+					{node, Node}]),
+			{error, Reason};
+		{aborted, {already_exists, httpd_group}} ->
+			error_logger:info_msg("Found existing httpd_group table.~n"),
+			install9(Nodes, [httpd_group | Acc]);
+		{aborted, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+				{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install9(_Nodes, Tables) ->
+	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
+		ok ->
+			install10(Tables, lists:member(httpd_user, Tables));
+		{timeout, Tables} ->
+			error_logger:error_report(["Timeout waiting for tables",
+					{tables, Tables}]),
+			{error, timeout};
+		{error, Reason} ->
+			error_logger:error_report([mnesia:error_description(Reason),
+					{error, Reason}]),
+			{error, Reason}
+	end.
+%% @hidden
+install10(Tables, true) ->
+	case inets:start() of
+		ok ->
+			error_logger:info_msg("Started inets.~n"),
+			install11(Tables);
+		{error, {already_started, inets}} ->
+			install11(Tables);
+		{error, Reason} ->
+			error_logger:error_msg("Failed to start inets~n"),
+			{error, Reason}
+	end;
+install10(Tables, false) ->
+	{ok, Tables}.
+%% @hidden
+install11(Tables) ->
+	case snmp_collector:list_users() of
+		{ok, []} ->
+			case snmp_collector:add_user("admin", "admin", "en") of
+				{ok, _LastModified} ->
+					error_logger:info_report(["Created a default user",
+							{username, "admin"}, {password, "admin"},
+							{locale, "en"}]),
+					{ok, Tables};
+				{error, Reason} ->
+					error_logger:error_report(["Failed to create default user",
+							{username, "admin"}, {password, "admin"},
+							{locale, "en"}]),
+					{error, Reason}
+			end;
+		{ok, Users} ->
+			error_logger:info_report(["Found existing http users",
+					{users, Users}]),
+			{ok, Tables};
+		{error, Reason} ->
+			error_logger:error_report(["Failed to list http users",
+				{error, Reason}]),
+			{error, Reason}
+	end.
 
 -spec create_dirs(MibDir, BinDir) -> Result
 	when
