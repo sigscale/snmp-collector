@@ -15,7 +15,7 @@
 					snmp_collector_rest_post,
 					snmp_collector_rest_delete]},
 		{registered, []},
-		{applications, [kernel, stdlib, snmp]},
+		{applications, [kernel, stdlib, crypto, snmp]},
 		{env,
 				[{queue_files, 100},
 				{queue_name, fault},
