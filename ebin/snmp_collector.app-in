@@ -14,7 +14,7 @@
 					snmp_collector_rest_get,
 					snmp_collector_rest_post,
 					snmp_collector_rest_delete,
-					snmp_collector_utilities]},
+					snmp_collector_utils]},
 		{registered, []},
 		{applications, [kernel, stdlib, crypto, snmp]},
 		{env,
