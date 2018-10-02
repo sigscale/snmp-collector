@@ -1,4 +1,4 @@
-%%%snmp_collector_utilities.erl
+%%%snmp_collector_utils.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2017 SigScale Global Inc.
@@ -16,10 +16,10 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(snmp_collector_utilities).
+-module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([iso8601/1]).
+-export([iso8601/1, oid_to_name/1]).
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -162,4 +162,26 @@ iso8601millisecond(EpocMilliseconds, [$., N | _])
 	EpocMilliseconds + list_to_integer([N]) * 100;
 iso8601millisecond(EpocMilliseconds, _) ->
 	EpocMilliseconds.
+
+-spec oid_to_name(OID) -> Name
+	when
+		OID :: snmp:oid(),
+		Name :: string().
+%% @doc Get a name for an OID.
+oid_to_name(OID) ->
+	oid_to_name(OID, lists:reverse(OID), snmpm:oid_to_name(OID)).
+%% @hidden
+oid_to_name(_OID, [0], {ok, Name}) ->
+	lists:flatten(io_lib:fwrite("~s", [Name]));
+oid_to_name(OID, T, {ok, Name}) ->
+	case lists:sublist(OID, length(T) + 1, length(OID)) of
+		[0] ->
+			lists:flatten(io_lib:fwrite("~s", [Name]));
+		Rest ->
+		lists:flatten(io_lib:fwrite("~s.~p", [Name, Rest]))
+	end;
+oid_to_name(OID, [_H | T], {error, _Reason}) ->
+	oid_to_name(OID, T, snmpm:oid_to_name(lists:reverse(T)));
+oid_to_name(OID, [], {error, _Reason}) ->
+	lists:flatten(io_lib:fwrite("~p", [OID])).
 
