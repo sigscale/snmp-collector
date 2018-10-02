@@ -20,7 +20,8 @@
 -copyright('Copyright (c) 2018 SigScale Global Inc.').
 
 -export([handle_error/3, handle_agent/5, handle_pdu/4,
-		handle_trap/3, handle_inform/3, handle_report/3]).
+		handle_trap/3, handle_inform/3, handle_report/3,
+		handle_invalid_result/2]).
 
 -behaviour(snmpm_user).
 
@@ -37,22 +38,22 @@
 		SnmpInfo :: snmpm_user:snmp_gen_info(),
 		SecurityInfo :: term(),
 		Address :: inet:ip_address(),
-		Port :: inet:port()
+		Port :: inet:port(),
 		UserData :: term().
 %% @doc Called when the manager needs to communicate an "asynchronous"
 %% 	error to the user.
 handle_error(ReqId,
-		{unexpected_pdu, {Status, Index, VarBinds}} = _Reason, UserData) ->
+		{unexpected_pdu, {Status, Index, Varbinds}} = _Reason, UserData) ->
 	error_logger:error_report(["SNMP Manager: Error",
 			{reqid, ReqId}, {error, unexpected_pdu},
 			{status, Status}, {index, Index},
-			{varbinds, VarBinds}, {userdata, UserData}]);
+			{varbinds, Varbinds}, {userdata, UserData}]);
 handle_error(ReqId,
-		{invalid_sec_info, SecurityInfo, {Status, Index, VarBinds}}, UserData) ->
+		{invalid_sec_info, SecurityInfo, {Status, Index, Varbinds}}, UserData) ->
 	error_logger:error_report(["SNMP Manager: Error",
 			{reqid, ReqId}, {error, invalid_sec_info},
 			{sec_info, SecurityInfo}, {status, Status},
-			{index, Index}, {varbinds, VarBinds},
+			{index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]);
 handle_error(ReqId, {empty_message, Address, Port}, UserData) ->
 	error_logger:error_report(["SNMP Manager: Error",
@@ -62,7 +63,7 @@ handle_error(ReqId, {empty_message, Address, Port}, UserData) ->
 handle_error(ReqId, Other, UserData) ->
 	error_logger:error_report(["SNMP Manager: Error",
 			{reqid, ReqId}, {error, Other},
-			{userdata, UserData}]);
+			{userdata, UserData}]).
 
 -spec handle_agent(Domain, Address, Type, SnmpInfo, UserData) -> Reply
 	when
@@ -75,24 +76,24 @@ handle_error(ReqId, Other, UserData) ->
 		SnmpReportInfo :: snmpm_user:snmp_gen_info(),
 		SnmpInformInfo :: snmpm_user:snmp_gen_info(),
 		UserData :: term(),
-		Reply :: ignore | {register, UserId, TargetName, AgentConfig}
+		Reply :: ignore | {register, UserId, TargetName, AgentConfig},
 		UserId :: term(),
 		TargetName :: snmpm:target_name(),
 		AgentConfig :: [snmpm:agent_config()].
 %% @doc Called when a message is received from an unknown agent.
-handle_agent(_Domain, {IpAddress, Port} = Address, Type,
+handle_agent(_Domain, {IpAddress, Port} = _Address, Type,
 		{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
 	error_logger:error_report(["SNMP Manager: Unknown Agent",
-			{address, IpAddress}, {port, Port}, (type, Type},
+			{address, IpAddress}, {port, Port}, {type, Type},
 			{enterprise, Enteprise}, {generic, Generic}, {spec, Spec},
-			{timestamp, Timestamp}, {varbinds, VarBinds},
+			{timestamp, Timestamp}, {varbinds, Varbinds},
 			{userdata, UserData}]),
     ignore;
-handle_agent(_Domain, {IpAddress, Port} = Address, Type,
+handle_agent(_Domain, {IpAddress, Port} = _Address, Type,
 		{Status, Index, Varbinds} = _SnmpInfo, UserData) ->
 	error_logger:error_report(["SNMP Manager: Unknown Agent",
-			{address, IpAddress}, {port, Port}, (type, Type},
-			{status, Status}, {index, Index}, {varbinds, VarBinds},
+			{address, IpAddress}, {port, Port}, {type, Type},
+			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
     ignore.
 
@@ -107,7 +108,7 @@ handle_pdu(TargetName, ReqId,
 		{Status, Index, Varbinds} = _SnmpPduInfo, UserData) ->
 	error_logger:error_report(["SNMP Manager: PDU Reply",
 			{target_name, TargetName}, {reqid, ReqId},
-			{status, Status}, {index, Index}, {varbinds, VarBinds},
+			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
     ignore.
 
@@ -126,7 +127,7 @@ handle_trap(TargetName,
 		{Status, Index, Varbinds} = _SnmpTrapInfo, UserData) ->
 	error_logger:error_report(["SNMP Manager: Received Trap",
 			{target_name, TargetName},
-			{status, Status}, {index, Index}, {varbinds, VarBinds},
+			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
     ignore;
 handle_trap(TargetName,
@@ -134,7 +135,7 @@ handle_trap(TargetName,
 	error_logger:error_report(["SNMP Manager: Received Trap",
 			{target_name, TargetName},
 			{enterprise, Enteprise}, {generic, Generic}, {spec, Spec},
-			{timestamp, Timestamp}, {varbinds, VarBinds},
+			{timestamp, Timestamp}, {varbinds, Varbinds},
 			{userdata, UserData}]),
     ignore.
 
@@ -152,15 +153,13 @@ handle_inform(TargetName,
 		{Status, Index, Varbinds} = _SnmpInformInfo, UserData) ->
 	error_logger:error_report(["SNMP Manager: Received Inform",
 			{target_name, TargetName},
-			{status, Status}, {index, Index}, {varbinds, VarBinds},
+			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
     no_reply.
 
 -spec handle_report(TargetName, SnmpReportInfo, UserData) -> Reply
 	when
 		TargetName :: snmpm:target_name(),
-		Address :: inet:ip_address(),
-		Port :: inet:port(),
 		SnmpReportInfo :: snmpm_user:snmp_gen_info(),
 		UserData :: term(),
 		Reply :: ignore | unregister
@@ -172,14 +171,14 @@ handle_report(TargetName,
 		{Status, Index, Varbinds} = _SnmpReportInfo, UserData) ->
 	error_logger:error_report(["SNMP Manager: Received Report",
 			{target_name, TargetName},
-			{status, Status}, {index, Index}, {varbinds, VarBinds},
+			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
     ignore.
 
-spec handle_invalid_result(In, Out) -> any()
+-spec handle_invalid_result(In, Out) -> any()
 	when
 		In :: {Function, Args},
-		Function :: atom()
+		Function :: atom(),
 		Args :: list(),
 		Out :: {crash, CrashInfo} | {result, InvalidResult},
 		CrashInfo :: {ErrorType, Error, Stacktrace},
