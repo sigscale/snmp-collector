@@ -44,7 +44,7 @@ snmp_collector_snmp_SUITE_data/%.bin:$(top_srcdir)/test/snmp_collector_snmp_SUIT
 			openssl x509 -req -CA CAcert.pem -CAkey CAkey.pem -CAcreateserial \
 					-extfile extensions -in cert.csr -out cert.pem; \
 		fi)
-	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -sname $(LOGNAME)-ct
+	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -sname $(LOGNAME)-ct -config sys
 
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
