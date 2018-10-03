@@ -32,6 +32,7 @@
 -define(INTERVAL, interval).
 -define(sigscalePEN, 50386).
 
+-include_lib("inets/include/mod_auth.hrl").
 -include_lib("common_test/include/ct.hrl").
 -include("snmp_collector.hrl").
 
@@ -73,6 +74,11 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
+	ok = application:start(mnesia),
+	PrivDir = ?config(priv_dir, Config),
+	ok = application:start(crypto),
+	ok = application:set_env(mnesia, dir, PrivDir),
+%	ok = application:start(snmp),
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = application:start(snmp_collector),
 	DataDir = ?config(data_dir, Config),
