@@ -98,7 +98,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[add_user, get_user, delete_user].
+	[add_user, get_user, delete_user, get_mib].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -145,6 +145,23 @@ delete_user(_Config) ->
 	ok = snmp_collector:delete_user(User),
 	{error, no_such_user} = snmp_collector:get_user(User).
 
+get_mib() ->
+	[{userdata, [{doc,"Get a MIB using the rest interface"}]}].
+
+get_mib(Config) ->
+	ID = "CT-TRAP-MIB",
+	BodyPath = "/snmp-collector/mibs/" ++ ID,
+	Body = file:read_file(BodyPath),
+	{ok, _, _} = snmp_collector_rest_res_mib:post_mib(Body),
+	HostUrl = ?config(host_url, Config),
+	Accept = {"accept", "application/json"},
+	Request2 = {HostUrl ++ "/snmp/v1/mibs/" ++ ID, [Accept, auth_header()]},
+	{ok, Result1} = httpc:request(get, Request2, [], []),
+	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
+	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
+	{ok, Object} = zj:decode(Body1),
+erlang:display({?MODULE, ?LINE, Object}).
+
 %%---------------------------------------------------------------------
 %%  Internal functions
 %%---------------------------------------------------------------------
@@ -163,3 +180,13 @@ get_params() ->
 			exit(not_found)
 	end.
 
+%% @hidden
+auth_header() ->
+	{"authorization", basic_auth()}.
+
+%% @hidden
+basic_auth() ->
+	RestUser = ct:get_config(rest_user),
+	RestPass = ct:get_config(rest_pass),
+	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
+	"Basic " ++ EncodeKey.
