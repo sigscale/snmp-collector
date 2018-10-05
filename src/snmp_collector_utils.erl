@@ -19,7 +19,7 @@
 -module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([iso8601/1, oid_to_name/1, get_name/1]).
+-export([iso8601/1, oid_to_name/1, get_name/1, generate_rand_id/1]).
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -231,3 +231,21 @@ skip_to_eol([$\n | T]) ->
 	T;
 skip_to_eol([_ | T]) ->
 	skip_to_eol(T).
+
+-spec generate_rand_id(Length) -> string()
+	when
+		Length :: pos_integer().
+%% @doc Generate a random uniform numeric identity.
+%% @private
+generate_rand_id(Length) when Length > 0 ->
+	Charset = lists:seq($0, $9),
+	NumChars = length(Charset),
+	Random = crypto:strong_rand_bytes(Length),
+	generate_rand_id(Random, Charset, NumChars,[]).
+%% @hidden
+generate_rand_id(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
+	CharNum = (N rem NumChars) + 1,
+	NewAcc = [lists:nth(CharNum, Charset) | Acc],
+	generate_rand_id(Rest, Charset, NumChars, NewAcc);
+generate_rand_id(<<>>, _Charset, _NumChars, Acc) ->
+	Acc.
