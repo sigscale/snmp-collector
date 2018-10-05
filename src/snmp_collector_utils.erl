@@ -49,6 +49,8 @@ iso8601(DateTime) when is_integer(DateTime) ->
 	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
 			[Year, Month, Day, Hour, Minute, Second, DateTime rem 1000]),
 	lists:flatten(Chars);
+iso8601([]) ->
+	false;
 iso8601([Y1, Y2, Y3, Y4 | T])
 		when Y1 >= $0, Y1 =< $9, Y2 >= $0, Y2 =< $9,
 		Y3 >= $0, Y3 =< $9, Y4 >= $0, Y4 =< $9 ->
