@@ -178,7 +178,7 @@ update_user(Username, Password, Language) ->
 add_mib(Body) ->
 	{ok, MibDir} = application:get_env(snmp_collector, mib_dir),
 	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
-	TempName = MibDir ++ "/" ++ "." ++  snmp_collector_utils:generate_identity(5),
+	TempName = MibDir ++ "/" ++ "." ++  snmp_collector_utils:generate_rand_id(5),
 	case file:write_file(TempName, Body) of
 		ok ->
 			{ok, File} = file:read_file(TempName),
