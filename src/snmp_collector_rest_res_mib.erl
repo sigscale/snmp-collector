@@ -102,14 +102,15 @@ post_mib(RequestBody) ->
 	case file:write_file(TempName, RequestBody) of
 		ok ->
 			{ok, File} = file:read_file(TempName),
-			MibName = MibDir ++ "/" ++ get_name(binary_to_list(File)) ++ ".mib",
+			MibName = MibDir ++ "/" ++ 
+					snmp_collector_utils:get_name(binary_to_list(File)) ++ ".mib",
 			case file:rename(TempName, MibName) of
 				ok ->
 					case snmpc:compile(MibName, [module_identity,
 							{outdir, BinDir}, {group_check, false}]) of
 						{ok, BinFileName} ->
 							snmpm:load_mib(BinFileName),
-							ID = get_name(binary_to_list(File)),
+							ID = snmp_collector_utils:get_name(binary_to_list(File)),
 							case read_mib(BinDir, ID) of
 								{ok, Name, Mes, Traps} ->
 									Map = create_map(Name, Mes, Traps),
@@ -357,42 +358,3 @@ read_mibs(_Dir, [], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
 
-get_name([H | _] = Body) when H >= $A, H =< $Z ->
-	get_name1(Body, []);
-get_name([$ | T]) ->
-	get_name(T);
-get_name([$\t | T]) ->
-	get_name(T);
-get_name([$\r | T]) ->
-	get_name(T);
-get_name([$\n | T]) ->
-	get_name(T);
-get_name([$-, $- | T]) ->
-	get_name(skip_to_eol(T)).
-
-get_name1([H | T], Acc) when H >= $A, H =< $Z ->
- 	get_name1(T, [H | Acc]);
-get_name1([H | T], Acc) when H >= $a, H =< $z ->
-	get_name1(T, [H | Acc]);
-get_name1([H | T], Acc) when H >= $0, H =< $9 ->
-	get_name1(T, [H | Acc]);
-get_name1([$- | T], Acc) ->
-	get_name1(T, [$- | Acc]);
-get_name1([$  | T], Acc) ->
-	get_name2(T, lists:reverse(Acc)).
-
-get_name2([$  | T], Name) ->
-	get_name2(T, Name);
-get_name2([$\t | T], Name) ->
-	get_name2(T, Name);
-get_name2([$\r | T], Name) ->
-	get_name2(T, Name);
-get_name2([$\n | T], Name) ->
-	get_name2(T, Name);
-get_name2("DEFINITIONS " ++ _,  Name) ->
-	Name.
-
-skip_to_eol([$\n | T]) ->
-	T;
-skip_to_eol([_ | T]) ->
-	skip_to_eol(T).
