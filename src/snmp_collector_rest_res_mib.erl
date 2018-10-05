@@ -198,7 +198,7 @@ notifications([], Acc) ->
 		Acc :: list(),
 		Result :: [map()].
 oidobjects([{OID, Asn1Type} | T], Acc) ->
-	Map = #{"name" => oid_to_name(OID),
+	Map = #{"name" => snmp_collector_utils:oid_to_name(OID),
 			"type" => Asn1Type#asn1_type.aliasname},
 	oidobjects(T, [Map | Acc]);
 oidobjects([], Acc) ->
@@ -356,28 +356,6 @@ read_mibs(Dir, [H | T], Acc) ->
 read_mibs(_Dir, [], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
-
--spec oid_to_name(OID) -> Name
-	when
-		OID :: snmp:oid(),
-		Name :: string().
-%% @doc Get a name for an OID.
-oid_to_name(OID) ->
-	oid_to_name(OID, lists:reverse(OID), snmpm:oid_to_name(OID)).
-%% @hidden
-oid_to_name(_OID, [0], {ok, Name}) ->
-	lists:flatten(io_lib:fwrite("~s", [Name]));
-oid_to_name(OID, T, {ok, Name}) ->
-	case lists:sublist(OID, length(T) + 1, length(OID)) of
-		[0] ->
-			lists:flatten(io_lib:fwrite("~s", [Name]));
-		Rest ->
-			lists:flatten(io_lib:fwrite("~s.~p", [Name, Rest]))
-	end;
-oid_to_name(OID, [_H | T], {error, _Reason}) ->
-	oid_to_name(OID, T, snmpm:oid_to_name(lists:reverse(T)));
-oid_to_name(OID, [], {error, _Reason}) ->
-	lists:flatten(io_lib:fwrite("~p", [OID])).
 
 get_name([H | _] = Body) when H >= $A, H =< $Z ->
 	get_name1(Body, []);
