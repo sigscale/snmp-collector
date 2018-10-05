@@ -109,27 +109,31 @@ post_mib(RequestBody) ->
 					case snmpc:compile(MibName, [module_identity,
 							{outdir, BinDir}, {group_check, false}]) of
 						{ok, BinFileName} ->
-							snmpm:load_mib(BinFileName),
-							ID = snmp_collector_utils:get_name(binary_to_list(File)),
-							case read_mib(BinDir, ID) of
-								{ok, Name, Mes, Traps} ->
-									Map = create_map(Name, Mes, Traps),
-									Href = "snmp/v1/mibs/{id}",
-									Headers = [{location, Href},
-											{content_type, "application/json"}],
-									Body = zj:encode(Map),
-									{ok, Headers, Body};
-								{error, Reason} ->
-									{error, Reason}
+							case snmpm:load_mib(BinFileName) of
+								ok ->
+									ID = snmp_collector_utils:get_name(binary_to_list(File)),
+									case read_mib(BinDir, ID) of
+										{ok, Name, Mes, Traps} ->
+											Map = create_map(Name, Mes, Traps),
+											Href = "snmp/v1/mibs/{id}",
+											Headers = [{location, Href},
+													{content_type, "application/json"}],
+											Body = zj:encode(Map),
+											{ok, Headers, Body};
+										{error, _Reason} ->
+											{error, 400}
+									end;
+								{error, _Reason} ->
+									{error, 400}
 							end;
 						{error, _Reason} ->
 							{error, 400}
 					end;
-				{error, Reason}->
-					{error, Reason}
+				{error, _Reason}->
+					{error, 400}
 			end;
-		{error, Reason} ->
-			{error, Reason}
+		{error, _Reason} ->
+			{error, 400}
 	end.
 
 -spec delete_mib(ID) -> Result
