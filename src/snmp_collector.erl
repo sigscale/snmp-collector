@@ -164,7 +164,7 @@ update_user(Username, Password, Language) ->
 						{error, Reason} ->
 							{error, Reason}
 					end;
-            {error, Reason} ->
+				{error, Reason} ->
 					{error, Reason}
 			end
 	end.
@@ -204,7 +204,6 @@ add_mib(Body) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
-
 
 %
 %%----------------------------------------------------------------------
