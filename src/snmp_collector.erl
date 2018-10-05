@@ -21,7 +21,7 @@
 
 %% export the snmp_collector public API
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
-		update_user/3, add_mib/1, get_mib/1]).
+		update_user/3, add_mib/1]).
 
 -include_lib("inets/include/httpd.hrl").
 
