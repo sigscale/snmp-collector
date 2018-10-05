@@ -19,7 +19,7 @@
 -module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([iso8601/1, oid_to_name/1]).
+-export([iso8601/1, oid_to_name/1, get_name/1]).
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -187,3 +187,47 @@ oid_to_name(OID, [_H | T], {error, _Reason}) ->
 oid_to_name(OID, [], {error, _Reason}) ->
 	lists:flatten(io_lib:fwrite("~p", [OID])).
 
+-spec get_name(Body) -> Result
+	when
+		Body :: list(),
+		Result :: Name,
+		Name :: string().
+%% @doc Get the name of the MIB from the body of a MIB.
+get_name([H | _] = Body) when H >= $A, H =< $Z ->
+	get_name1(Body, []);
+get_name([$ | T]) ->
+	get_name(T);
+get_name([$\t | T]) ->
+	get_name(T);
+get_name([$\r | T]) ->
+	get_name(T);
+get_name([$\n | T]) ->
+	get_name(T);
+get_name([$-, $- | T]) ->
+	get_name(skip_to_eol(T)).
+get_name1([H | T], Acc) when H >= $A, H =< $Z ->
+	get_name1(T, [H | Acc]);
+get_name1([H | T], Acc) when H >= $a, H =< $z ->
+	get_name1(T, [H | Acc]);
+get_name1([H | T], Acc) when H >= $0, H =< $9 ->
+	get_name1(T, [H | Acc]);
+get_name1([$- | T], Acc) ->
+	get_name1(T, [$- | Acc]);
+get_name1([$  | T], Acc) ->
+	get_name2(T, lists:reverse(Acc)).
+
+get_name2([$  | T], Name) ->
+	get_name2(T, Name);
+get_name2([$\t | T], Name) ->
+	get_name2(T, Name);
+get_name2([$\r | T], Name) ->
+	get_name2(T, Name);
+get_name2([$\n | T], Name) ->
+	get_name2(T, Name);
+get_name2("DEFINITIONS " ++ _,  Name) ->
+	Name.
+
+skip_to_eol([$\n | T]) ->
+	T;
+skip_to_eol([_ | T]) ->
+	skip_to_eol(T).
