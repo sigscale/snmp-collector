@@ -21,9 +21,7 @@
 
 %% export the snmp_collector public API
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
-		update_user/3]).
-%% export the snmp_collector private API
--export([generate_identity/1]).
+		update_user/3, add_mib/1, get_mib/1]).
 
 -include_lib("inets/include/httpd.hrl").
 
@@ -171,23 +169,42 @@ update_user(Username, Password, Language) ->
 			end
 	end.
 
--spec generate_identity(Length) -> string()
+-spec add_mib(Body) -> Result
 	when
-		Length :: pos_integer().
-%% @doc Generate a random uniform numeric identity.
-%% @private
-generate_identity(Length) when Length > 0 ->
-	Charset = lists:seq($0, $9),
-	NumChars = length(Charset),
-	Random = crypto:strong_rand_bytes(Length),
-	generate_identity(Random, Charset, NumChars,[]).
-%% @hidden
-generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
-	CharNum = (N rem NumChars) + 1,
-	NewAcc = [lists:nth(CharNum, Charset) | Acc],
-	generate_identity(Rest, Charset, NumChars, NewAcc);
-generate_identity(<<>>, _Charset, _NumChars, Acc) ->
-	Acc.
+		Body :: list() | binary(),
+		Result :: MibName :: string() | {error, Reason},
+		Reason :: term().
+%% @doc Add a new MIB file and load the new MIB to the manager.
+add_mib(Body) ->
+	{ok, MibDir} = application:get_env(snmp_collector, mib_dir),
+	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
+	TempName = MibDir ++ "/" ++ "." ++  snmp_collector_utils:generate_identity(5),
+	case file:write_file(TempName, Body) of
+		ok ->
+			{ok, File} = file:read_file(TempName),
+			MibId = snmp_collector_utils:get_name(binary_to_list(File)),
+			MibName = MibDir ++ "/" ++ MibId ++ ".mib",
+			case file:rename(TempName, MibName) of
+				ok ->
+					case snmpc:compile(MibName, [module_identity,
+							{outdir, BinDir}, {group_check, false}]) of
+						{ok, BinFileName} ->
+							case snmpm:load_mib(BinFileName) of
+								ok ->
+									MibId;
+								{error, Reason} ->
+									{error, Reason}
+							end;
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				{error, Reason}->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
 
 %
 %%----------------------------------------------------------------------
