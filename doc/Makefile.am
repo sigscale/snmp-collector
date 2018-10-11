@@ -16,7 +16,9 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_rest_get.html \
 			snmp_collector_rest_post.html \
 			snmp_collector_rest_delete.html \
-			snmp_collector_utils.html
+			snmp_collector_utils.html \
+			snmp_collector_debug_sup.html \
+			snmp_collector_debug_fsm.html
 
 doc_DATA = overview.edoc $(modhtml) \
 		modules-frame.html overview-summary.html \

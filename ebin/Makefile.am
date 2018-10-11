@@ -21,7 +21,9 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_rest_get.beam \
 			snmp_collector_rest_post.beam \
 			snmp_collector_rest_delete.beam \
-			snmp_collector_utils.beam
+			snmp_collector_utils.beam \
+			snmp_collector_debug_sup.beam \
+			snmp_collector_debug_fsm.beam
 			
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/snmp_collector.hrl

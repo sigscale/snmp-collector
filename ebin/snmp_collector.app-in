@@ -15,7 +15,9 @@
 					snmp_collector_rest_post,
 					snmp_collector_rest_delete,
 					snmp_collector_rest_res_mib,
-					snmp_collector_utils]},
+					snmp_collector_utils,
+					snmp_collector_debug_sup,
+					snmp_collector_debug_fsm]},
 		{registered, []},
 		{applications, [kernel, stdlib, crypto, snmp]},
 		{env,
@@ -25,5 +27,6 @@
 				{queue_size, 100485760},
 				{queue_dir, "traps"},
 				{mib_dir, "mibs"},
-				{bin_dir, "mibs/bin"}]},
+				{bin_dir, "mibs/bin"},
+				{debug_port, undefined}]},
 		{mod, {snmp_collector_app, []}}]}.
