@@ -64,22 +64,37 @@ start(normal = _StartType, _Args) ->
 	{ok, BinDir} = application:get_env(bin_dir),
 	case open_log(Dir, Name, Type ,File, Size) of
 		ok ->
-			create_dirs(MibDir, BinDir),
-			case supervisor:start_link(snmp_collector_sup, []) of
-				{ok, PID} ->
-					_ChildSup =
-					case timer:apply_interval(?INTERVAL, supervisor,
-							start_child, [snmp_collector_get_sup, [[], []]]) of
+			case create_dirs(MibDir, BinDir) of
+				ok ->
+					start1();
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start1() ->
+	{ok, Port} = application:get_env(debug_port),
+	if
+		is_integer(Port) ->
+			StartMods = [snmp_collector_debug_sup, [[], []],
+					snmp_collector_get_sup, [[], []]];
+		Port == undefined ->
+			StartMods = [snmp_collector_get_sup, [[], []]]
+	end,
+	case supervisor:start_link(snmp_collector_sup, []) of
+		{ok, PID} ->
+			_ChildSup =
+				case timer:apply_interval(?INTERVAL, supervisor,
+					start_child, StartMods) of
 						{ok, _TRef} ->
 							{ok, PID};
 						{error, Reason} ->
 							{error, Reason}
-					end;
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		{error , Reason} ->
-			{error , Reason}
+				end;
+		{error, Reason} ->
+			{error, Reason}
 	end.
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
@@ -367,9 +382,16 @@ install11(Tables) ->
 create_dirs(MibDir, BinDir) ->
 	case file:make_dir(MibDir) of
 		ok ->
-			file:make_dir(BinDir);
+			case file:make_dir(BinDir) of
+				ok ->
+					ok;
+				{error, eexist} ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, eexist} ->
-			file:make_dir(BinDir);
+			ok;
 		{error, Reason} ->
 			{error, Reason}
 	end.
