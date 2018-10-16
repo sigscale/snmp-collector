@@ -182,7 +182,7 @@ oid_to_name(OID, T, {ok, Name}) ->
 		[] ->
 			lists:flatten(io_lib:fwrite("~s", [Name]));
 		Rest ->
-		lists:flatten(io_lib:fwrite("~s.~p", [Name, Rest]))
+			lists:flatten(io_lib:fwrite("~s.~w", [Name, Rest]))
 	end;
 oid_to_name(OID, [_H | T], {error, _Reason}) ->
 	oid_to_name(OID, T, snmpm:oid_to_name(lists:reverse(T)));
