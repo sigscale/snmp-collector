@@ -19,7 +19,7 @@
 -module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1]).
+-export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, strip/1]).
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -49,8 +49,6 @@ iso8601(DateTime) when is_integer(DateTime) ->
 	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
 			[Year, Month, Day, Hour, Minute, Second, DateTime rem 1000]),
 	lists:flatten(Chars);
-iso8601([]) ->
-	false;
 iso8601([Y1, Y2, Y3, Y4 | T])
 		when Y1 >= $0, Y1 =< $9, Y2 >= $0, Y2 =< $9,
 		Y3 >= $0, Y3 =< $9, Y4 >= $0, Y4 =< $9 ->
@@ -175,9 +173,13 @@ oid_to_name(OID) ->
 %% @hidden
 oid_to_name(_OID, [0], {ok, Name}) ->
 	lists:flatten(io_lib:fwrite("~s", [Name]));
+oid_to_name(_OID, [], {ok, Name}) ->
+	lists:flatten(io_lib:fwrite("~s", [Name]));
 oid_to_name(OID, T, {ok, Name}) ->
 	case lists:sublist(OID, length(T) + 1, length(OID)) of
 		[0] ->
+			lists:flatten(io_lib:fwrite("~s", [Name]));
+		[] ->
 			lists:flatten(io_lib:fwrite("~s", [Name]));
 		Rest ->
 		lists:flatten(io_lib:fwrite("~s.~p", [Name, Rest]))
@@ -249,3 +251,29 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	generate_identity(Rest, Charset, NumChars, NewAcc);
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
+
+-spec strip(Value) -> Result
+	when
+		Value :: string(),
+		Result :: string().
+%% @doc Strip extra characters from inside a string.
+%% @private
+strip(Value) ->
+	NewValue = lists:filter(fun strip1/1, Value),
+	NewValue.
+%% @hidden
+strip1($") ->
+	false;
+strip1($\n) ->
+	false;
+strip1($\r) ->
+	false;
+strip1($	) ->
+	false;
+strip1($@) ->
+	false;
+strip1($/) ->
+	false;
+strip1(_) ->
+	true.
+
