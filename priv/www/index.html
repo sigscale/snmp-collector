@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>SNMP Collector</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="theme-color" content="#f57f17">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="application-name" content="SNMP Collector">
+		<link rel="icon" href="/images/favicon.ico">
+		<link rel="manifest" href="/manifest.json">
+		<script>
+			window.MyAppGlobals = { rootPath: '/' };
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', function() {
+					navigator.serviceWorker.register('service-worker.js', {
+					scope: '/',
+					});
+				});
+			}
+		</script>
+		<script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+		<script type="module" src="src/snmp-collector.js" crossorigin></script>
+		<style>
+			body {
+				margin: 0;
+				background: #f1f1f1;
+				height: 100%;
+				width: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<snmp-collector></snmp-collector>
+		<noscript>
+			Please enable JavaScript to view this website.
+		</noscript>
+	</body>
+</html>

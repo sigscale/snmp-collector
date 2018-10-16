@@ -5,7 +5,7 @@
 ##
 ## Boilerplate:  standard boilerplate code
 ##
-AC_INIT([snmp_collector], [0.1], [issues@sigscale.org])
+AC_INIT([snmp_collector], [1.0.0], [issues@sigscale.org])
 AC_COPYRIGHT([Copyright (c) 2018 SigScale Global Inc.])
 AC_PREREQ(2.63)
 AC_CONFIG_SRCDIR([src/snmp_collector_app.erl])
@@ -69,6 +69,7 @@ AC_ERLANG_CHECK_LIB([compiler], [], [AC_MSG_ERROR([compiler was not found!])])
 AC_ERLANG_CHECK_LIB([snmp], [], [AC_MSG_ERROR([snmp was not found!])])
 AC_ERLANG_CHECK_LIB([runtime_tools], [], [AC_MSG_ERROR([runtime_tools was not found!])])
 AC_ERLANG_CHECK_LIB([sasl], [], [AC_MSG_ERROR([sasl was not found!])])
+AC_ERLANG_CHECK_LIB([zj], [], [AC_MSG_ERROR([zj was not found!])])
 
 
 ##
@@ -92,5 +93,6 @@ AC_ERLANG_CHECK_LIB([sasl], [], [AC_MSG_ERROR([sasl was not found!])])
 ## 
 
 AC_OUTPUT([Makefile include/Makefile ebin/Makefile doc/Makefile
+		priv/Makefile priv/www/Makefile priv/www/package.json
 		test/Makefile $PACKAGE_NAME.rel sys.config])
 
