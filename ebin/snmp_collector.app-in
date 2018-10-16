@@ -28,5 +28,5 @@
 				{queue_dir, "traps"},
 				{mib_dir, "mibs"},
 				{bin_dir, "mibs/bin"},
-				{debug_port, undefined}]},
+				{debug_ports, []}]},
 		{mod, {snmp_collector_app, []}}]}.
