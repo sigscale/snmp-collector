@@ -75,27 +75,42 @@ start(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start1() ->
-	{ok, Port} = application:get_env(debug_port),
-	if
-		is_integer(Port) ->
-			StartMods = [snmp_collector_debug_sup, [[], []],
-					snmp_collector_get_sup, [[], []]];
-		Port == undefined ->
-			StartMods = [snmp_collector_get_sup, [[], []]]
-	end,
 	case supervisor:start_link(snmp_collector_sup, []) of
-		{ok, PID} ->
-			_ChildSup =
-				case timer:apply_interval(?INTERVAL, supervisor,
-					start_child, StartMods) of
-						{ok, _TRef} ->
-							{ok, PID};
-						{error, Reason} ->
-							{error, Reason}
-				end;
+		{ok, TopSup} ->
+			start2(TopSup);
 		{error, Reason} ->
 			{error, Reason}
 	end.
+%% @hidden
+start2(TopSup) ->
+	StartMods = [snmp_collector_get_sup, [[], []]],
+	case timer:apply_interval(?INTERVAL, supervisor,
+			start_child, StartMods) of
+		{ok, _TRef} ->
+			start3(TopSup);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start3(TopSup) ->
+	case supervisor:start_link(snmp_collector_debug_sup, []) of
+		{ok, DebugSup} ->
+			{ok, DebugPorts} = application:get_env(debug_ports),
+			start4(TopSup, DebugSup, DebugPorts);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start4(TopSup, DebugSup, [Port | T] = _DebugPorts) 
+		when is_integer(Port) ->
+	case supervisor:start_child(DebugSup, [[Port], []]) of
+		{ok, _DebugSup} ->
+			start4(TopSup, DebugSup, T);		
+		{error, Reason} ->
+			{error, Reason}
+	end;
+start4(TopSup, _DebugSup, []) ->
+	{ok, TopSup}.
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
 	when
