@@ -19,7 +19,16 @@
 -module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, strip/1]).
+-export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, strip/1,
+		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
+		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
+		log_to_disk/2]).
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+-define(MICROSECOND, micro_seconds).
+%-define(MICROSECOND, microsecond).
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -274,6 +283,191 @@ strip1($@) ->
 	false;
 strip1($/) ->
 	false;
+strip1($#) ->
+	false;
 strip1(_) ->
 	true.
 
+-spec create_pairs(Varbinds) -> Result
+	when
+		Varbinds :: [Varbind],
+		Varbind :: {varbind, OID, Type, Value, Seqnum},
+		OID :: snmp:oid(),
+		Type :: 'OCTET STRING' | 'OBJECT IDENTIFIER' | 'INTEGER',
+		Value :: string() | atom() | integer(),
+		Seqnum :: integer(),
+		Result :: {ok, Pairs} | {error, no_sysuptime},
+		Pairs :: list().
+%% @doc Create a list of the OIDS ,Types and Values.
+%% @private
+create_pairs(Varbinds) ->
+	case snmpm:name_to_oid(sysUpTime) of
+		{ok, SysUpTime} ->
+			NewSysUpTime = lists:flatten(SysUpTime ++ [0]),
+				case lists:keytake(NewSysUpTime, 2, Varbinds) of
+					{value, {varbind, _, 'TimeTicks', _, _}, Varbind1} ->
+						Pairs = [{OID, Type, Value} || {varbind, OID, Type, Value, _} <- Varbind1],
+						{ok, Pairs};
+					false ->
+						{error, no_sysuptime}
+				end;
+		{error, _Reason} ->
+			Pairs = [{OID, Type, Value} || {varbind ,OID, Type, Value, _} <- Varbinds],
+			{ok, Pairs}
+	end.
+
+-spec arrange_list(Pairs, Acc) -> Result
+	when
+		Pairs :: [tuple()],
+		Result :: {ok ,NewAcc},
+		NewAcc :: [tuple()],
+		Acc :: list().
+%% @doc Filter and map the OIDs to names and appropriate values.
+%% @private
+arrange_list([{OID, Type, Value} | T], Acc)
+		when Type == 'OCTET STRING', is_list(Value) ->
+	case unicode:characters_to_list(list_to_binary(Value), utf8) of
+		Value2 when is_list(Value2) ->
+			arrange_list(T, [{snmp_collector_utils:oid_to_name(OID),
+					snmp_collector_utils:strip(Value2)} | Acc]);
+		{error,[],_} ->
+			arrange_list(T, Acc)
+	end;
+arrange_list([{OID, Type, Value} | T], Acc)
+		when Type == 'OBJECT IDENTIFIER', is_list(Value) ->
+	arrange_list(T, [{snmp_collector_utils:oid_to_name(OID),snmp_collector_utils:oid_to_name(Value)} | Acc]);
+arrange_list([{OID, Type, Value} | T], Acc)
+		when Type =='INTEGER', is_integer(Value) ->
+	Value2 = integer_to_list(Value),
+	arrange_list(T, [{snmp_collector_utils:oid_to_name(OID), Value2} | Acc]);
+arrange_list([_ | T], Acc) ->
+	arrange_list(T, Acc);
+arrange_list([], Acc) ->
+	NewAcc = lists:reverse(Acc),
+	{ok ,NewAcc}.
+
+-spec map_names_values(Objects, Acc) -> Result
+	when
+		Objects :: [{Name, Value}],
+		Acc :: list(),
+		Name :: string(),
+		Value :: term(),
+		Result :: {ok, Acc}.
+%% @doc Turn the list of names and values into a map format.
+%% @private
+map_names_values([{Name, Value} | T], Acc) ->
+	NewValue = snmp_collector_utils:strip(Value),
+	map_names_values(T, [#{"name" => Name, "value" => NewValue} | Acc]);
+map_names_values([], Acc) ->
+	{ok, Acc}.
+
+-spec fault_fields(FieldData, EventDetails) -> Result
+	when
+		FieldData :: {ok, Acc},
+		EventDetails :: [tuple()],
+		Acc :: list(),
+		Result :: #{}.
+%% @doc Create the Fault Fields map.
+fault_fields({ok, Acc}, EventDetails) ->
+	#{"alarmAdditionalInformation" => lists:reverse(Acc),
+		"alarmCondition" => get_values(eventType, EventDetails),
+		"eventCategory" => get_values(eventCategory, EventDetails),
+		"eventSeverity" => get_values(eventSeverity, EventDetails),
+		"eventSourceType" => get_values(eventSourceType, EventDetails),
+		"faultFieldsVersion" => 1,
+		"specificProblem"=> get_values(specificProblem, EventDetails)}.
+
+-spec event_header(TargetName, EventDetails) -> EventHeader
+	when
+		TargetName :: string(),
+		EventDetails :: [tuple()],
+		EventHeader :: map().
+%% @doc Create VES common event header.
+event_header(TargetName, EventDetails) ->
+	#{"domain" => "fault",
+			"eventId" => event_id(),
+			"eventName" => get_values(eventName, EventDetails),
+			"lastEpochMicrosec" => timestamp(),
+			"priority" => "Normal",
+			"reportingEntityID" => entity_id(TargetName),
+			"reportingEntityName" => entity_name(TargetName),
+			"sequence" => 0,
+			"sourceId" => get_values(sourceId, EventDetails),
+			"sourceName" => get_values(sourceName, EventDetails),
+			"startEpochMicrosec" => iso8601(get_values(raisedTime, EventDetails)),
+			"version" => 1}.
+
+-spec log_to_disk(CommentEventHeader, FaultFields) -> Result
+   when
+		CommentEventHeader :: map(),
+		FaultFields :: map(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Log the event to disk.
+%% @private
+log_to_disk(CommentEventHeader, FaultFields) ->
+	{ok, LogName} = application:get_env(snmp_collector, queue_name),
+	TimeStamp = erlang:system_time(milli_seconds),
+	Identifer = erlang:unique_integer([positive]),
+	Node = node(),
+	Event = {TimeStamp, Identifer, Node, CommentEventHeader, FaultFields},
+	case disk_log:log(LogName, Event) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+%%----------------------------------------------------------------------
+%%  The internal functions
+%%----------------------------------------------------------------------
+
+-spec get_values(Name, EventDetails) -> Value
+	when
+		Name :: atom(),
+		EventDetails :: [tuple()],
+		Value :: string() | atom() | integer() | list().
+%% @doc Use a name to get a value from a list of names and value.
+get_values(Name, EventDetails) ->
+	case lists:keyfind(Name, 1 , EventDetails) of
+		{_, Value} ->
+			Value;
+		false ->
+			""
+	end.
+
+-spec entity_name(TargetName) -> EntityName
+	when
+	TargetName :: string(),
+	EntityName :: string().
+%% @doc Generate the agents name.
+%% @private
+entity_name(TargetName) ->
+	[{{EntityName, engine_id}, _}] = ets:lookup(snmpm_agent_table, {TargetName, engine_id}),
+	EntityName.
+
+-spec entity_id(TargetName) -> EntityID
+	when
+	TargetName :: string(),
+	EntityID :: string().
+%% @doc Generate the agents engine ID.
+%% @private
+entity_id(TargetName) ->
+	[{_ , EntityID}] = ets:lookup(snmpm_agent_table, {TargetName, engine_id}),
+	lists:flatten(io_lib:fwrite("~p", [EntityID])).
+
+-spec event_id() -> EventId
+	when
+		EventId :: string().
+%% @doc Create unique event id.
+event_id() ->
+	Ts = erlang:system_time(?MILLISECOND),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(Ts) ++ "-" ++ integer_to_list(N).
+
+-spec timestamp() -> TimeStamp
+	when
+		TimeStamp :: integer().
+%% @doc Create time stamp.
+timestamp() ->
+	erlang:system_time(?MILLISECOND).
