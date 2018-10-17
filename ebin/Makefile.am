@@ -13,13 +13,12 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_server.beam \
 			snmp_collector_get_fsm.beam \
 			snmp_collector_huawei_trap.beam \
-			snmp_collector_rest_res_mib.beam \
-			snmp_collector_rest_accepted_content.beam \
-			snmp_collector_trap.beam \
+			snmp_collector_zte_trap.beam \
 			snmp_collector_debug_sup.beam \
 			snmp_collector_debug_fsm.beam \
 			snmp_collector.beam \
 			snmp_collector_utils.beam \
+			snmp_collector_rest.beam \
 			snmp_collector_snmpm_user_default.beam \
 			snmp_collector_rest_accepted_content.beam \
 			snmp_collector_rest_get.beam \
