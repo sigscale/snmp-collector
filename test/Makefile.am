@@ -3,7 +3,7 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-CERT_DIR = certificates
+CERT_DIR = snmp_collector_rest_SUITE_data
 
 testmods = snmp_collector_snmp_SUITE \
 		snmp_collector_api_SUITE \
@@ -22,6 +22,7 @@ snmp_collector_snmp_SUITE_data/%.bin:$(top_srcdir)/test/snmp_collector_snmp_SUIT
 	$(ERLC) -o snmp_collector_snmp_SUITE_data $<
 
 .common_test_ok:	$(addsuffix .beam, $(testmods)) snmp_collector_snmp_SUITE_data/CT-TRAP-MIB.bin sys.config
+	@if [ ! -d $(CERT_DIR) ]; then mkdir $(CERT_DIR); fi
 	@if [ ! -d log ]; then mkdir log; fi 
 	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
 	@if [ ! -f test.spec ]; then cp $(top_srcdir)/test/test.spec .; fi
@@ -44,7 +45,7 @@ snmp_collector_snmp_SUITE_data/%.bin:$(top_srcdir)/test/snmp_collector_snmp_SUIT
 			openssl x509 -req -CA CAcert.pem -CAkey CAkey.pem -CAcreateserial \
 					-extfile extensions -in cert.csr -out cert.pem; \
 		fi)
-	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -sname $(LOGNAME)-ct -config sys
+	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -sname ct-$(LOGNAME) -config sys
 
 sys.config:	$(top_srcdir)/test/sys.config-in
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
@@ -53,5 +54,5 @@ sys.config:	$(top_srcdir)/test/sys.config-in
 			-e "s#%HTTP_PORT%#$$(($$RANDOM + 32768))#" < $< > $@
 
 clean-local:
-	-rm -r *.beam certificates/* log/*
+	-rm -r *.beam $(CERT_DIR)/CAkey.pem $(CERT_DIR)/key.pem $(CERT_DIR)/extensions $(CERT_DIR)/cert.pem $(CERT_DIR)/cert.csr log/*
 
