@@ -8,7 +8,7 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_get_sup.html \
 			snmp_collector_server.html \
 			snmp_collector_get_fsm.html \
-			snmp_collector_trap.html \
+			snmp_collector_huawei_trap.html \
 			snmp_collector_rest_res_mib.html \
 			snmp_collector_rest_accepted_content.html \
 			snmp_collector.html \

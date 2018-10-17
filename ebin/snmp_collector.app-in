@@ -6,7 +6,7 @@
 					snmp_collector_get_sup,
 					snmp_collector_get_fsm,
 					snmp_collector_server,
-					snmp_collector_trap,
+					snmp_collector_huawei_trap,
 					snmp_collector,
 					snmp_collector_snmpm_user_default,
 					snmp_collector_rest,
