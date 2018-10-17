@@ -328,18 +328,17 @@ arrange_list([{OID, Type, Value} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(list_to_binary(Value), utf8) of
 		Value2 when is_list(Value2) ->
-			arrange_list(T, [{snmp_collector_utils:oid_to_name(OID),
-					snmp_collector_utils:strip(Value2)} | Acc]);
+			arrange_list(T, [{OID, strip(Value2)} | Acc]);
 		{error,[],_} ->
 			arrange_list(T, Acc)
 	end;
 arrange_list([{OID, Type, Value} | T], Acc)
 		when Type == 'OBJECT IDENTIFIER', is_list(Value) ->
-	arrange_list(T, [{snmp_collector_utils:oid_to_name(OID),snmp_collector_utils:oid_to_name(Value)} | Acc]);
+	arrange_list(T, [{OID,oid_to_name(Value)} | Acc]);
 arrange_list([{OID, Type, Value} | T], Acc)
 		when Type =='INTEGER', is_integer(Value) ->
 	Value2 = integer_to_list(Value),
-	arrange_list(T, [{snmp_collector_utils:oid_to_name(OID), Value2} | Acc]);
+	arrange_list(T, [{OID, Value2} | Acc]);
 arrange_list([_ | T], Acc) ->
 	arrange_list(T, Acc);
 arrange_list([], Acc) ->
@@ -356,7 +355,7 @@ arrange_list([], Acc) ->
 %% @doc Turn the list of names and values into a map format.
 %% @private
 map_names_values([{Name, Value} | T], Acc) ->
-	NewValue = snmp_collector_utils:strip(Value),
+	NewValue = strip(Value),
 	map_names_values(T, [#{"name" => Name, "value" => NewValue} | Acc]);
 map_names_values([], Acc) ->
 	{ok, Acc}.
@@ -370,7 +369,7 @@ map_names_values([], Acc) ->
 %% @doc Create the Fault Fields map.
 fault_fields({ok, Acc}, EventDetails) ->
 	#{"alarmAdditionalInformation" => lists:reverse(Acc),
-		"alarmCondition" => get_values(eventType, EventDetails),
+		"alarmCondition" => get_values(alarmCondtion, EventDetails),
 		"eventCategory" => get_values(eventCategory, EventDetails),
 		"eventSeverity" => get_values(eventSeverity, EventDetails),
 		"eventSourceType" => get_values(eventSourceType, EventDetails),
