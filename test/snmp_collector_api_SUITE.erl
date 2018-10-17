@@ -108,8 +108,8 @@ add_user() ->
 	[{userdata, [{doc, "Create a new user"}]}].
 
 add_user(_Config) ->
-	User = snmp_collector:generate_identity(6),
-	Password = snmp_collector:generate_identity(8),
+	User = snmp_collector_utils:generate_identity(6),
+	Password = snmp_collector_utils:generate_identity(8),
 	Locale = "en",
 	{ok, {TS, N}} = snmp_collector:add_user(User, Password, Locale),
 	true = is_integer(TS),
@@ -124,8 +124,8 @@ get_user() ->
 	[{userdata, [{doc, "Look up a user from table"}]}].
 
 get_user(_Config) ->
-	User = snmp_collector:generate_identity(6),
-	Password = snmp_collector:generate_identity(8),
+	User = snmp_collector_utils:generate_identity(6),
+	Password = snmp_collector_utils:generate_identity(8),
 	Locale = "en",
 	{ok, LastModified} = snmp_collector:add_user(User, Password, Locale),
 	{ok, #httpd_user{username = User, password = Password,
@@ -137,8 +137,8 @@ delete_user() ->
 	[{userdata, [{doc, "Remove user from table"}]}].
 
 delete_user(_Config) ->
-	User = snmp_collector:generate_identity(6),
-	Password = snmp_collector:generate_identity(8),
+	User = snmp_collector_utils:generate_identity(6),
+	Password = snmp_collector_utils:generate_identity(8),
 	Locale = "en",
 	{ok, _} = snmp_collector:add_user(User, Password, Locale),
 	{ok, _} = snmp_collector:get_user(User),
@@ -148,19 +148,12 @@ delete_user(_Config) ->
 get_mib() ->
 	[{userdata, [{doc,"Get a MIB using the rest interface"}]}].
 
-get_mib(Config) ->
-	ID = "CT-TRAP-MIB",
-	BodyPath = "/snmp-collector/mibs/" ++ ID,
-	Body = file:read_file(BodyPath),
-	{ok, _, _} = snmp_collector_rest_res_mib:post_mib(Body),
-	HostUrl = ?config(host_url, Config),
-	Accept = {"accept", "application/json"},
-	Request2 = {HostUrl ++ "/snmp/v1/mibs/" ++ ID, [Accept, auth_header()]},
-	{ok, Result1} = httpc:request(get, Request2, [], []),
-	{{"HTTP/1.1", 200, _OK}, Headers1, Body1} = Result1,
-	{_, "application/json"} = lists:keyfind("content-type", 1, Headers1),
-	{ok, Object} = zj:decode(Body1),
-erlang:display({?MODULE, ?LINE, Object}).
+get_mib(_Config) ->
+	{ok, TestMib} = application:get_env(snmp_collector, test_mib),
+erlang:display({?MODULE, ?LINE, TestMib}),
+	{ok, Data} = file:read_file(TestMib),
+	{ok, _} = snmp_collector:add_mib(Data).
+	
 
 %%---------------------------------------------------------------------
 %%  Internal functions
