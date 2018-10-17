@@ -98,10 +98,11 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 		false ->
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
-					{ok, VES} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, Objects, EventDetails} = event_details(VES, []),
+					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
+					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
+					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
 					FieldData = snmp_collector_utils:map_names_values(Objects, []),
-					FaultFields = snmp_collector_utils:ault_fields(FieldData, EventDetails),
+					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_to_disk(CommentEventHeader, FaultFields) of
 					ok ->
@@ -133,8 +134,9 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		false ->
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
-					{ok, VES} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, Objects, EventDetails} = event_details(VES, []),
+					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
+					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
+					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
 					FieldData = snmp_collector_utils:map_names_values(Objects, []),
 					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
@@ -187,6 +189,22 @@ handle_report(_TargetName, _SnmpReport, _UserData) ->
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
+
+-spec oid_to_name(OIDsValues, Acc) -> Result
+	when
+		OIDsValues :: [{OID, Value}],
+		Acc :: [],
+		OID :: list(),
+		Value :: string() | integer(),
+		Result :: [{Name, Value}],
+		Name :: string().
+%% @doc Convert OIDs to valid names.
+oid_to_name([{OID, Value} | T], Acc) ->
+	Name = snmp_collector_utils:oid_to_name(OID),
+	oid_to_name(T, [{Name, Value} | Acc]);
+oid_to_name([], Acc) ->
+	NewAcc = lists:reverse(Acc),
+	{ok, NewAcc}.
 
 -spec event_details(NameValuePair, Acc) -> Result
 	when
