@@ -44,7 +44,6 @@
 init([]) ->
 	StartMod = snmp_collector_debug_fsm,
 	StartFunc = {gen_fsm, start_link, [StartMod]},
-erlang:display({?MODULE, ?LINE, StartFunc}),
 	ChildSpec = {StartMod, StartFunc, transient, 4000, worker, [StartMod]},
 	{ok, {{simple_one_for_one, 10, 60}, [ChildSpec]}}.
 

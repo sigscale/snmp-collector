@@ -96,7 +96,6 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 		true ->
 			ignore;
 		false ->
-erlang:display({?MODULE, ?LINE, TargetName}),
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
@@ -133,7 +132,6 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		true ->
 			ignore;
 		false ->
-erlang:display({?MODULE, ?LINE, TargetName}),
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
