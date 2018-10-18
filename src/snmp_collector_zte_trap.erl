@@ -96,6 +96,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 		true ->
 			ignore;
 		false ->
+erlang:display({?MODULE, ?LINE, TargetName}),
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
@@ -132,6 +133,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		true ->
 			ignore;
 		false ->
+erlang:display({?MODULE, ?LINE, TargetName}),
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
@@ -201,7 +203,7 @@ handle_report(_TargetName, _SnmpReport, _UserData) ->
 %% @doc Turn the list of names and values into a map format.
 %% @hidden
 event_details(NameValuePair, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmNEDevID", 1,
+	case lists:keytake("alarmNeIP", 1,
 			NameValuePair) of
 		{value, {_, Value}, Objects} ->
 			event_details1(Objects, [ {sourceId, Value} | Acc]);
@@ -210,7 +212,7 @@ event_details(NameValuePair, Acc) ->
 	end.
 %% @hidden
 event_details1(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmMOName", 1,
+	case lists:keytake("alarmManagedObjectInstanceName", 1,
 			Objects) of
 		{value, {_, Value}, Objects1} ->
 			event_details2(Objects1, [ {sourceName, Value} | Acc]);
@@ -219,7 +221,7 @@ event_details1(Objects, Acc) ->
 	end.
 %% @hidden
 event_details2(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmCSN", 1,
+	case lists:keytake("systemDN", 1,
 			Objects) of
 		{value, {_, Value}, Objects2} ->
 			event_details3(Objects2, [ {eventName, Value} | Acc]);
@@ -228,7 +230,7 @@ event_details2(Objects, Acc) ->
 	end.
 %% @hidden
 event_details3(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmSpecificproblems", 1,
+	case lists:keytake("alarmSpecificProblem", 1,
 			Objects) of
 		{value, {_, Value}, Objects3} ->
 			event_details4(Objects3, [ {specificProblem, Value} | Acc]);
@@ -237,7 +239,7 @@ event_details3(Objects, Acc) ->
 	end.
 %% @hidden
 event_details4(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmNEType", 1,
+	case lists:keytake("alarmNetype", 1,
 			Objects) of
 		{value, {_, Value}, Objects4} ->
 			event_details5(Objects4, [ {eventSourceType, Value} | Acc]);
@@ -246,71 +248,44 @@ event_details4(Objects, Acc) ->
 	end.
 %% @hidden
 event_details5(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmLevel", 1,
+	case lists:keytake("alarmPerceivedSeverity", 1,
 			Objects) of
-		{value, {_, Value}, Objects5} when Value == "1" ->
-			event_details6(Objects5, [ {eventSeverity, "CRITICAL"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "2" ->
-			event_details6(Objects5, [ {eventSeverity, "MAJOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "3" ->
-			event_details6(Objects5, [ {eventSeverity, "MINOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "4" ->
-			event_details6(Objects5, [ {eventSeverity, "WARNING"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "6" ->
-			event_details6(Objects5, Acc);
+		{value, {_, Value}, Objects5} ->
+			event_details6(Objects5, [ {eventSeverity , Value} | Acc]);
 		false ->
 			event_details6(Objects, Acc)
 	end.
 %% @hidden
 event_details6(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmCategory", 1,
+	case lists:keytake("alarmEventType", 1,
 			Objects) of
-		{value, {_, Value}, Objects6} when Value == "1" ->
-			event_details7(Objects6, [ {eventCategory, "fault"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "2" ->
-			event_details7(Objects6, [ {eventCategory, "clear"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "3" ->
-			event_details7(Objects6, [ {eventCategory, "event"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "4" ->
-			event_details7(Objects6, [ {eventCategory, "acknowledge"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "5" ->
-			event_details7(Objects6, [ {eventCategory, unacknowledge} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "9" ->
-			event_details7(Objects6, [ {eventCategory, "changed"} | Acc]);
+		{value, {_, Value}, Objects6} ->
+			event_details7(Objects6, [ {alarmCondtion, Value} | Acc]);
 		false ->
 			event_details7(Objects, Acc)
 	end.
 %% @hidden
 event_details7(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmType", 1,
+	case lists:keyfind("snmpTrapOID", 1,
 			Objects) of
-		{value, {_, Value}, Objects7} ->
-			event_details8(Objects7, [ {alarmCondtion, Value} | Acc]);
+		{_, Value} when Value == "1" ->
+			event_details8(Objects, [ {eventStatus, "cleared"} | Acc]);
+		{_, Value} when Value == "2" ->
+			event_details8(Objects, [ {eventStatus, "uncleared"} | Acc]);
 		false ->
 			event_details8(Objects, Acc)
 	end.
 %% @hidden
 event_details8(Objects, Acc) ->
-	case lists:keyfind("iMAPNorthboundAlarmRestore", 1,
+	case lists:keyfind("alarmEventTime", 1,
 			Objects) of
-		{_, Value} when Value == "1" ->
-			event_details9(Objects, [ {eventStatus, "cleared"} | Acc]);
-		{_, Value} when Value == "2" ->
-			event_details9(Objects, [ {eventStatus, "uncleared"} | Acc]);
+		{_, Value} ->
+			event_details9(Objects, [ {raisedTime, Value} | Acc]);
 		false ->
 			event_details9(Objects, Acc)
 	end.
 %% @hidden
-event_details9(Objects, Acc) ->
-	case lists:keyfind("iMAPNorthboundAlarmOccurTime", 1,
-			Objects) of
-		{_, Value} ->
-			event_details10(Objects, [ {raisedTime, Value} | Acc]);
-		false ->
-			event_details10(Objects, Acc)
-	end.
-%% @hidden
-event_details10(NewObjects, Acc) ->
+event_details9(NewObjects, Acc) ->
 	{ok, NewObjects, Acc}.
 
 -spec heartbeat(Varbinds) -> Result
