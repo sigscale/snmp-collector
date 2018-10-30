@@ -73,7 +73,7 @@ handle_agent(Domain, Address, Type, {ErrorStatus, ErrorIndex, Varbind}, UserData
 			UserData);
 handle_agent(Domain, Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
 	snmp_collector_snmpm_user_default:handle_agent(Domain,
-			Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds}
+			Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds},
 			UserData).
 
 -spec handle_pdu(TargetName, ReqId, SnmpPduInfo, UserData) -> snmp:void()
