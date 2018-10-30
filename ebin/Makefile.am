@@ -13,7 +13,10 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_server.beam \
 			snmp_collector_get_fsm.beam \
 			snmp_collector_huawei_trap.beam \
+			snmp_collector_huawei_data_com_trap.beam \
 			snmp_collector_zte_trap.beam \
+			snmp_collector_nokia_trap.beam \
+			snmp_collector_nec_trap.beam \
 			snmp_collector_debug_sup.beam \
 			snmp_collector_debug_fsm.beam \
 			snmp_collector.beam \

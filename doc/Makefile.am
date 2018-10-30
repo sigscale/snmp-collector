@@ -9,7 +9,10 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_server.html \
 			snmp_collector_get_fsm.html \
 			snmp_collector_huawei_trap.html \
+			snmp_collector_huawei_data_com_trap.html \
+			snmp_collector_nokia_trap.html \
 			snmp_collector_zte_trap.html \
+			snmp_collector_nec_trap.html \
 			snmp_collector_debug_sup.html \
 			snmp_collector_debug_fsm.html \
 			snmp_collector.html \
