@@ -72,6 +72,18 @@ handle_agent(Domain, Address, Type, {ErrorStatus, ErrorIndex, Varbind}, UserData
 			Address , Type, {ErrorStatus, ErrorIndex, Varbind},
 			UserData);
 handle_agent(Domain, Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+	snmp_collector_snmpm_user_default:handle_agent(Domain, Address, Type, 
+			{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData).
+
+-spec handle_pdu(TargetName, ReqId, SnmpPduInfo, UserData) -> snmp:void()
+	when
+		TargetName :: snmpm:target_name(),
+		ReqId :: term(),
+		SnmpPduInfo :: snmpm:snmp_gen_info(),
+		UserData :: term().
+%% @doc Handle the reply to a asynchronous request.
+%% @private
+handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 	snmp_collector_snmpm_user_default:handle_pdu(TargetName, ReqId, SnmpResponse, UserData).
 
 -spec handle_trap(TargetName, SnmpTrapInfo, UserData) -> Reply
@@ -82,6 +94,7 @@ handle_agent(Domain, Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbin
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
+handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 	case heartbeat(Varbinds) of
 		true ->
 			ignore;
