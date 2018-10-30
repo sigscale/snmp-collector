@@ -49,8 +49,8 @@
 		UserData :: term().
 %% @doc Handle sending an "asynchronous" error to the user.
 %% @private
-handle_error(_ReqId, _Reason, _UserData) ->
-	ok.
+handle_error(ReqId, Reason, UserData) ->
+	snmp_collector_snmpm_user_default:handle_error(ReqId, Reason, UserData).
 
 -spec handle_agent(Domain, Address, Type, SnmpInfo, UserData) -> Reply
 	when
@@ -67,10 +67,14 @@ handle_error(_ReqId, _Reason, _UserData) ->
 		Reply :: ignore.
 %% @doc Handle messages received from an unknown agent.
 %% @private
-handle_agent(_Domain, _Address, _Type, {_ErrorStatus, _ErrorIndex, _Varbind}, _UserData) ->
-	ignore;
-handle_agent(_Domain, _Address, _Type, {_Enteprise, _Generic, _Spec, _Timestamp, _Varbinds}, _UserData) ->
-	ignore.
+handle_agent(Domain, Address, Type, {ErrorStatus, ErrorIndex, Varbind}, UserData) ->
+	snmp_collector_snmpm_user_default:handle_agent(Domain,
+			Address , Type, {ErrorStatus, ErrorIndex, Varbind},
+			UserData);
+handle_agent(Domain, Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+	snmp_collector_snmpm_user_default:handle_agent(Domain,
+			Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds},
+			UserData).
 
 -spec handle_pdu(TargetName, ReqId, SnmpPduInfo, UserData) -> snmp:void()
 	when
@@ -80,8 +84,8 @@ handle_agent(_Domain, _Address, _Type, {_Enteprise, _Generic, _Spec, _Timestamp,
 		UserData :: term().
 %% @doc Handle the reply to a asynchronous request.
 %% @private
-handle_pdu(_TargetName, _ReqId, _SnmpResponse, _UserData) ->
-	ok.
+handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
+	snmp_collector_snmpm_user_default:handle_pdu(TargetName, ReqId, SnmpResponse, UserData).
 
 -spec handle_trap(TargetName, SnmpTrapInfo, UserData) -> Reply
 	when
@@ -172,8 +176,8 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		Reply :: ignore.
 %% @doc Handle a inform message.
 %% @private
-handle_inform(_TargetName, _SnmpInform, _UserData) ->
-	ignore.
+handle_inform(TargetName, SnmpInform, UserData) ->
+	snmp_collector_snmpm_user_default:handle_inform(TargetName, SnmpInform, UserData).
 
 -spec handle_report(TargetName, SnmpReport, UserData) -> Reply
 	when
@@ -183,8 +187,8 @@ handle_inform(_TargetName, _SnmpInform, _UserData) ->
 		Reply :: ignore.
 %% @doc Handle a report message.
 %% @private
-handle_report(_TargetName, _SnmpReport, _UserData) ->
-	ignore.
+handle_report(TargetName, SnmpReport, UserData) ->
+	snmp_collector_snmpm_user_default:handle_report(TargetName, SnmpReport, UserData).
 
 %%----------------------------------------------------------------------
 %%  The internal functions
