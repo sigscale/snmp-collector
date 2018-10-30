@@ -22,7 +22,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, strip/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
-		log_to_disk/2]).
+		log_to_disk/2, get_values/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -428,7 +428,7 @@ log_to_disk(CommentEventHeader, FaultFields) ->
 		Value :: string() | atom() | integer() | list().
 %% @doc Use a name to get a value from a list of names and value.
 get_values(Name, EventDetails) ->
-	case lists:keyfind(Name, 1 , EventDetails) of
+	case lists:keyfind(Name, 1, EventDetails) of
 		{_, Value} ->
 			Value;
 		false ->
