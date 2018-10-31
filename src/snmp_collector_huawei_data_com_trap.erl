@@ -295,6 +295,8 @@ event_details6(Objects, Acc) ->
 			event_details7(Objects6, [ {eventCategory, unacknowledge} | Acc]);
 		{value, {_, Value}, Objects6} when Value == "Change" ->
 			event_details7(Objects6, [ {eventCategory, "changed"} | Acc]);
+		{value, {_, Value}, Objects6} when Value == "Recovery" ->
+			event_details7(Objects6, [ {eventCategory, "recovery"} | Acc]);
 		false ->
 			event_details7(Objects, Acc)
 	end.
@@ -337,6 +339,7 @@ event_details9(Objects, Acc) ->
 		false ->
 			event_details10(Objects, Acc)
 	end.
+
 %% @hidden
 event_details10(NewObjects, Acc) ->
 	{ok, NewObjects, Acc}.
@@ -347,10 +350,9 @@ event_details10(NewObjects, Acc) ->
 		Result :: true | false.
 %% @doc Verify if the event is a HeartBeat event or not.
 heartbeat(Varbinds) ->
-	case snmpm:name_to_oid(hwNmNorthboundEventKeepAlive) of
+	case snmpm:name_to_oid(nmAgent) of
 		{ok, [HeartBeat]} ->
-			NewHeartBeat = lists:flatten(HeartBeat ++ [0]),
-			case lists:keyfind(NewHeartBeat, 2, Varbinds) of
+			case lists:keyfind(HeartBeat, 2, Varbinds) of
 				{varbind, _, _, _, _} ->
 					true;
 				false ->
@@ -359,3 +361,6 @@ heartbeat(Varbinds) ->
 		{error, _Reason} ->
 				false
 	end.
+
+
+
