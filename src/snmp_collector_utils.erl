@@ -328,7 +328,7 @@ arrange_list([{OID, Type, Value} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(list_to_binary(Value), utf8) of
 		Value2 when is_list(Value2) ->
-			arrange_list(T, [{OID, strip(Value2)} | Acc]);
+			arrange_list(T, [{OID, Value2} | Acc]);
 		{error,[],_} ->
 			arrange_list(T, Acc)
 	end;
