@@ -335,7 +335,7 @@ event_details8(NewObjects, Acc) ->
 		Result :: true | false.
 %% @doc Verify if the event is a HeartBeat event or not.
 heartbeat(Varbinds) ->
-	case snmpm:name_to_oid("nbiHeartbeatNotification") of
+	case snmpm:name_to_oid(nbiHeartbeatNotification) of
 		{ok, [HeartBeat]} ->
 			NewHeartBeat = lists:flatten(HeartBeat ++ [0]),
 			case lists:keyfind(NewHeartBeat, 2, Varbinds) of
