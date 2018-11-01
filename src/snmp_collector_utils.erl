@@ -329,7 +329,7 @@ arrange_list([{OID, Type, Value} | T], Acc)
 	case unicode:characters_to_list(list_to_binary(Value), utf8) of
 		Value2 when is_list(Value2) ->
 			arrange_list(T, [{OID, Value2} | Acc]);
-		{error,[],_} ->
+		{error, [], _} ->
 			arrange_list(T, Acc)
 	end;
 arrange_list([{OID, Type, Value} | T], Acc)
@@ -384,11 +384,11 @@ fault_fields({ok, Acc}, EventDetails) ->
 %% @doc Create VES common event header.
 event_header(TargetName, EventDetails) ->
 	#{"domain" => "fault",
-			"eventId" => strip(event_id()),
+			"eventId" => event_id(),
 			"eventName" => get_values(eventName, EventDetails),
 			"lastEpochMicrosec" => timestamp(),
 			"priority" => "Normal",
-			"reportingEntityID" => entity_id(TargetName),
+			"reportingEntityID" => strip(entity_id(TargetName)),
 			"reportingEntityName" => entity_name(TargetName),
 			"sequence" => 0,
 			"sourceId" => get_values(sourceId, EventDetails),
