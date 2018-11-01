@@ -194,6 +194,22 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
+-spec oid_to_name(OIDsValues, Acc) -> Result
+	when
+		OIDsValues :: [{OID, Value}],
+		Acc :: [],
+		OID :: list(),
+		Value :: string() | integer(),
+		Result :: [{Name, Value}],
+		Name :: string().
+%% @doc Convert OIDs to valid names.
+oid_to_name([{OID, Value} | T], Acc) ->
+	Name = snmp_collector_utils:oid_to_name(OID),
+	oid_to_name(T, [{strip_name(Name), Value} | Acc]);
+oid_to_name([], Acc) ->
+	NewAcc = lists:reverse(Acc),
+	{ok, NewAcc}.
+
 -spec event_details(NameValuePair, Acc) -> Result
 	when
 		NameValuePair :: [{Name, Value}],
@@ -309,43 +325,45 @@ heartbeat(Varbinds) ->
 				false
 	end.
 
--spec oid_to_name(OIDsValues, Acc) -> Result
+-spec strip_name(Name) -> Name
 	when
-		OIDsValues :: [{OID, Value}],
-		Acc :: [],
-		OID :: list(),
-		Value :: string() | integer(),
-		Result :: [{Name, Value}],
 		Name :: string().
-%% @doc Convert OIDs to valid names.
-oid_to_name([{OID, Value} | T], Acc) ->
-	case catch oid_to_name1(OID) of
-		Name when is_list(Name) ->
-			oid_to_name(T, [{Name, Value} | Acc]);
-		{'EXIT', _Reason} ->
-			Name = snmp_collector_utils:oid_to_name(OID),
-			oid_to_name(T, [{Name, Value} | Acc])
-	end;
-oid_to_name([], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	{ok, NewAcc}.
-%% @hidden
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,3,1,17,_Index]) ->
-	"alarmNeIP";
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,3,1,15,_Index]) ->
-	"alarmManagedObjectInstanceName";
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,1,3]) ->
-	"systemDN";
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,3,1,8]) ->
-	"alarmSpecificProblem";
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,3,1,12,_Index]) ->
-	"alarmNetype";
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,3,1,7,_Index]) ->
-	"alarmPerceivedSeverity";
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,3,1,5,_Index]) ->
-	"alarmEventType";
-oid_to_name1([1,3,6,1,6,3,1,1,4,1]) ->
-	"snmpTrapOID";
-oid_to_name1([1,3,6,1,4,1,3902,4101,1,3,1,4,_Index]) ->
-	"alarmEventTime".
+%% @doc Removes the index from required names.
+strip_name(Name) ->
+	case string:token(Name, ".") of
+		[NName, _Index] ->
+			case keep_index(NName) of 
+				no ->
+					NName;
+				{error, _Reason} ->
+					Name
+			end;
+		[Name] ->
+			Name
+	end.
+
+-spec keep_index(Name) -> Result
+	when
+		Name :: string(),
+		Result :: no | {error, Reason},
+		Reason :: term().
+%% @doc Check if the index should be left in the name.
+keep_index("alarmNeIP") ->
+	no;
+keep_index("alarmManagedObjectInstanceName") ->
+	no;
+keep_index("systemDN") ->
+	no;
+keep_index("alarmSpecificProblem") ->
+	no;
+keep_index("alarmNetype") ->
+	no;
+keep_index("alarmPerceivedSeverity") ->
+	no;
+keep_index("alarmEventType") ->
+	no;
+keep_index("snmpTrapOID") ->
+	no;
+keep_index("alarmEventTime") ->
+	no.
 
