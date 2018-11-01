@@ -317,12 +317,9 @@ event_details7(Objects, Acc) ->
 	case lists:keyfind("nbiEventTime", 1,
 			Objects) of
 		{_, Value} ->
-erlang:display({?MODULE, ?LINE, Value}),
 			case catch string:tokens(Value, ",") of
 				[Date, Time, Zone] ->
-erlang:display({?MODULE, ?LINE, Date, Time, Zone}),
 					NewTime = Date ++ "T" ++ Time ++ Zone,
-erlang:display({?MODULE, ?LINE, NewTime}),
 					event_details8(Objects, [ {raisedTime, NewTime} | Acc]);
 				{'EXIT', Reason} ->
 					{error, Reason}
@@ -340,11 +337,11 @@ event_details8(NewObjects, Acc) ->
 		Result :: true | false.
 %% @doc Verify if the event is a HeartBeat event or not.
 heartbeat(Varbinds) ->
-	case snmpm:name_to_oid(nbiHeartbeatNotification) of
+	case snmpm:name_to_oid(snmpTrapOID) of
 		{ok, [HeartBeat]} ->
 			NewHeartBeat = lists:flatten(HeartBeat ++ [0]),
 			case lists:keyfind(NewHeartBeat, 2, Varbinds) of
-				{varbind, _, _, _, _} ->
+				{varbind, _, _, snmpm:name_to_oid(nbiHeartbeatNotification), _} ->
 					true;
 				false ->
 					false
