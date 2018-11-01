@@ -257,7 +257,7 @@ event_details3(Objects, Acc) ->
 	end.
 %% @hidden
 event_details4(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmLevel", 1,
+	case lists:keytake("nbiPerceivedSeverity", 1,
 			Objects) of
 		{value, {_, Value}, Objects4} when Value == "1" ->
 			event_details5(Objects4, [ {eventSeverity, "CRITICAL"} | Acc]);
