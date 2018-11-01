@@ -334,7 +334,7 @@ arrange_list([{OID, Type, Value} | T], Acc)
 	end;
 arrange_list([{OID, Type, Value} | T], Acc)
 		when Type == 'OBJECT IDENTIFIER', is_list(Value) ->
-	arrange_list(T, [{OID,oid_to_name(Value)} | Acc]);
+	arrange_list(T, [{OID, oid_to_name(Value)} | Acc]);
 arrange_list([{OID, Type, Value} | T], Acc)
 		when Type =='INTEGER', is_integer(Value) ->
 	Value2 = integer_to_list(Value),
@@ -384,7 +384,7 @@ fault_fields({ok, Acc}, EventDetails) ->
 %% @doc Create VES common event header.
 event_header(TargetName, EventDetails) ->
 	#{"domain" => "fault",
-			"eventId" => event_id(),
+			"eventId" => strip(event_id()),
 			"eventName" => get_values(eventName, EventDetails),
 			"lastEpochMicrosec" => timestamp(),
 			"priority" => "Normal",
