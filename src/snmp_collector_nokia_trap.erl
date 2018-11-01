@@ -267,6 +267,8 @@ event_details4(Objects, Acc) ->
 			event_details5(Objects4, [ {eventSeverity, "MINOR"} | Acc]);
 		{value, {_, Value}, Objects4} when Value == "4" ->
 			event_details5(Objects4, [ {eventSeverity, "WARNING"} | Acc]);
+		{value, {_, Value}, Objects4} when Value == "5" ->
+			event_details5(Objects4, Acc);
 		{value, {_, Value}, Objects4} when Value == "6" ->
 			event_details5(Objects4, Acc);
 		false ->
@@ -315,9 +317,12 @@ event_details7(Objects, Acc) ->
 	case lists:keyfind("nbiEventTime", 1,
 			Objects) of
 		{_, Value} ->
+erlang:display({?MODULE, ?LINE, Value}),
 			case catch string:tokens(Value, ",") of
 				[Date, Time, Zone] ->
+erlang:display({?MODULE, ?LINE, Date, Time, Zone}),
 					NewTime = Date ++ "T" ++ Time ++ Zone,
+erlang:display({?MODULE, ?LINE, NewTime}),
 					event_details8(Objects, [ {raisedTime, NewTime} | Acc]);
 				{'EXIT', Reason} ->
 					{error, Reason}
