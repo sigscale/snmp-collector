@@ -330,7 +330,7 @@ heartbeat(Varbinds) ->
 		Name :: string().
 %% @doc Removes the index from required names.
 strip_name(Name) ->
-	case string:token(Name, ".") of
+	case string:tokens(Name, ".") of
 		[NName, _Index] ->
 			case keep_index(NName) of 
 				no ->
