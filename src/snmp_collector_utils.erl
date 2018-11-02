@@ -19,7 +19,7 @@
 -module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
 
--export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, strip/1,
+-export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
 		log_to_disk/2, get_values/2]).
@@ -73,6 +73,9 @@ iso8601month(Year, [$-, $0]) ->
 	iso8601month(Year, [$-, $0, $1]);
 iso8601month(Year, [$-, $1]) ->
 	iso8601month(Year, [$-, $1, $0]);
+iso8601month(Year, [$-, M, $- | T])
+		when M >= $1, M =< $9 ->
+	iso8601day(Year, list_to_integer([M]), T);
 iso8601month(Year, [$-, M1, M2 | T])
 		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
 	iso8601day(Year, list_to_integer([M1, M2]), T).
@@ -88,6 +91,10 @@ iso8601day(Year, Month, [$-, $0]) ->
 iso8601day(Year, Month, [$-, D1])
 		when D1 >= $1, D1 =< $3 ->
 	iso8601day(Year, Month, [$-, D1, $0]);
+iso8601day(Year, Month, [$-, D, $- | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
 iso8601day(Year, Month, [$-, D1, D2 | T])
 		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
 	Day = list_to_integer([D1, D2]),
@@ -107,6 +114,10 @@ iso8601hour(Date, [$T, H1])
 iso8601hour(Date, [$ , H1])
 		when H1 >= $0, H1 =< $2 ->
 	iso8601hour(Date, [$ , H1, $0]);
+iso8601hour(Date, [$T, H, $- | T])
+		when H >= $1, H =< $9 ->
+	Hour = list_to_integer([H]),
+	iso8601minute(Date, Hour, T);
 iso8601hour(Date, [$T, H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
@@ -261,32 +272,33 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
--spec strip(Value) -> Result
+-spec stringify(String) -> Result
 	when
-		Value :: string(),
+		String :: string(),
 		Result :: string().
-%% @doc Strip extra characters from inside a string.
+%% @doc JSON encode a string.
 %% @private
-strip(Value) ->
-	NewValue = lists:filter(fun strip1/1, Value),
-	NewValue.
+stringify(String) ->
+	lists:flatmap(fun stringify1/1, String).
 %% @hidden
-strip1($") ->
-	false;
-strip1($\n) ->
-	false;
-strip1($\r) ->
-	false;
-strip1($	) ->
-	false;
-strip1($@) ->
-	false;
-strip1($/) ->
-	false;
-strip1($#) ->
-	false;
-strip1(_) ->
-	true.
+stringify1($") ->
+	[$\ , $"];
+stringify1($\n) ->
+	[$\ , $\n];
+stringify1($\r) ->
+	[$\ , $\r];
+stringify1($\t) ->
+	[$\ , $\t];
+stringify1($/) ->
+	[$\ , $/];
+stringify1($\\) ->
+	[$\ , $\\];
+stringify1(C) when C < 32 ->
+	[];
+stringify1(C) when C > 126 ->
+	[];
+stringify1(C) ->
+	[C].
 
 -spec create_pairs(Varbinds) -> Result
 	when
@@ -355,7 +367,7 @@ arrange_list([], Acc) ->
 %% @doc Turn the list of names and values into a map format.
 %% @private
 map_names_values([{Name, Value} | T], Acc) ->
-	NewValue = strip(Value),
+	NewValue = stringify(Value),
 	map_names_values(T, [#{"name" => Name, "value" => NewValue} | Acc]);
 map_names_values([], Acc) ->
 	{ok, Acc}.
@@ -388,7 +400,7 @@ event_header(TargetName, EventDetails) ->
 			"eventName" => get_values(eventName, EventDetails),
 			"lastEpochMicrosec" => timestamp(),
 			"priority" => "Normal",
-			"reportingEntityID" => strip(entity_id(TargetName)),
+			"reportingEntityID" => stringify(entity_id(TargetName)),
 			"reportingEntityName" => entity_name(TargetName),
 			"sequence" => 0,
 			"sourceId" => get_values(sourceId, EventDetails),
