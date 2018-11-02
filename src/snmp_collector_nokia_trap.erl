@@ -341,8 +341,11 @@ heartbeat(Varbinds) ->
 		{ok, [HeartBeat]} ->
 			NewHeartBeat = lists:flatten(HeartBeat ++ [0]),
 			case lists:keyfind(NewHeartBeat, 2, Varbinds) of
-				{varbind, _, _, snmpm:name_to_oid(nbiHeartbeatNotification), _} ->
+				{varbind, _, _, Value, _}
+						when Value == [1,3,6,1,4,1,28458,1,26,2,0,1,2]->
 					true;
+				{varbind, _, _, _Value, _} ->
+					false;
 				false ->
 					false
 			end;
