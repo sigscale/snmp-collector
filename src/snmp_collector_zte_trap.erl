@@ -352,6 +352,8 @@ keep_index("alarmNeIP") ->
 	no;
 keep_index("alarmManagedObjectInstanceName") ->
 	no;
+keep_index("alarmManagedObjectInstance") ->
+	no;
 keep_index("systemDN") ->
 	no;
 keep_index("alarmSpecificProblem") ->
