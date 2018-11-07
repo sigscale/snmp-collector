@@ -75,9 +75,11 @@ iso8601month(Year, [$-, $1]) ->
 	iso8601month(Year, [$-, $1, $0]);
 iso8601month(Year, [$-, M, $- | T])
 		when M >= $1, M =< $9 ->
+erlang:display({?MODULE, ?LINE, Year, M, T}),
 	iso8601day(Year, list_to_integer([M]), T);
 iso8601month(Year, [$-, M1, M2 | T])
 		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
+erlang:display({?MODULE, ?LINE, Year, M1, M2, T}),
 	iso8601day(Year, list_to_integer([M1, M2]), T).
 %% @hidden
 iso8601day(Year, Month, []) ->
@@ -91,6 +93,10 @@ iso8601day(Year, Month, [$-, $0]) ->
 iso8601day(Year, Month, [$-, D1])
 		when D1 >= $1, D1 =< $3 ->
 	iso8601day(Year, Month, [$-, D1, $0]);
+iso8601day(Year, Month, [$-, D, _C | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
 iso8601day(Year, Month, [$-, D, $- | T])
 		when D >= $1, D =< $9 ->
 	Day = list_to_integer([D]),
@@ -117,6 +123,10 @@ iso8601hour(Date, [$ , H1])
 iso8601hour(Date, [$T, H, $- | T])
 		when H >= $1, H =< $9 ->
 	Hour = list_to_integer([H]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [H1, H2 | T])
+		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
+	Hour = list_to_integer([H1, H2]),
 	iso8601minute(Date, Hour, T);
 iso8601hour(Date, [$T, H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
@@ -271,35 +281,6 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	generate_identity(Rest, Charset, NumChars, NewAcc);
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
-
--spec stringify(String) -> Result
-	when
-		String :: string(),
-		Result :: string().
-%% @doc JSON encode a string.
-%% @private
-stringify(String) ->
-	lists:flatmap(fun stringify1/1, String).
-%% @hidden
-stringify1($") ->
-	[$\ , $"];
-stringify1($\n) ->
-	[$\ , $\n];
-stringify1($\r) ->
-	[$\ , $\r];
-stringify1($\t) ->
-	[$\ , $\t];
-stringify1($/) ->
-	[$\ , $/];
-stringify1($\\) ->
-	[$\ , $\\];
-stringify1(C) when C < 32 ->
-	[];
-stringify1(C) when C > 126 ->
-	[];
-stringify1(C) ->
-	[C].
-
 -spec create_pairs(Varbinds) -> Result
 	when
 		Varbinds :: [Varbind],
@@ -338,10 +319,21 @@ create_pairs(Varbinds) ->
 %% @private
 arrange_list([{OID, Type, Value} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
-	case unicode:characters_to_list(list_to_binary(Value), utf8) of
+	case unicode:characters_to_list(Value, utf8) of
 		Value2 when is_list(Value2) ->
 			arrange_list(T, [{OID, Value2} | Acc]);
-		{error, [], _} ->
+		{incomplete, Good, Bad} ->
+			error_logger:info_report(["Error parsing 'OCTET STRING'",
+					{error, incomplete},
+					{oid, OID},
+					{good, Good},
+					{bad, Bad}]),
+			arrange_list(T, Acc);
+		{error, Good, Bad} ->
+			error_logger:info_report(["Error parsing 'OCTET STRING'",
+					{oid, OID},
+					{good, Good},
+					{bad, Bad}]),
 			arrange_list(T, Acc)
 	end;
 arrange_list([{OID, Type, Value} | T], Acc)
@@ -482,3 +474,120 @@ event_id() ->
 %% @doc Create time stamp.
 timestamp() ->
 	erlang:system_time(?MILLISECOND).
+
+-spec stringify(String) -> Result
+	when
+		String :: string(),
+		Result :: string().
+%% @doc JSON encode a string.
+%% @private
+stringify(String) ->
+	stringify1(String, []).
+%% @hidden
+stringify1([$\\, $\a | T], Acc) ->
+	stringify1(T, [$\a, $\\ | Acc]);
+stringify1([$\a | T], Acc) ->
+	stringify1(T, [$\a, $\\ | Acc]);
+stringify1([$\\, $\b | T], Acc) ->
+	stringify1(T, [$\b, $\\ | Acc]);
+stringify1([$\b | T], Acc) ->
+	stringify1(T, [$\b, $\\ | Acc]);
+stringify1([$\\, $\d | T], Acc) ->
+	stringify1(T, [$\d, $\\ | Acc]);
+stringify1([$\d | T], Acc) ->
+	stringify1(T, [$\d, $\\ | Acc]);
+stringify1([$\\, $\e | T], Acc) ->
+	stringify1(T, [$\e, $\\ | Acc]);
+stringify1([$\e | T], Acc) ->
+	stringify1(T, [$\e, $\\ | Acc]);
+stringify1([$\\, $\f | T], Acc) ->
+	stringify1(T, [$\f, $\\ | Acc]);
+stringify1([$\f | T], Acc) ->
+	stringify1(T, [$\f, $\\ | Acc]);
+stringify1([$\\, $\n | T], Acc) ->
+	stringify1(T, [$\n, $\\ | Acc]);
+stringify1([$\n | T], Acc) ->
+	stringify1(T, [$\n, $\\ | Acc]);
+stringify1([$\\, $\r | T], Acc) ->
+	stringify1(T, [$\r, $\\ | Acc]);
+stringify1([$\r | T], Acc) ->
+	stringify1(T, [$\r, $\\ | Acc]);
+stringify1([$\\, $\s | T], Acc) ->
+	stringify1(T, [$\s, $\\ | Acc]);
+stringify1([$\s | T], Acc) ->
+	stringify1(T, [$\s, $\\ | Acc]);
+stringify1([$\\, $\t | T], Acc) ->
+	stringify1(T, [$\t, $\\ | Acc]);
+stringify1([$\t | T], Acc) ->
+	stringify1(T, [$\t, $\\ | Acc]);
+stringify1([$\\, $\v | T], Acc) ->
+	stringify1(T, [$\v, $\\ | Acc]);
+stringify1([$\v | T], Acc) ->
+	stringify1(T, [$\v, $\\ | Acc]);
+stringify1([$\\, $\' | T], Acc) ->
+	stringify1(T, [$\', $\\ | Acc]);
+stringify1([$\' | T], Acc) ->
+	stringify1(T, [$\', $\\ | Acc]);
+stringify1([$\\, $\" | T], Acc) ->
+	stringify1(T, [$\", $\\ | Acc]);
+stringify1([$\" | T], Acc) ->
+	stringify1(T, [$\", $\\ | Acc]);
+stringify1([$\\, $\0 | T], Acc) ->
+	stringify1(T, [$\0, $\\ | Acc]);
+stringify1([$\0 | T], Acc) ->
+	stringify1(T, [$\0, $\\ | Acc]);
+stringify1([$\\, $\111 | T], Acc) ->
+	stringify1(T, [$\111, $\\ | Acc]);
+stringify1([$\\, $\11 | T], Acc) ->
+	stringify1(T, [$\11, $\\ | Acc]);
+stringify1([$\\, $\1 | T], Acc) ->
+	stringify1(T, [$\1, $\\ | Acc]);
+stringify1([$\\, $\222 | T], Acc) ->
+	stringify1(T, [$\222, $\\ | Acc]);
+stringify1([$\\, $\22 | T], Acc) ->
+	stringify1(T, [$\22, $\\ | Acc]);
+stringify1([$\\, $\2 | T], Acc) ->
+	stringify1(T, [$\2, $\\ | Acc]);
+stringify1([$\\, $\333 | T], Acc) ->
+	stringify1(T, [$\333, $\\ | Acc]);
+stringify1([$\\, $\33 | T], Acc) ->
+	stringify1(T, [$\33, $\\ | Acc]);
+stringify1([$\\, $\3 | T], Acc) ->
+	stringify1(T, [$\3, $\\ | Acc]);
+stringify1([$\\, $\444 | T], Acc) ->
+	stringify1(T, [$\444, $\\ | Acc]);
+stringify1([$\\, $\44 | T], Acc) ->
+	stringify1(T, [$\44, $\\ | Acc]);
+stringify1([$\\, $\4 | T], Acc) ->
+	stringify1(T, [$\4, $\\ | Acc]);
+stringify1([$\\, $\555 | T], Acc) ->
+	stringify1(T, [$\555, $\\ | Acc]);
+stringify1([$\\, $\55 | T], Acc) ->
+	stringify1(T, [$\55, $\\ | Acc]);
+stringify1([$\\, $\5 | T], Acc) ->
+	stringify1(T, [$\5, $\\ | Acc]);
+stringify1([$\\, $\666 | T], Acc) ->
+	stringify1(T, [$\666, $\\ | Acc]);
+stringify1([$\\, $\66 | T], Acc) ->
+	stringify1(T, [$\66, $\\ | Acc]);
+stringify1([$\\, $\6 | T], Acc) ->
+	stringify1(T, [$\6, $\\ | Acc]);
+stringify1([$\\, $\777 | T], Acc) ->
+	stringify1(T, [$\777, $\\ | Acc]);
+stringify1([$\\, $\77 | T], Acc) ->
+	stringify1(T, [$\77, $\\ | Acc]);
+stringify1([$\\, $\7 | T], Acc) ->
+	stringify1(T, [$\7, $\\ | Acc]);
+stringify1([$\\, $\8 | T], Acc) ->
+	stringify1(T, [$\8, $\\ | Acc]);
+stringify1([$\\, $\9 | T], Acc) ->
+	stringify1(T, [$\9, $\\ | Acc]);
+stringify1([$\\, $\\ | T], Acc) ->
+	stringify1(T, [$\\, $\\ | Acc]);
+stringify1([$\\ | T], Acc) ->
+	stringify1(T, [$\\, $\\ | Acc]);
+stringify1([H | T], Acc) ->
+	stringify1(T, [H | Acc]);
+stringify1([], Acc) ->
+	lists:reverse(Acc).
+
