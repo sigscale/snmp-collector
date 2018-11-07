@@ -207,8 +207,7 @@ oidobjects([{OID, Asn1Type} | T], Acc) ->
 			"type" => Asn1Type#asn1_type.aliasname},
 	oidobjects(T, [Map | Acc]);
 oidobjects([], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	NewAcc.
+	lists:reverse(Acc).
 
 -spec me(Me) -> Me
 	when
@@ -359,6 +358,5 @@ read_mibs(Dir, [H | T], Acc) ->
 			{error, Reason}
 	end;
 read_mibs(_Dir, [], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	{ok, NewAcc}.
+	{ok, lists:reverse(Acc)}.
 
