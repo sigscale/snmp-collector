@@ -317,13 +317,7 @@ event_details7(Objects, Acc) ->
 	case lists:keyfind("nbiEventTime", 1,
 			Objects) of
 		{_, Value} ->
-			case catch string:tokens(Value, ",") of
-				[Date, Time, Zone] ->
-					NewTime = Date ++ "T" ++ Time ++ Zone,
-					event_details8(Objects, [ {raisedTime, NewTime} | Acc]);
-				{'EXIT', Reason} ->
-					{error, Reason}
-			end;
+			event_details8(Objects, [ {raisedTime, Value} | Acc]);
 		false ->
 			event_details8(Objects, Acc)
 	end.

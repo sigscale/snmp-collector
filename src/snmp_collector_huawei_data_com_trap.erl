@@ -323,19 +323,7 @@ event_details9(Objects, Acc) ->
 	case lists:keyfind("hwNmNorthboundEventTime", 1,
 			Objects) of
 		{_, Value} ->
-			case string:tokens(Value, " - ") of
-				[Date,TimeZone] ->
-					case string:tokens(Date, "/") of
-						[Y,M,D] ->
-							NewDate = Y ++ "-" ++ M ++ "-" ++ D,
-							NewTime = NewDate ++ "T" ++ TimeZone,
-							event_details10(Objects, [ {raisedTime, NewTime} | Acc]);
-						{'EXIT', Reason} ->
-							{error, Reason}
-					end;
-				{'EXIT', Reason} ->
-					{error, Reason}
-			end;
+			event_details10(Objects, [ {raisedTime, Value} | Acc]);
 		false ->
 			event_details10(Objects, Acc)
 	end.
