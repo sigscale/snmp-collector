@@ -366,6 +366,8 @@ keep_index("alarmEventType") ->
 	no;
 keep_index("snmpTrapOID") ->
 	no;
+keep_index("alarmCode") ->
+	no;
 keep_index("alarmEventTime") ->
 	no.
 
