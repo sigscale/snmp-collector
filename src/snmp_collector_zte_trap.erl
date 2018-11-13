@@ -268,27 +268,41 @@ event_details4(Objects, Acc) ->
 event_details5(Objects, Acc) ->
 	case lists:keytake("alarmPerceivedSeverity", 1,
 			Objects) of
-		{value, {_, Value}, Objects5} ->
-			event_details6(Objects5, [ {eventSeverity , Value} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "1" ->
+			event_details6(Objects5, [ {eventSeverity, "CRITICAL"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "2" ->
+			event_details6(Objects5, [ {eventSeverity, "MAJOR"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "3" ->
+			event_details6(Objects5, [ {eventSeverity, "MINOR"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "4" ->
+			event_details6(Objects5, [ {eventSeverity, "WARNING"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "6" ->
+			event_details6(Objects5, Acc);
 		false ->
 			event_details6(Objects, Acc)
-	end.
+end.
 %% @hidden
 event_details6(Objects, Acc) ->
-	case lists:keytake("alarmEventType", 1,
+	case lists:keytake("snmpTrapOID", 1,
 			Objects) of
-		{value, {_, Value}, Objects6} ->
-			event_details7(Objects6, [ {alarmCondtion, Value} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "alarmCleared" ->
+			event_details7(Objects5, [ {alarmCondtion, "cleared"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "alarmNew" ->
+			event_details7(Objects5, [ {alarmCondtion, "new"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "alarmAckChange" ->
+			event_details7(Objects5, [ {alarmCondtion, "ackChanged"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "alarmCommentChange" ->
+			event_details7(Objects5, [ {alarmCondtion, "commented"} | Acc]);
 		false ->
 			event_details7(Objects, Acc)
-	end.
+end.
 %% @hidden
 event_details7(Objects, Acc) ->
 	case lists:keyfind("snmpTrapOID", 1,
 			Objects) of
-		{_, Value} when Value == "1" ->
+		{_, "alarmCleared"} ->
 			event_details8(Objects, [ {eventStatus, "cleared"} | Acc]);
-		{_, Value} when Value == "2" ->
+		{_, _ } ->
 			event_details8(Objects, [ {eventStatus, "uncleared"} | Acc]);
 		false ->
 			event_details8(Objects, Acc)
@@ -335,7 +349,7 @@ strip_name(Name) ->
 			case keep_index(NName) of 
 				no ->
 					NName;
-				{error, _Reason} ->
+				yes ->
 					Name
 			end;
 		[Name] ->
@@ -350,6 +364,8 @@ strip_name(Name) ->
 %% @doc Check if the index should be left in the name.
 keep_index("alarmNeIP") ->
 	no;
+keep_index("alarmIndex") ->
+	no;
 keep_index("alarmManagedObjectInstanceName") ->
 	no;
 keep_index("alarmManagedObjectInstance") ->
@@ -357,6 +373,8 @@ keep_index("alarmManagedObjectInstance") ->
 keep_index("systemDN") ->
 	no;
 keep_index("alarmSpecificProblem") ->
+	no;
+keep_index("alarmProbableCause") ->
 	no;
 keep_index("alarmNetype") ->
 	no;
@@ -368,6 +386,14 @@ keep_index("snmpTrapOID") ->
 	no;
 keep_index("alarmCode") ->
 	no;
+keep_index("alarmCodeName") ->
+	no;
+keep_index("alarmId") ->
+	no;
+keep_index("alarmAdditionalText") ->
+	no;
 keep_index("alarmEventTime") ->
-	no.
+	no;
+keep_index(_) ->
+	yes.
 
