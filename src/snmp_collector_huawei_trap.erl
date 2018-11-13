@@ -286,51 +286,41 @@ event_details6(Objects, Acc) ->
 	case lists:keytake("iMAPNorthboundAlarmCategory", 1,
 			Objects) of
 		{value, {_, Value}, Objects6} when Value == "1" ->
-			event_details7(Objects6, [ {eventCategory, "fault"} | Acc]);
+			event_details7(Objects6, [ {alarmCondtion, "fault"} | Acc]);
 		{value, {_, Value}, Objects6} when Value == "2" ->
-			event_details7(Objects6, [ {eventCategory, "clear"} | Acc]);
+			event_details7(Objects6, [ {alarmCondtion, "clear"} | Acc]);
 		{value, {_, Value}, Objects6} when Value == "3" ->
-			event_details7(Objects6, [ {eventCategory, "event"} | Acc]);
+			event_details7(Objects6, [ {alarmCondtion, "event"} | Acc]);
 		{value, {_, Value}, Objects6} when Value == "4" ->
-			event_details7(Objects6, [ {eventCategory, "acknowledge"} | Acc]);
+			event_details7(Objects6, [ {alarmCondtion, "acknowledge"} | Acc]);
 		{value, {_, Value}, Objects6} when Value == "5" ->
-			event_details7(Objects6, [ {eventCategory, unacknowledge} | Acc]);
+			event_details7(Objects6, [ {alarmCondtion, unacknowledge} | Acc]);
 		{value, {_, Value}, Objects6} when Value == "9" ->
-			event_details7(Objects6, [ {eventCategory, "changed"} | Acc]);
+			event_details7(Objects6, [ {alarmCondtion, "changed"} | Acc]);
 		false ->
 			event_details7(Objects, Acc)
 	end.
-%% @hidden
 event_details7(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmType", 1,
+	case lists:keyfind("iMAPNorthboundAlarmRestore", 1,
 			Objects) of
-		{value, {_, Value}, Objects7} ->
-			event_details8(Objects7, [ {alarmCondtion, Value} | Acc]);
+		{_, Value} when Value == "1" ->
+			event_details8(Objects, [ {eventStatus, "cleared"} | Acc]);
+		{_, Value} when Value == "2" ->
+			event_details8(Objects, [ {eventStatus, "uncleared"} | Acc]);
 		false ->
 			event_details8(Objects, Acc)
 	end.
 %% @hidden
 event_details8(Objects, Acc) ->
-	case lists:keyfind("iMAPNorthboundAlarmRestore", 1,
+	case lists:keyfind("iMAPNorthboundAlarmOccurTime", 1,
 			Objects) of
-		{_, Value} when Value == "1" ->
-			event_details9(Objects, [ {eventStatus, "cleared"} | Acc]);
-		{_, Value} when Value == "2" ->
-			event_details9(Objects, [ {eventStatus, "uncleared"} | Acc]);
+		{_, Value} ->
+			event_details9(Objects, [ {raisedTime, Value} | Acc]);
 		false ->
 			event_details9(Objects, Acc)
 	end.
 %% @hidden
-event_details9(Objects, Acc) ->
-	case lists:keyfind("iMAPNorthboundAlarmOccurTime", 1,
-			Objects) of
-		{_, Value} ->
-			event_details10(Objects, [ {raisedTime, Value} | Acc]);
-		false ->
-			event_details10(Objects, Acc)
-	end.
-%% @hidden
-event_details10(NewObjects, Acc) ->
+event_details9(NewObjects, Acc) ->
 	{ok, NewObjects, Acc}.
 
 -spec heartbeat(Varbinds) -> Result
