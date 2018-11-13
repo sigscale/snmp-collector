@@ -331,7 +331,7 @@ query_page1([], [], Acc) ->
 query_page1([], Filters, Acc) ->
 	query_page2(Acc, Filters, []).
 %% @hidden
-query_page2([U | T], Filters, Acc) ->
+query_page2([_U | T], Filters, Acc) ->
 	% @todo: filters
 	% query_page2(T, Filters, [snmp_collector_rest:fields(Filters, U) | Acc]);
 	query_page2(T, Filters, Acc);
