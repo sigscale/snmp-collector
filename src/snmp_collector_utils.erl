@@ -128,6 +128,9 @@ iso8601hour(Date, [$T, H1])
 iso8601hour(Date, [$ , H1])
 		when H1 >= $0, H1 =< $2 ->
 	iso8601hour(Date, [$ , H1, $0]);
+iso8601hour(Date, [$, , H1])
+		when H1 >= $0, H1 =< $2 ->
+	iso8601hour(Date, [$ , H1, $0]);
 iso8601hour(Date, [$T, H, $- | T])
 		when H >= $1, H =< $9 ->
 	Hour = list_to_integer([H]),
@@ -333,7 +336,7 @@ arrange_list([{OID, Type, Value} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(Value, utf8) of
 		Value2 when is_list(Value2) ->
-			arrange_list(T, [{OID, Value2} | Acc]);
+			arrange_list(T, [{OID, stringify(Value2)} | Acc]);
 		{incomplete, Good, Bad} ->
 			error_logger:info_report(["Error parsing 'OCTET STRING'",
 					{error, incomplete},
@@ -371,8 +374,7 @@ arrange_list([], Acc) ->
 %% @doc Turn the list of names and values into a map format.
 %% @private
 map_names_values([{Name, Value} | T], Acc) ->
-	NewValue = stringify(Value),
-	map_names_values(T, [#{"name" => Name, "value" => NewValue} | Acc]);
+	map_names_values(T, [#{"name" => Name, "value" => Value} | Acc]);
 map_names_values([], Acc) ->
 	{ok, Acc}.
 
@@ -515,7 +517,7 @@ stringify1([$\v | T], Acc) ->
 stringify1([$\' | T], Acc) ->
 	stringify1(T, Acc);
 stringify1([$\" | T], Acc) ->
-	stringify1(T, [$\", $\\ | Acc]);
+	stringify1(T, Acc);
 stringify1([$\\ | T], Acc) ->
 	stringify1(T, [$\\, $\\ | Acc]);
 stringify1([H | T], Acc) ->
