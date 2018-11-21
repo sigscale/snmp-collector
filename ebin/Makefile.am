@@ -28,7 +28,8 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_rest_post.beam \
 			snmp_collector_rest_delete.beam \
 			snmp_collector_rest_res_user.beam \
-			snmp_collector_rest_res_mib.beam
+			snmp_collector_rest_res_mib.beam \
+			snmp_collector_manager_fsm.beam
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/snmp_collector.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include $<
