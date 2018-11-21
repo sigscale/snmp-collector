@@ -39,8 +39,9 @@
 %% @private
 %%
 init([]) ->
-	ChildSpecs = [supervisor(snmp_collector_get_sup, []),
-			supervisor(snmp_collector_debug_sup, [])],
+	ChildSpecs = [supervisor(snmp_collector_manager_sup_sup, []),
+			supervisor(snmp_collector_debug_sup, []),
+			supervisor(snmp_collector_get_sup, [])],
 	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
