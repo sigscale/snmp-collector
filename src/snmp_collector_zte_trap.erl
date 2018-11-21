@@ -276,6 +276,8 @@ event_details5(Objects, Acc) ->
 			event_details6(Objects5, [ {eventSeverity, "MINOR"} | Acc]);
 		{value, {_, Value}, Objects5} when Value == "4" ->
 			event_details6(Objects5, [ {eventSeverity, "WARNING"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "5" ->
+			event_details6(Objects5, Acc);
 		{value, {_, Value}, Objects5} when Value == "6" ->
 			event_details6(Objects5, Acc);
 		false ->
