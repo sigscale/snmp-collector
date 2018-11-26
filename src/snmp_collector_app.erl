@@ -77,40 +77,45 @@ start(normal = _StartType, _Args) ->
 start1() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
-			start2(TopSup);
+			Children = superviser:which_children(TopSup),
+			{ok, ManagerPorts} = application:get_env(manager_ports),
+			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
+			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
+			start2(TopSup, ManagerSup, DebugSup, ManagerPorts);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start2(TopSup) ->
+start2(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
+		when is_integer(Port) ->
+	case supervisor:start_child(ManagerSup, [[Port], []]) of
+		{ok, _ManagerServerSup} ->
+			start2(TopSup, ManagerSup, DebugSup, T);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+start2(TopSup, _ManangerSup, DebugSup, []) ->
+	{ok, DebugPorts} = application:get_env(debug_ports),
+	start3(TopSup, DebugSup, DebugPorts).
+%% @hidden
+start3(TopSup, DebugSup, [Port | T] = _DebugPorts)
+		when is_integer(Port) ->
+	case supervisor:start_child(DebugSup, [[Port], []]) of
+		{ok, _DebugServer} ->
+			start3(TopSup, DebugSup, T);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+start3(TopSup, _DebugSup, []) ->
 	StartMods = [snmp_collector_get_sup, [[], []]],
 	case timer:apply_interval(?INTERVAL, supervisor,
 			start_child, StartMods) of
 		{ok, _TRef} ->
-			start3(TopSup);
+			{ok, TopSup};
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start3(TopSup) ->
-	case supervisor:start_link(snmp_collector_debug_sup, []) of
-		{ok, DebugSup} ->
-			{ok, DebugPorts} = application:get_env(debug_ports),
-			start4(TopSup, DebugSup, DebugPorts);
-		{error, Reason} ->
-			{error, Reason}
-	end.
-%% @hidden
-start4(TopSup, DebugSup, [Port | T] = _DebugPorts) 
-		when is_integer(Port) ->
-	case supervisor:start_child(DebugSup, [[Port], []]) of
-		{ok, _DebugSup} ->
-			start4(TopSup, DebugSup, T);		
-		{error, Reason} ->
-			{error, Reason}
-	end;
-start4(TopSup, _DebugSup, []) ->
-	{ok, TopSup}.
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
 	when
