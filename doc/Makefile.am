@@ -27,6 +27,7 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_manager_fsm.html \
 			snmp_collector_manager_fsm_sup.html \
 			snmp_collector_manager_server.html \
+			snmp_collector_manager_sup_sup.html \
 			snmp_collector_manager_sup.html
 
 doc_DATA = overview.edoc $(modhtml) \
