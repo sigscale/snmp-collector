@@ -176,7 +176,8 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 %% @doc Handle a inform message.
 %% @private
 handle_inform(TargetName, SnmpInform, UserData) ->
-	snmp_collector_snmpm_user_default:handle_inform(TargetName, SnmpInform, UserData).
+	snmp_collector_snmpm_user_default:handle_inform(TargetName, SnmpInform, UserData),
+	ignore.
 
 -spec handle_report(TargetName, SnmpReport, UserData) -> Reply
 	when
@@ -187,7 +188,8 @@ handle_inform(TargetName, SnmpInform, UserData) ->
 %% @doc Handle a report message.
 %% @private
 handle_report(TargetName, SnmpReport, UserData) ->
-	snmp_collector_snmpm_user_default:handle_report(TargetName, SnmpReport, UserData).
+	snmp_collector_snmpm_user_default:handle_report(TargetName, SnmpReport, UserData),
+	ignore.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
@@ -196,10 +198,10 @@ handle_report(TargetName, SnmpReport, UserData) ->
 -spec oid_to_name(OIDsValues, Acc) -> Result
 	when
 		OIDsValues :: [{OID, Value}],
-		Acc :: [],
+		Acc :: list(),
 		OID :: list(),
 		Value :: string() | integer(),
-		Result :: [{Name, Value}],
+		Result :: {ok, [{Name, Value}]},
 		Name :: string().
 %% @doc Convert OIDs to valid names.
 oid_to_name([{OID, Value} | T], Acc) ->
