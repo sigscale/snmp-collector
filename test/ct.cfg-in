@@ -1,1 +1,9 @@
 {runtime, 60}.
+{snmp,
+		[{agent_trap_udp, %MANAGER_PORT%},
+		{agent_udp, %AGENT_PORT%},
+		{agent_notify_type, trap},
+		{agent_engine_id, "SNMPManagerTestEngine"}
+		{start_agent, true},
+		{start_manager, false}]}.
+
