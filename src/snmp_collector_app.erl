@@ -77,7 +77,7 @@ start(normal = _StartType, _Args) ->
 start1() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
-			Children = superviser:which_children(TopSup),
+			Children = supervisor:which_children(TopSup),
 			{ok, ManagerPorts} = application:get_env(manager_ports),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
@@ -88,7 +88,7 @@ start1() ->
 %% @hidden
 start2(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
 		when is_integer(Port) ->
-	case supervisor:start_child(ManagerSup, [[Port], []]) of
+	case supervisor:start_child(ManagerSup, [[Port]]) of
 		{ok, _ManagerServerSup} ->
 			start2(TopSup, ManagerSup, DebugSup, T);
 		{error, Reason} ->
