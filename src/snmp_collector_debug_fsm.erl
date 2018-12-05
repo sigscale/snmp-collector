@@ -69,10 +69,7 @@ init([Port]) ->
 		NewStateData :: #statedata{},
 		Timeout :: non_neg_integer() | infinity,
 		Reason :: normal | term().
-%% @doc Handle events sent with {@link //stdlib/gen_fsm:send_event/2.
-%%		gen_fsm:send_event/2} in the <b>send_request</b> state. This state is responsible
-%%		for sending a RADIUS-Disconnect/Request to an access point.
-%% @@see //stdlib/gen_fsm:StateName/2
+%% @doc Handle decode state event.
 %% @private
 %%
 decode(Event, StateData) ->
