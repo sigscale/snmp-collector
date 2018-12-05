@@ -33,7 +33,7 @@
 	when
 		Args :: [],
 		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
-		RestartStrategy :: one_for_one,
+		RestartStrategy :: simple_one_for_one,
 		MaxR :: non_neg_integer(),
 		MaxT :: pos_integer(),
 		ChildSpec :: supervisor:child_spec().
@@ -42,23 +42,22 @@
 %% @private
 %%
 init([]) ->
-	ChildSpecs = [supervisor(snmp_collector_manager_sup, [])],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+	ChildSpecs = [supervisor(snmp_collector_manager_sup)],
+	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec supervisor(StartMod, Args) -> Result
+-spec supervisor(StartMod) -> Result
 	when
 		StartMod :: atom(),
-		Args :: [],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %%      {@link //stdlib/supervisor. supervisor} behaviour.
 %% @private
 %%
-supervisor(StartMod, Args) ->
-	StartArgs = [{local, StartMod}, StartMod, Args],
+supervisor(StartMod) ->
+	StartArgs = [{local, StartMod}, StartMod],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.

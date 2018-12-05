@@ -31,7 +31,9 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--record(state, {}).
+-record(state, {socket :: inet:socket()}).
+
+-include_lib("snmp/include/snmp_types.hrl").
 
 %%----------------------------------------------------------------------
 %%  The snmp_collector_server API
@@ -43,19 +45,26 @@
 
 -spec init(Args) -> Result
 	when
-		Args :: [term()],
-		Result :: {ok, State}
-		| {ok, State, Timeout}
-		| {stop, Reason} | ignore,
-		State :: #state{},
-		Timeout :: timeout(),
-		Reason :: term().
+		Args :: [Port],
+		Port :: non_neg_integer(),
+		Result :: {ok, State :: #state{}}
+				| {ok, State :: #state{}, Timeout :: non_neg_integer() | infinity}
+				| {stop, Reason :: term()} | ignore.
 %% @doc Initialize the {@module} server.
+%%    Args :: [Sup :: pid(), Module :: atom(), Port :: non_neg_integer(),
+%%    Opts :: list().
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([]) ->
-	{ok, #state{}}.
+init([Port]) ->
+erlang:display({?MODULE, ?LINE, Port}),
+	case gen_udp:open(Port, [{active, once}]) of
+	{ok, Socket} ->
+erlang:display({?MODULE, ?LINE, Socket}),
+		{ok, #state{socket = Socket}};
+	{error, Reason} ->
+		{stop, Reason}
+   end.
 
 -spec handle_call(Request, From, State) -> Result
 	when
@@ -104,8 +113,17 @@ handle_cast(stop, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info(_Info, State) ->
-	{stop, not_implemented, State}.
+handle_info({udp, Socket, Address, Port, Packet} = _Info,
+		#state{} = State) ->
+erlang:display({?MODULE, ?LINE, Packet}),
+	case catch snmp_pdus:dec_message(Packet) of
+		#message{} ->
+			start_fsm(Packet, Socket, Address, Port),
+			inet:setopts(Socket, [{active, once}]),
+			{noreply, State};
+		{'EXIT', Reason} ->
+			{stop, Reason, State}
+	end.
 
 -spec terminate(Reason, State) -> any()
 	when
@@ -135,3 +153,25 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec start_fsm(Packet, Socket, Address, Port) -> Result
+	when
+		Packet :: binary(),
+		Socket :: inet:socket(),
+		Address :: inet:ip_address(),
+		Port :: pos_integer(),
+		Result :: ok.
+%% @doc Start a new {@link radius_fsm. radius_fsm} transaction state
+%%%   handler and forward the request to it.
+%% @hidden
+start_fsm(Packet, Socket, Address, Port) ->
+	case supervisor:start_child(snmp_collector_manager_fsm_sup,
+			[[Socket, Address, Port, Packet], []] ) of
+		{ok, _Fsm} ->
+			ok;
+		{error, Error} ->
+			error_logger:error_report(["Error starting trap handler",
+					{error, Error},
+					{socket, Socket},
+					{address, Address},
+					{port, Port}])
+	end.
