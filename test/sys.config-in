@@ -1,5 +1,5 @@
 [{snmp_collector,
-      []},
+      [{manager_ports, [%MANAGER_PORT%]}]},
 {inets,
       [{services,
          [{httpd,
