@@ -31,9 +31,9 @@
 
 -spec init(Args) -> Result
 	when
-		Args :: [],
+		Args :: [] | [term()],
 		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
-		RestartStrategy :: simple_one_for_one,
+		RestartStrategy :: one_for_all,
 		MaxR :: non_neg_integer(),
 		MaxT :: pos_integer(),
 		ChildSpec :: supervisor:child_spec().
@@ -41,24 +41,30 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([]) ->
-	ChildSpecs = [ supervisor(snmp_collector_manager_fsm_sup, [])],
-	{ok, {{one_for_one, 10, 60}, ChildSpecs}}.
+init([Port]) ->
+erlang:display({?MODULE, ?LINE, Port}),
+	ChildSpecs = [supervisor(snmp_collector_manager_fsm_sup),
+			server(snmp_collector_manager_server, [Port])],
+	{ok, {{one_for_all, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec supervisor(StartMod, Args) -> Result
+-spec supervisor(StartMod) -> Result
 	when
 		StartMod :: atom(),
-		Args :: [term()],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %%      {@link //stdlib/supervisor. supervisor} behaviour.
 %% @private
 %%
-supervisor(StartMod, Args) ->
-	StartArgs = [{local, StartMod}, StartMod, Args],
+supervisor(StartMod) ->
+	StartArgs = [{local, StartMod}, StartMod, []],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
+
+server(StartMod, Args) ->
+	StartArgs = [{local, StartMod}, StartMod, Args, []],
+	StartFunc = {gen_server, start_link, StartArgs},
+	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
