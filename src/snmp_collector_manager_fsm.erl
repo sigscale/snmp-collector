@@ -28,7 +28,10 @@
 %% export the gen fsm states.
 -export([decode/2]).
 
--record(statedata, {socket :: inet:socket()}).
+-record(statedata, {socket :: inet:socket() | undefined,
+		address :: inet:ip_address() | undefined,
+		port :: non_neg_integer() | undefined,
+		packet :: [byte()] | undefined}).
 
 -include_lib("snmp/include/snmp_types.hrl").
 
@@ -43,14 +46,16 @@
 		| {ok, StateName, StateData, hibernate} | {stop, Reason} | ignore,
 		StateName ::atom(),
 		StateData :: #statedata{},
-Timeout :: non_neg_integer() | infinity,
-Reason :: term().
+		Timeout :: non_neg_integer() | infinity,
+		Reason :: term().
 %% @doc Initialize the {@module} finite state machine.
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([]) ->
-	 {ok, handle_packet, #statedata{}, 0}.
+init([Socket, Address, Port, Packet]) ->
+	{ok, decode, #statedata{socket = Socket,
+			address = Address, port = Port,
+			packet = Packet}, 0}.
 
 -spec decode(Event, StateData) -> Result
 	when
@@ -70,8 +75,10 @@ init([]) ->
 %% @@see //stdlib/gen_fsm:StateName/2
 %% @private
 %%
-handle_packet(Event, StateData) ->
-	{stop, Event, StateData}.
+decode(_Event, #statedata{socket = Socket, address = Address,
+		port = Port, packet = Packet} = StateData) ->
+	decode(Socket, Address, Port, Packet),
+	{next_state, decode, StateData, 0}.
 
 -spec handle_event(Event, StateName, StateData) -> Result
 	when
@@ -134,7 +141,7 @@ handle_sync_event(Event, _From, _StateName, StateData) ->
 %% @private
 %%
 handle_info(_Info, StateName, StateData) ->
-   {next_state, StateName, StateData}.
+	{next_state, StateName, StateData}.
 
 -spec terminate(Reason, StateName, StateData) -> Result
 	when
@@ -165,3 +172,61 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
+-spec decode(Socket, Address, Port, Packet) -> Result
+	when
+		Socket :: inet:socket() | undefined,
+		Address :: inet:ip_address() | undefined,
+		Port :: non_neg_integer() | undefined,
+		Packet :: [byte()]| undefined,
+		Result :: Varbinds :: [tuple()] | ok.
+%% @doc Decode the packet.
+decode(Socket,Address, Port, Packet) ->
+	case catch snmp_pdus:dec_message(Packet) of
+		#message{version = 'version-1',
+				data = Data} ->
+			decode_v1_v2(v1, Data);
+		#message{version = 'version-2',
+				data = Data} ->
+			decode_v1_v2(v2c, Data);
+		Message = #message{version = 'version-3',
+				data = Data} ->
+			decode_v3(v3, Message, Data);
+		{'EXIT', Reason} ->
+			error_logger:info_report(["SNMP Manager",
+					{reason, Reason},
+					{socket, Socket},
+					{address, Address},
+					{port, Port}])
+	end.
+
+-spec decode_v1_v2(Version, Data) -> Result
+	when
+		Version :: v1 | v2c,
+		Data :: #pdu{} | #scopedPdu{},
+		Result :: ok.
+%% @doc Decode the data from a SNMP  'v1' or 'v2c' Packet.
+decode_v1_v2(Version, #pdu{varbinds = Varbinds} = Data) ->
+	ok;
+decode_v1_v2(Version, #scopedPdu{data = Varbinds} = Data) ->
+	ok.
+	
+
+-spec decode_v3(Message, Version, Data) -> Result
+	when
+		Message :: #message{},
+		Version :: v3,
+		Data :: #pdu{} | #scopedPdu{},
+		Result :: ok | {'EXIT', Reason},
+		Reason :: term().
+%% @doc Decode the data from a SNMP 'v3' Packet.
+decode_v3(Version, #message{community = V3Header} = Message, Data) ->
+	DecodedPacket = V3Header#v3_hdr.msgSecurityParameters,
+	case catch snmp_pdus:dec_usm_security_parameters(DecodedPacket) of
+		#usmSecurityParameters{msgUserName = UserName,
+				msgAuthoritativeEngineID = EngineID} ->
+			[{{EntityName, engine_id}, _}] = ets:lookup(snmpm_agent_table, {UserName, engine_id}),
+			ok;
+		{'EXIT', Reason} ->
+			{'EXIT', Reason}
+	end.
+	
