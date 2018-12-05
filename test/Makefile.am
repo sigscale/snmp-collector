@@ -21,7 +21,7 @@ snmp_collector_snmp_SUITE_data/%.bin:$(top_srcdir)/test/snmp_collector_snmp_SUIT
 	@if [ ! -d snmp_collector_snmp_SUITE_data ]; then mkdir snmp_collector_snmp_SUITE_data; fi
 	$(ERLC) -o snmp_collector_snmp_SUITE_data $<
 
-.common_test_ok:	$(addsuffix .beam, $(testmods)) snmp_collector_snmp_SUITE_data/CT-TRAP-MIB.bin sys.config
+.common_test_ok:	$(addsuffix .beam, $(testmods)) snmp_collector_snmp_SUITE_data/CT-TRAP-MIB.bin sys.config ct.cfg
 	@if [ ! -d $(CERT_DIR) ]; then mkdir $(CERT_DIR); fi
 	@if [ ! -d log ]; then mkdir log; fi 
 	@if [ ! -f ct.cfg ]; then cp $(top_srcdir)/test/ct.cfg .; fi
@@ -47,11 +47,18 @@ snmp_collector_snmp_SUITE_data/%.bin:$(top_srcdir)/test/snmp_collector_snmp_SUIT
 		fi)
 	ct_run -no_auto_compile -pa $(top_builddir)/ebin -logdir log -config ct.cfg -spec test.spec -dir . -erl_args -noshell -sname ct-$(LOGNAME) -config sys
 
-sys.config:	$(top_srcdir)/test/sys.config-in
+MANAGER_PORT := $(shell bash -c 'echo $$RANDOM' + 32768)
+
+sys.config:	$(top_srcdir)/test/sys.config-in ct.cfg
 	sed -e 's#%CERT_DIR%#$(abs_top_builddir)/test/$(CERT_DIR)#' \
 			-e 's#%APP_PRIV%#$(abs_top_srcdir)/priv#' \
 			-e 's#%SERVER_ROOT%#$(abs_top_builddir)/test#' \
-			-e "s#%HTTP_PORT%#$$(($$RANDOM + 32768))#" < $< > $@
+			-e "s#%HTTP_PORT%#$$(($$RANDOM + 32768))#" \
+			-e "s#%MANAGER_PORT%#$(MANAGER_PORT)#" < $< > $@
+
+ct.cfg: $(top_srcdir)/test/ct.cfg-in
+	sed -e "s#%MANAGER_PORT%#$(MANAGER_PORT)#" \
+			-e "s#%AGENT_PORT%#$$(($$RANDOM + 32768))#" < $< > $@
 
 clean-local:
 	-rm -r *.beam $(CERT_DIR)/CAkey.pem $(CERT_DIR)/key.pem $(CERT_DIR)/extensions $(CERT_DIR)/cert.pem $(CERT_DIR)/cert.csr log/*
