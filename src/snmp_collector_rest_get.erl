@@ -74,7 +74,6 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 
 %% @hidden
 content_type_available(Headers, Uri, Resource, ModData) ->
-erlang:display({?MODULE, ?LINE, Headers, Uri, Resource, ModData}),
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
 			AvailableTypes = Resource:content_types_provided(),
@@ -107,10 +106,8 @@ do_get(Resource, ModData, ["snmp", "v1", "mibs", Id], Query) ->
 	do_response(ModData, Resource:get_mib(Id, Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["partyManagement", "v1", "individual"], Query) ->
-erlang:display({?MODULE, ?LINE, Resource, ModData}),
 	do_response(ModData, Resource:get_users(Query, Headers));
 do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
-erlang:display({?MODULE, ?LINE, Resource, ModData}),
 	do_response(ModData, Resource:get_user(Id, Query));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",

@@ -101,7 +101,6 @@ do_response(_ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]};
 do_response(_ModData, {error, 500}) ->
-erlang:display({?MODULE, ?LINE, 50000000000}),
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{break, [{response, {500, Response}}]}.
 
