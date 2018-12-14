@@ -150,7 +150,6 @@ get_mib() ->
 
 get_mib(_Config) ->
 	{ok, TestMib} = application:get_env(snmp_collector, test_mib),
-erlang:display({?MODULE, ?LINE, TestMib}),
 	{ok, Data} = file:read_file(TestMib),
 	{ok, _} = snmp_collector:add_mib(Data).
 	
