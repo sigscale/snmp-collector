@@ -42,7 +42,6 @@
 %% @private
 %%
 init([Port]) ->
-erlang:display({?MODULE, ?LINE, Port}),
 	ChildSpecs = [supervisor(snmp_collector_manager_fsm_sup),
 			server(snmp_collector_manager_server, [Port])],
 	{ok, {{one_for_all, 10, 60}, ChildSpecs}}.
