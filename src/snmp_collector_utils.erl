@@ -22,7 +22,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
-		log_to_disk/2, get_values/2]).
+		log_to_disk/2, get_values/2, security_params/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -434,6 +434,18 @@ log_to_disk(CommentEventHeader, FaultFields) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
+-spec security_params(EngineID, UserName) -> Result
+	when
+	EngineID :: list(),
+	UserName :: string(),
+	Result :: {ok, AuthProtocol :: term()}.
+%% @doc Looks up the Authentication Protocol.
+%% @private
+security_params(EngineID, UserName) ->
+	[{{usmUserTable, EngineID, UserName}, {usm_user, _, _, _, AuthProtocol, _, _PrivProtocol, _}}] =
+			ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, UserName}),
+	{ok, AuthProtocol}.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
