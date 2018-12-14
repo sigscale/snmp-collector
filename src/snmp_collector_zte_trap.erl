@@ -297,6 +297,8 @@ event_details6(Objects, Acc) ->
 			event_details7(Objects5, [ {alarmCondtion, "ackChanged"} | Acc]);
 		{value, {_, Value}, Objects5} when Value == "alarmCommentChange" ->
 			event_details7(Objects5, [ {alarmCondtion, "commented"} | Acc]);
+		{value, {_, Value}, Objects5} when Value == "alarmSeverityChange" ->
+			event_details7(Objects5, [ {alarmCondtion, "SeverityChanged"} | Acc]);
 		false ->
 			event_details7(Objects, Acc)
 end.
