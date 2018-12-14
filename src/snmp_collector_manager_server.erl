@@ -57,10 +57,8 @@
 %% @private
 %%
 init([Port]) ->
-erlang:display({?MODULE, ?LINE, Port}),
 	case gen_udp:open(Port, [{active, once}]) of
 	{ok, Socket} ->
-erlang:display({?MODULE, ?LINE, Socket}),
 		{ok, #state{socket = Socket}};
 	{error, Reason} ->
 		{stop, Reason}
@@ -115,9 +113,8 @@ handle_cast(stop, State) ->
 %%
 handle_info({udp, Socket, Address, Port, Packet} = _Info,
 		#state{} = State) ->
-erlang:display({?MODULE, ?LINE, Packet}),
 	case catch snmp_pdus:dec_message(Packet) of
-		#message{} ->
+		Message = #message{} ->
 			start_fsm(Packet, Socket, Address, Port),
 			inet:setopts(Socket, [{active, once}]),
 			{noreply, State};
