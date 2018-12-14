@@ -1,4 +1,4 @@
-%%% snmp_collector_snmp_SUITE.erl
+%% snmp_collector_snmp_SUITE.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2018 SigScale Global Inc.
@@ -46,12 +46,17 @@
 suite() ->
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
+	{default_config, snmp,
+			[{start_manager, true},
+			{mgr_port, 56673},
+			{users,
+					[{?MODULE, [snmp_collector_trap, undefined]}]}]},
+	{require, snmp_app},
 	{default_config, snmp_app,
 			[{agent,
-					[{config, [{verbosity, silence}]},
-					{agent_verbosity, silence},
-					{net_if, [{verbosity, silence}]}]}]},
-	{require, snmp_app},
+					[{config, [{verbosity, trace}]},
+					{agent_verbosity, trace},
+					{net_if, [{verbosity, trace}]}]}]},
 	{timetrap, {minutes, 2}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
@@ -73,8 +78,8 @@ init_per_suite(Config) ->
 %% Cleanup after the whole suite.
 %%
 end_per_suite(Config) ->
-	ok = application:stop(snmp_collector),
-	ok = ct_snmp:stop(Config).
+	ok = application:stop(snmp_collector).
+%	ok = ct_snmp:stop(Config).
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
