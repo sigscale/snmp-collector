@@ -21,11 +21,13 @@
 
 %% export the snmp_collector public API
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
-		update_user/3, add_mib/1]).
+		update_user/3, add_mib/1, add_snmp_user/3]).
 
 -include_lib("inets/include/httpd.hrl").
 
 -include_lib("inets/include/mod_auth.hrl").
+
+-include_lib("../../snmp-collector/include/snmp_collector.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -36,6 +38,38 @@
 %%----------------------------------------------------------------------
 %%  The snmp_collector public API
 %%----------------------------------------------------------------------
+
+-spec add_snmp_user(UserName, PrivPass, AuthPass) -> Result
+	when
+		UserName :: string(),
+		PrivPass :: string(),
+		AuthPass :: string(),
+		Result :: {ok, snmp_user_added} | {error, Reason},
+		Reason :: user_exists | invalid_entry | term().
+%% @doc Add a SNMP user.
+add_snmp_user(UserName, PrivPass, AuthPass) ->
+	LookUp = fun() ->
+					mnesia:read(snmp_users, UserName, read)
+	end,
+	case mnesia:transaction(LookUp) of
+		{atomic, [_]} ->
+			add_snmp_user1(UserName, PrivPass, AuthPass);
+		{atomic, []} ->
+			{error, user_exists}
+	end.
+%$ @hidden
+add_snmp_user1(UserName, PrivPass, AuthPass) ->
+	NewUser = #snmp_users{name = UserName,
+			authPass = PrivPass, privPass = AuthPass},
+	AddUser = fun() ->
+					mnesia:write(snmp_users, NewUser, write)
+	end,
+	case mnesia:transaction(AddUser) of
+		{atomic, ok} ->
+			{ok, snmp_user_added};
+		{atomic, aborted} ->
+			{error, invalid_entry}
+	end.
 
 -spec add_user(Username, Password, Locale) -> Result
 	when
