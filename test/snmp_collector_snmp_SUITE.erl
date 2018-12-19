@@ -54,9 +54,9 @@ suite() ->
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{agent,
-					[{config, [{verbosity, trace}]},
-					{agent_verbosity, trace},
-					{net_if, [{verbosity, trace}]}]}]},
+					[{config, [{verbosity, silence}]},
+					{agent_verbosity, silence},
+					{net_if, [{verbosity, silence}]}]}]},
 	{timetrap, {minutes, 2}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
