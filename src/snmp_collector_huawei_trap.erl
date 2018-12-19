@@ -21,6 +21,7 @@
 
 -behaviour(snmpm_user).
 
+%% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
 		handle_pdu/4, handle_trap/3, handle_inform/3,
 		handle_report/3]).

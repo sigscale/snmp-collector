@@ -25,6 +25,7 @@
 		handle_pdu/4, handle_trap/3, handle_inform/3,
 		handle_report/3]).
 
+%% export snmpm_user call backs.
 -include_lib("sigscale_fm/include/fm.hrl").
 
 %% support deprecated_time_unit()
