@@ -3,6 +3,7 @@
 		[{start_agent, true},
 		{agent_engine_id, "SNMPManagerTestEngine"},
 		{agent_notify_type, trap},
+		{agent_vsns, [v3]},
 		{agent_community, [{"public", "public", "ct", "", ""}]},
       {agent_vacm,
 				[{vacmSecurityToGroup, usm, "ct", "ct"},
