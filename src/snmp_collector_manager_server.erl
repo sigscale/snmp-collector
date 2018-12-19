@@ -114,7 +114,7 @@ handle_cast(stop, State) ->
 handle_info({udp, Socket, Address, Port, Packet} = _Info,
 		#state{} = State) ->
 	case catch snmp_pdus:dec_message(Packet) of
-		Message = #message{} ->
+		#message{} ->
 			start_fsm(Packet, Socket, Address, Port),
 			inet:setopts(Socket, [{active, once}]),
 			{noreply, State};
