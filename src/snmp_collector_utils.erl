@@ -439,13 +439,29 @@ log_to_disk(CommentEventHeader, FaultFields) ->
 	when
 	EngineID :: list(),
 	UserName :: string(),
-	Result :: {ok, AuthProtocol :: term()}.
-%% @doc Looks up the Authentication Protocol.
+	Result :: {ok, AuthProtocol, PrivProtocol } |
+			{error, no_engineid, AuthProtocol, PrivProtocol} | {error, Reason},
+	AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+	PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+	Reason :: not_found.
+%% @doc Looks up the Authentication Protocol and the Privacy Protocol.
 %% @private
 security_params(EngineID, UserName) ->
-	[{{usmUserTable, EngineID, UserName}, {usm_user, _, _, _, AuthProtocol, _, _PrivProtocol, _}}] =
-			ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, UserName}),
-	{ok, AuthProtocol}.
+	case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, UserName}) of
+		[{_, {usm_user, _, _, _, AuthProtocol, _, PrivProtocol, _}}] ->
+			{ok, AuthProtocol, PrivProtocol};
+		[] ->
+			security_params1(EngineID, UserName)
+	end.
+%% @hidden
+security_params1(EngineID, UserName) ->
+	case ets:match(snmpm_usm_table, {{usmUserTable, '_', '$1'},
+			{usm_user,'_','$1','_','$2', '_', '$3', '_'}}) of
+		[[_, AuthProtocol, PrivProtocol]] ->
+			{error, no_engineid, AuthProtocol, PrivProtocol};
+		[] ->
+			{error, not_found}
+	end.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
