@@ -77,9 +77,8 @@ init_per_suite(Config) ->
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
-end_per_suite(Config) ->
+end_per_suite(_Config) ->
 	ok = application:stop(snmp_collector).
-%	ok = ct_snmp:stop(Config).
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
