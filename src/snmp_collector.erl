@@ -24,10 +24,8 @@
 		update_user/3, add_mib/1, add_snmp_user/3]).
 
 -include_lib("inets/include/httpd.hrl").
-
 -include_lib("inets/include/mod_auth.hrl").
-
--include_lib("../../snmp-collector/include/snmp_collector.hrl").
+-include("../../snmp-collector/include/snmp_collector.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -53,9 +51,9 @@ add_snmp_user(UserName, PrivPass, AuthPass) ->
 	end,
 	case mnesia:transaction(LookUp) of
 		{atomic, [_]} ->
-			add_snmp_user1(UserName, PrivPass, AuthPass);
+			{error, user_exists};
 		{atomic, []} ->
-			{error, user_exists}
+			add_snmp_user1(UserName, PrivPass, AuthPass)
 	end.
 %$ @hidden
 add_snmp_user1(UserName, PrivPass, AuthPass) ->
