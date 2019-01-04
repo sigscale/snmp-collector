@@ -22,7 +22,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
-		log_to_disk/2, get_values/2, security_params/2]).
+		log_to_disk/2, get_values/2, security_params/6]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -95,9 +95,13 @@ iso8601day(Year, Month, [$-, D1])
 		when D1 >= $1, D1 =< $3 ->
 	iso8601day(Year, Month, [$-, D1, $0]);
 iso8601day(Year, Month, [$/, D])
-		when D >= $1, D =< $3 ->
+		when D >= $1, D =< $9 ->
 	iso8601day(Year, Month, [$-, D]);
 iso8601day(Year, Month, [$-, D, _ | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [D, $, | T])
 		when D >= $1, D =< $9 ->
 	Day = list_to_integer([D]),
 	iso8601hour({Year, Month, Day}, T);
@@ -136,6 +140,10 @@ iso8601hour(Date, [$T, H, $- | T])
 	Hour = list_to_integer([H]),
 	iso8601minute(Date, Hour, T);
 iso8601hour(Date, [$, , H1, H2 | T])
+		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
+	Hour = list_to_integer([H1, H2]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
 	iso8601minute(Date, Hour, T);
@@ -435,37 +443,151 @@ log_to_disk(CommentEventHeader, FaultFields) ->
 			{error, Reason}
 	end.
 
--spec security_params(EngineID, UserName) -> Result
+-spec security_params(EngineID, UserName, AuthParams, Packet, AuthPass, PrivPass) -> Result
 	when
-	EngineID :: list(),
+	EngineID :: string(),
 	UserName :: string(),
-	Result :: {ok, AuthProtocol, PrivProtocol } |
-			{error, no_engineid, AuthProtocol, PrivProtocol} | {error, Reason},
+	AuthParams :: list(),
+	Packet :: [byte()],
+	AuthPass :: string(),
+	PrivPass :: string(),
+	Result :: {ok, AuthProtocol, PrivProtocol } | {error, Reason},
 	AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
 	PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
-	Reason :: not_found.
+	Reason :: not_found | authentication_failed | term().
 %% @doc Looks up the Authentication Protocol and the Privacy Protocol.
 %% @private
-security_params(EngineID, UserName) ->
+security_params(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
 	case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, UserName}) of
 		[{_, {usm_user, _, _, _, AuthProtocol, _, PrivProtocol, _}}] ->
 			{ok, AuthProtocol, PrivProtocol};
 		[] ->
-			security_params1(EngineID, UserName)
+			security_params1(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
 	end.
 %% @hidden
-security_params1(EngineID, UserName) ->
-	case ets:match(snmpm_usm_table, {{usmUserTable, '_', '$1'},
-			{usm_user,'_','$1','_','$2', '_', '$3', '_'}}) of
-		[[_, AuthProtocol, PrivProtocol]] ->
-			{error, no_engineid, AuthProtocol, PrivProtocol};
+security_params1(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	case ets:match(snmpm_usm_table, {{usmUserTable, '_', UserName},
+			{usm_user, '_', UserName, '_', '$2', '_', '$3', '_'}}) of
+		[[AuthProtocol, PrivProtocol]] ->
+			AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
+			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
+				true ->
+					case add_usm_user(EngineID, UserName, AuthProtocol,
+							PrivProtocol, AuthPass, PrivPass) of
+						{usm_user_added, AuthProtocol, PrivProtocol} ->
+							{ok, AuthProtocol, PrivProtocol};
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				false ->
+					{error, authentication_failed}
+			end;
 		[] ->
 			{error, not_found}
 	end.
 
+
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
+
+-spec add_usm_user(EngineID, UserName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
+	when
+		EngineID :: string(),
+		UserName :: string(),
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+		AuthPass :: string(),
+		PrivPass :: string(),
+		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
+		Reason :: term().
+%% @doc Add a new usm user to the snmp_usm table.
+%add_usm_user(EngineID, UserName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
+%		when is_list(EngineID), is_list(UserName) ->
+%	Conf = [{sec_name}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
+%	add_usm_user1(EngineID, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
+	Conf = [{sec_name}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
+			{auth_key, AuthKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
+	PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
+	Conf = [{sec_name}, {auth, usmNoAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
+	PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
+	Conf = [{sec_name}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
+			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
+%% @hidden
+add_usm_user(EngineID, UserName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+	Conf = [{sec_name}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmNoPrivProtocol}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+	PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
+	Conf = [{sec_name}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+	PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
+	Conf = [{sec_name}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
+%% @hidden
+add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
+		when is_list(EngineID), is_list(UserName) ->
+	case snmpm:register_usm_user(EngineID, UserName, Conf) of
+		ok ->
+			{usm_user_added, AuthProtocol, PrivProtocol};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec authenticate(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
+	when
+		AuthProtocol :: usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		AuthKey :: list(),
+		AuthParams :: list(),
+		Packet :: [byte()],
+		Result :: true | false.
+%% @doc Authenticate the SNMP agent.
+authenticate(usmHMACMD5AuthProtocol, AuthKey, AuthParams ,Packet) ->
+	case snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey,
+			AuthParams, list_to_binary(Packet)) of
+		true ->
+			true;
+		false ->
+			false
+	end;
+authenticate(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
+	case snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey,
+			AuthParams, list_to_binary(Packet)) of
+		true ->
+			true;
+		false ->
+			false
+	end.
 
 -spec get_values(Name, EventDetails) -> Value
 	when
