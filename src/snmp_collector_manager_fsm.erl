@@ -113,14 +113,25 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
-											{stop, shutdown, StateData};
+											case handle_trap(Address, Port, {noError, 0, Data}) of
+												ignore ->
+													{stop, shutdown, StateData};
+												{error, Reason} ->
+													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
+											end;
 										{ok, usmHMACMD5AuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
 											PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
-															io:write(works),
 															{stop, shutdown, StateData};
 														{error, Reason} ->
 															error_logger:info_report(["SNMP Manager Agent Not Recognized",
@@ -136,9 +147,39 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 													{error, Reason}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											{stop, shutdown, StateData};
+											PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
+											case dec_des(PrivKey, MsgPrivParams, PDU) of
+												{ErrorStatus, ErrorIndex, Varbinds} ->
+													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
+														ignore ->
+															{stop, shutdown, StateData};
+														{error, Reason} ->
+															error_logger:info_report(["SNMP Manager Agent Not Recognized",
+																	{error, Reason},
+																	{engine_id, EngineID},
+																	{username, UserName},
+																	{flags, authPriv},
+																	{port, Port},
+																	{address, Address}]),
+															{stop, shutdown, StateData}
+													end;
+												{error, Reason} ->
+													{error, Reason}
+											end;
 										{ok, usmHMACSHAAuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
-											{stop, shutdown, StateData};
+											case handle_trap(Address, Port, {noError, 0, Data}) of
+												ignore ->
+													{stop, shutdown, StateData};
+												{error, Reason} ->
+													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
+											end;
 										{ok, usmHMACSHAAuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
 											PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
 											case dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) of
@@ -158,7 +199,23 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 													{error, Reason}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											{stop, shutdown, StateData};
+											PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
+											case dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) of
+												{ErrorStatus, ErrorIndex, Varbinds} ->
+													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
+														ignore ->
+															{stop, shutdown, StateData};
+														{error, Reason} ->
+															error_logger:info_report(["SNMP Manager Agent Not Found",
+																	{error, Reason},
+																	{username, UserName},
+																	{port, Port},
+																	{address, Address}]),
+															{stop, shutdown, StateData}
+													end;
+												{error, Reason} ->
+													{error, Reason}
+											end;
 										{error, Reason} ->
 											error_logger:info_report(["SNMP Manager Incorrect Security Params",
 													{error, Reason},
@@ -299,7 +356,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		Varbinds :: [snmp:varbinds()],
 		Reason :: des_decryption_failed | term().
 %% @doc Decrypt a SNMP packet using DES privacy protocol.
-dec_des(PrivKey, MsgPrivParams, Data
+dec_des(PrivKey, MsgPrivParams, Data)
 	when is_list(PrivKey), is_list(MsgPrivParams) ->
 	case catch snmp_usm:des_decrypt(PrivKey, MsgPrivParams, Data) of
 		{ok, DecryptedData} ->
