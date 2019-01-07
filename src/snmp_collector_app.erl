@@ -35,9 +35,9 @@
 -define(WAITFORSCHEMA, 9000).
 -define(WAITFORTABLES, 9000).
 
+-include("snmp_collector.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("sigscale_fm/include/fm.hrl").
--include("snmp_collector.hrl").
 
 -record(state, {}).
 

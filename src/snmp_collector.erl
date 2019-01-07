@@ -25,7 +25,7 @@
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
--include("../../snmp-collector/include/snmp_collector.hrl").
+-include("snmp_collector.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).

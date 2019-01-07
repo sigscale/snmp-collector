@@ -35,8 +35,8 @@
 
 -define(SNMP_USE_V3, true).
 
+-include("snmp_collector.hrl").
 -include_lib("snmp/include/snmp_types.hrl").
--include_lib("../../snmp-collector/include/snmp_collector.hrl").
 
 %%----------------------------------------------------------------------
 %%  The call back functions
