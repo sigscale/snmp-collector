@@ -47,7 +47,7 @@
 %% @doc Add a SNMP user.
 add_snmp_user(UserName, PrivPass, AuthPass) ->
 	LookUp = fun() ->
-					mnesia:read(snmp_users, UserName, read)
+					mnesia:read(snmp_user, UserName, read)
 	end,
 	case mnesia:transaction(LookUp) of
 		{atomic, [_]} ->
@@ -57,10 +57,10 @@ add_snmp_user(UserName, PrivPass, AuthPass) ->
 	end.
 %$ @hidden
 add_snmp_user1(UserName, PrivPass, AuthPass) ->
-	NewUser = #snmp_users{name = UserName,
+	NewUser = #snmp_user{name = UserName,
 			authPass = PrivPass, privPass = AuthPass},
 	AddUser = fun() ->
-					mnesia:write(snmp_users, NewUser, write)
+					mnesia:write(snmp_user, NewUser, write)
 	end,
 	case mnesia:transaction(AddUser) of
 		{atomic, ok} ->

@@ -35,9 +35,9 @@
 -define(WAITFORSCHEMA, 9000).
 -define(WAITFORTABLES, 9000).
 
--include("snmp_collector.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("sigscale_fm/include/fm.hrl").
+-include("../../snmp-collector/include/snmp_collector.hrl").
 
 -record(state, {}).
 
@@ -75,7 +75,7 @@ start(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start1(normal = _StartType, _Args) ->
-	Tables = [snmp_users],
+	Tables = [snmp_user],
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
 			start2();
@@ -84,7 +84,7 @@ start1(normal = _StartType, _Args) ->
 				ok ->
 					start2();
 				{error, Reason} ->
-					error_logger:error_report(["ocs application failed to start",
+					error_logger:error_report(["SNMP Manager application failed to start",
 							{reason, Reason},
 							{module, ?MODULE}]),
 						{error, Reason}
@@ -278,18 +278,18 @@ install2(Nodes) ->
 	end.
 %% @hidden
 install3(Nodes, Acc) ->
-   case mnesia:create_table(snmp_users, [{disk_copies, Nodes},
-         {attributes, record_info(fields, snmp_users)}]) of
+   case mnesia:create_table(snmp_user, [{disc_copies, Nodes},
+         {attributes, record_info(fields, snmp_user)}]) of
       {atomic, ok} ->
          error_logger:info_msg("Created new SNMP users table.~n"),
-         install4(Nodes, [snmp_users| Acc]);
+         install4(Nodes, [snmp_user| Acc]);
       {aborted, {not_active, _, Node} = Reason} ->
          error_logger:error_report(["Mnesia not started on node",
                {node, Node}]),
          {error, Reason};
-      {aborted, {already_exists, snmp_users}} ->
+      {aborted, {already_exists, snmp_user}} ->
          error_logger:info_msg("Found existing SNMP users table.~n"),
-         install4(Nodes, [snmp_users| Acc]);
+         install4(Nodes, [snmp_user| Acc]);
       {aborted, Reason} ->
          error_logger:error_report([mnesia:error_description(Reason),
             {error, Reason}]),
@@ -340,7 +340,7 @@ install7(Nodes, Acc, false) ->
 	install10(Nodes, Acc).
 %% @hidden
 install8(Nodes, Acc) ->
-	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
+	case mnesia:create_table(httpd_user, [{type, bag}, {disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_user)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_user table.~n"),
@@ -359,7 +359,7 @@ install8(Nodes, Acc) ->
 	end.
 %% @hidden
 install9(Nodes, Acc) ->
-	case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
+	case mnesia:create_table(httpd_group, [{type, bag}, {disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_group)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_group table.~n"),
