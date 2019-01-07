@@ -66,7 +66,7 @@ start(normal = _StartType, _Args) ->
 		ok ->
 			case create_dirs(MibDir, BinDir) of
 				ok ->
-					start1();
+					start1(normal, []);
 				{error, Reason} ->
 					{error, Reason}
 			end;
@@ -74,39 +74,58 @@ start(normal = _StartType, _Args) ->
 			{error, Reason}
 	end.
 %% @hidden
-start1() ->
+start1(normal = _StartType, _Args) ->
+	Tables = [snmp_user],
+	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
+		ok ->
+			start2();
+		{timeout, BadTabList} ->
+			case force(BadTabList) of
+				ok ->
+					start2();
+				{error, Reason} ->
+					error_logger:error_report(["SNMP Manager application failed to start",
+							{reason, Reason},
+							{module, ?MODULE}]),
+						{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start2() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
 			Children = supervisor:which_children(TopSup),
 			{ok, ManagerPorts} = application:get_env(manager_ports),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
-			start2(TopSup, ManagerSup, DebugSup, ManagerPorts);
+			start3(TopSup, ManagerSup, DebugSup, ManagerPorts);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start2(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
+start3(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(ManagerSup, [[Port]]) of
 		{ok, _ManagerServerSup} ->
-			start2(TopSup, ManagerSup, DebugSup, T);
+			start3(TopSup, ManagerSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start2(TopSup, _ManangerSup, DebugSup, []) ->
+start3(TopSup, _ManangerSup, DebugSup, []) ->
 	{ok, DebugPorts} = application:get_env(debug_ports),
-	start3(TopSup, DebugSup, DebugPorts).
+	start4(TopSup, DebugSup, DebugPorts).
 %% @hidden
-start3(TopSup, DebugSup, [Port | T] = _DebugPorts)
+start4(TopSup, DebugSup, [Port | T] = _DebugPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(DebugSup, [[Port], []]) of
 		{ok, _DebugServer} ->
-			start3(TopSup, DebugSup, T);
+			start4(TopSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start3(TopSup, _DebugSup, []) ->
+start4(TopSup, _DebugSup, []) ->
 	StartMods = [snmp_collector_get_sup, [[], []]],
 	case timer:apply_interval(?INTERVAL, supervisor,
 			start_child, StartMods) of
@@ -259,18 +278,18 @@ install2(Nodes) ->
 	end.
 %% @hidden
 install3(Nodes, Acc) ->
-   case mnesia:create_table(snmp_users, [{ram_copies, Nodes},
-         {attributes, record_info(fields, snmp_users)}]) of
+   case mnesia:create_table(snmp_user, [{disc_copies, Nodes},
+         {attributes, record_info(fields, snmp_user)}]) of
       {atomic, ok} ->
          error_logger:info_msg("Created new SNMP users table.~n"),
-         install4(Nodes, [snmp_users| Acc]);
+         install4(Nodes, [snmp_user| Acc]);
       {aborted, {not_active, _, Node} = Reason} ->
          error_logger:error_report(["Mnesia not started on node",
                {node, Node}]),
          {error, Reason};
-      {aborted, {already_exists, snmp_users}} ->
+      {aborted, {already_exists, snmp_user}} ->
          error_logger:info_msg("Found existing SNMP users table.~n"),
-         install4(Nodes, [snmp_users| Acc]);
+         install4(Nodes, [snmp_user| Acc]);
       {aborted, Reason} ->
          error_logger:error_report([mnesia:error_description(Reason),
             {error, Reason}]),
@@ -321,7 +340,7 @@ install7(Nodes, Acc, false) ->
 	install10(Nodes, Acc).
 %% @hidden
 install8(Nodes, Acc) ->
-	case mnesia:create_table(httpd_user, [{type, bag},{disc_copies, Nodes},
+	case mnesia:create_table(httpd_user, [{type, bag}, {disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_user)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_user table.~n"),
@@ -340,7 +359,7 @@ install8(Nodes, Acc) ->
 	end.
 %% @hidden
 install9(Nodes, Acc) ->
-	case mnesia:create_table(httpd_group, [{type, bag},{disc_copies, Nodes},
+	case mnesia:create_table(httpd_group, [{type, bag}, {disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_group)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_group table.~n"),
@@ -489,3 +508,19 @@ open_log2(_Name, OkNodes, [], Reason) ->
 			{error, Reason}
 	end.
 
+-spec force(Tables) -> Result
+	when
+		Tables :: [TableName],
+		Result :: ok | {error, Reason},
+		TableName :: atom(),
+		Reason :: term().
+%% @doc Try to force load bad tables.
+force([H | T]) ->
+	case mnesia:force_load_table(H) of
+		yes ->
+			force(T);
+		ErrorDescription ->
+			{error, ErrorDescription}
+		end;
+force([]) ->
+	ok.

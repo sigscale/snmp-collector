@@ -34,7 +34,6 @@
 		packet :: [byte()] | undefined}).
 
 -define(SNMP_USE_V3, true).
--define(VMODULE,"USM").
 
 -include("snmp_collector.hrl").
 -include_lib("snmp/include/snmp_types.hrl").
@@ -57,6 +56,7 @@
 %% @private
 %%
 init([Socket, Address, Port, Packet]) ->
+	process_flag(trap_exit, true),
 	{ok, handle_pdu, #statedata{socket = Socket,
 			address = Address, port = Port,
 			packet = Packet}, 0}.
@@ -92,8 +92,9 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 					Fsearch = fun() ->
 								mnesia:read(snmp_users, UserName, read)
 					end,
-					case mnesia:ets(Fsearch) of
-						[{snmp_users, _, AuthPass, PrivPass}] ->
+erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
+					case catch mnesia:ets(Fsearch) of
+						[#snmp_user{authPass = AuthPass, privPass = PrivPass}] ->
 							case catch snmp_pdus:dec_scoped_pdu_data(Data) of
 								PDU when is_list(PDU) ->
 									case snmp_collector_utils:security_params(EngineID, UserName, MsgAuthenticationParams,
@@ -144,7 +145,14 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 															{stop, shutdown, StateData}
 													end;
 												{error, Reason} ->
-													{error, Reason}
+													error_logger:info_report(["SNMP Manager Decryption Failed",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
 											PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
@@ -164,7 +172,14 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 															{stop, shutdown, StateData}
 													end;
 												{error, Reason} ->
-													{error, Reason}
+													error_logger:warning_report(["SNMP Manager Decryption Failed",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
 											case handle_trap(Address, Port, {noError, 0, Data}) of
@@ -190,13 +205,22 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{error, Reason} ->
 															error_logger:info_report(["SNMP Manager Agent Not Found",
 																	{error, Reason},
+																	{engine_id, EngineID},
 																	{username, UserName},
+																	{flags, authPriv},
 																	{port, Port},
 																	{address, Address}]),
 															{stop, shutdown, StateData}
 													end;
 												{error, Reason} ->
-													{error, Reason}
+													error_logger:info_report(["SNMP Manager Decryption Failed",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
 											PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
@@ -208,48 +232,70 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{error, Reason} ->
 															error_logger:info_report(["SNMP Manager Agent Not Found",
 																	{error, Reason},
+																	{engine_id, EngineID},
 																	{username, UserName},
+																	{flags, authPriv},
 																	{port, Port},
 																	{address, Address}]),
 															{stop, shutdown, StateData}
 													end;
 												{error, Reason} ->
-													{error, Reason}
+													error_logger:warning_report(["SNMP Manager Decryption Failed",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
 											end;
 										{error, Reason} ->
-											error_logger:info_report(["SNMP Manager Incorrect Security Params",
+											error_logger:warning_report(["SNMP Manager Incorrect Security Params",
 													{error, Reason},
+													{engine_id, EngineID},
 													{username, UserName},
+													{flags, authPriv},
 													{port, Port},
 													{address, Address}]),
 											{stop, shutdown, StateData}
 									end;
 								{'EXIT', Reason} ->
-									error_logger:info_report(["SNMP Manager Decoding SNMP v3 Failed",
-											{reason, Reason},
+									error_logger:error_report(["SNMP Manager Decoding SNMP v3 Failed",
+											{error, Reason},
+											{engine_id, EngineID},
+											{username, UserName},
+											{flags, authPriv},
 											{port, Port},
 											{address, Address}]),
 										{stop, shutdown, StateData}
 							end;
-						_ ->
+						[] ->
 							error_logger:info_report(["SNMP Manager User Not Found",
+									{engine_id, EngineID},
 									{username, UserName},
+									{flags, authPriv},
 									{port, Port},
 									{address, Address}]),
+							{stop, shutdown, StateData};
+						{'EXIT', Reason} ->
+							error_logger:error_report(["SNMP Manager SNMP Users Table Not Found",
+									{error, Reason}]),
 							{stop, shutdown, StateData}
 					end;
 				{'EXIT', Reason} ->
 					error_logger:info_report(["SNMP Manager Decoding SNMP v3 Failed",
-							{reason, Reason},
+							{error, Reason},
+							{flags, authPriv},
 							{port, Port},
 							{address, Address}]),
-							{stop, shutdown, StateData}
-		end;
+						{stop, shutdown, StateData}
+			end;
 		{'EXIT', Reason} ->
 			error_logger:info_report(["SNMP Manager Decoding SNMP v3 Failed",
-					{reason, Reason},
-					{port, Port},
-					{address, Address}]),
+						{error, Reason},
+						{flags, authPriv},
+						{port, Port},
+						{address, Address}]),
 					{stop, shutdown, StateData}
 	end.
 
@@ -418,7 +464,7 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 		ErrorStatus :: atom(),
 		ErrorIndex :: integer(),
 		Varbinds :: [snmp:varbinds()],
-		Result :: ok | {error, Reason},
+		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Send Varbinds to the associated trap handler modules.
 handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
@@ -443,8 +489,8 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []);
 		{error, Reason} ->
-		snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-				trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
+			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
+					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
 			{error, Reason}
 	end.
 

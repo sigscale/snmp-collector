@@ -63,11 +63,11 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-	ok = application:start(mnesia),
 	PrivDir = ?config(priv_dir, Config),
-	ok = application:start(crypto),
 	ok = application:set_env(mnesia, dir, PrivDir),
+	ok = application:start(crypto),
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
+	{ok, _Tables} = snmp_collector_app:install(),
 	ok = application:start(snmp_collector),
 	DataDir = ?config(data_dir, Config),
 	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
