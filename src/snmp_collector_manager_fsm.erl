@@ -36,7 +36,7 @@
 -define(SNMP_USE_V3, true).
 
 -include_lib("snmp/include/snmp_types.hrl").
--include_lib("snmp_collector/include/snmp_collector.hrl").
+-include_lib("../../snmp-collector/include/snmp_collector.hrl").
 
 %%----------------------------------------------------------------------
 %%  The call back functions
@@ -94,7 +94,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 					end,
 erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
 					case catch mnesia:ets(Fsearch) of
-						[#snmp_users{authPass = AuthPass, privPass = PrivPass}] ->
+						[#snmp_user{authPass = AuthPass, privPass = PrivPass}] ->
 							case catch snmp_pdus:dec_scoped_pdu_data(Data) of
 								PDU when is_list(PDU) ->
 									case snmp_collector_utils:security_params(EngineID, UserName, MsgAuthenticationParams,
