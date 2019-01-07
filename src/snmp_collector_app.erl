@@ -38,7 +38,6 @@
 -include("snmp_collector.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("sigscale_fm/include/fm.hrl").
--include_lib("snmp_collector/include/snmp_collector.hrl").
 
 -record(state, {}).
 
@@ -79,11 +78,11 @@ start1(normal = _StartType, _Args) ->
 	Tables = [snmp_users],
 	case mnesia:wait_for_tables(Tables, ?WAITFORTABLES) of
 		ok ->
-			start1();
+			start2();
 		{timeout, BadTabList} ->
 			case force(BadTabList) of
 				ok ->
-					start1();
+					start2();
 				{error, Reason} ->
 					error_logger:error_report(["ocs application failed to start",
 							{reason, Reason},
