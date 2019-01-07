@@ -37,7 +37,7 @@
 
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("sigscale_fm/include/fm.hrl").
--include("../../snmp-collector/include/snmp_collector.hrl").
+-include("snmp_collector.hrl").
 
 -record(state, {}).
 
@@ -340,7 +340,7 @@ install7(Nodes, Acc, false) ->
 	install10(Nodes, Acc).
 %% @hidden
 install8(Nodes, Acc) ->
-	case mnesia:create_table(httpd_user, [{type, bag}, {disc_copies, Nodes},
+	case mnesia:create_table(httpd_user, [{disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_user)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_user table.~n"),
@@ -359,7 +359,7 @@ install8(Nodes, Acc) ->
 	end.
 %% @hidden
 install9(Nodes, Acc) ->
-	case mnesia:create_table(httpd_group, [{type, bag}, {disc_copies, Nodes},
+	case mnesia:create_table(httpd_group, [{disc_copies, Nodes},
 			{attributes, record_info(fields, httpd_group)}]) of
 		{atomic, ok} ->
 			error_logger:info_msg("Created new httpd_group table.~n"),
