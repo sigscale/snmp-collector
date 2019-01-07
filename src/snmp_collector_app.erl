@@ -38,7 +38,6 @@
 -include("snmp_collector.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("sigscale_fm/include/fm.hrl").
--include_lib("snmp_collector/include/snmp_collector.hrl").
 
 -record(state, {}).
 
