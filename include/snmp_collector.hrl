@@ -1,6 +1,6 @@
 % snmp_collector.hrl
 
 -record(snmp_user,
-		{name :: string() | '_',
-		authPass :: string() | '_',
-		privPass :: string() | '_'}).
+		{name :: string() | undefined | '_',
+		authPass :: string() | undefined | '_',
+		privPass :: string() | undefined | '_'}).
