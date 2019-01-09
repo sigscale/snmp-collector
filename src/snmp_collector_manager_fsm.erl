@@ -90,9 +90,8 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 				#usmSecurityParameters{msgUserName = UserName, msgAuthoritativeEngineID = EngineID, msgAuthoritativeEngineBoots = EngineBoots,
 						msgAuthoritativeEngineTime = EngineTime, msgPrivacyParameters = MsgPrivParams, msgAuthenticationParameters = MsgAuthenticationParams} ->
 					Fsearch = fun() ->
-								mnesia:read(snmp_users, UserName, read)
+								mnesia:read(snmp_user, UserName, read)
 					end,
-erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
 					case catch mnesia:ets(Fsearch) of
 						[#snmp_user{authPass = AuthPass, privPass = PrivPass}] ->
 							case catch snmp_pdus:dec_scoped_pdu_data(Data) of
@@ -150,13 +149,14 @@ erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
 															{engine_id, EngineID},
 															{username, UserName},
 															{flags, authPriv},
+															{protocol, md5},
 															{port, Port},
 															{address, Address}]),
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
 											PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
-											case dec_des(PrivKey, MsgPrivParams, PDU) of
+											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
@@ -177,6 +177,7 @@ erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
 															{engine_id, EngineID},
 															{username, UserName},
 															{flags, authPriv},
+															{protocol, aes},
 															{port, Port},
 															{address, Address}]),
 														{stop, shutdown, StateData}
@@ -197,7 +198,7 @@ erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
 											PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
-											case dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) of
+											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
@@ -218,6 +219,7 @@ erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
 															{engine_id, EngineID},
 															{username, UserName},
 															{flags, authPriv},
+															{protocol, sha},
 															{port, Port},
 															{address, Address}]),
 														{stop, shutdown, StateData}
@@ -245,6 +247,7 @@ erlang:display({?MODULE, ?LINE, mnesia:ets(Fsearch)}),
 															{engine_id, EngineID},
 															{username, UserName},
 															{flags, authPriv},
+															{protocol, sha},
 															{port, Port},
 															{address, Address}]),
 														{stop, shutdown, StateData}
@@ -403,7 +406,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		Reason :: des_decryption_failed | term().
 %% @doc Decrypt a SNMP packet using DES privacy protocol.
 dec_des(PrivKey, MsgPrivParams, Data)
-	when is_list(PrivKey), is_list(MsgPrivParams) ->
+	when is_list(PrivKey) ->
 	case catch snmp_usm:des_decrypt(PrivKey, MsgPrivParams, Data) of
 		{ok, DecryptedData} ->
 			case snmp_pdus:dec_scoped_pdu_data(DecryptedData) of
@@ -482,6 +485,8 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 			snmp_collector_huawei_data_com_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
 		{"huawei-optical", TargetName} ->
 			snmp_collector_huawei_data_com_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
+		{"huawei-rtn-1", TargetName} ->
+			snmp_collector_huawei_data_com_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
 		{"emc", _TargetName} ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []);
@@ -491,7 +496,10 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 		{error, Reason} ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
-			{error, Reason}
+			{error, Reason};
+		{_, _} ->
+			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
+					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
 	end.
 
 -spec agent_name(Address, Port) -> Result
@@ -515,5 +523,4 @@ agent_name(Address, Port) ->
 		[] ->
 			{error, target_name_not_found}
 	end.
-	
 
