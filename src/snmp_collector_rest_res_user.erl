@@ -49,7 +49,6 @@ content_types_provided() ->
 %% @doc Body producing function for `GET /partyManagement/v1/individual'
 %% requests.
 get_users(Query, Headers) ->
-erlang:display({?MODULE, ?LINE, Query, Headers}),
 	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
 			get_users1(NewQuery, Filters, Headers);
@@ -58,7 +57,6 @@ erlang:display({?MODULE, ?LINE, Query, Headers}),
 	end.
 %% @hidden
 get_users1(Query, Filters, Headers) ->
-erlang:display({?MODULE, ?LINE, Query, Filters, Headers}),
 	case {lists:keyfind("if-match", 1, Headers),
 			lists:keyfind("if-range", 1, Headers),
 			lists:keyfind("range", 1, Headers)} of
@@ -271,7 +269,6 @@ user1([], Acc) ->
 
 %% @hidden
 query_start(Query, Filters, RangeStart, RangeEnd) ->
-erlang:display({?MODULE, ?LINE, Query, Filters, RangeStart, RangeEnd}),
 	try
 		case lists:keyfind("filter", 1, Query) of
 			{_, String} ->
@@ -289,13 +286,11 @@ erlang:display({?MODULE, ?LINE, Query, Filters, RangeStart, RangeEnd}),
 		end
 	of
 		{MatchId, MatchLocale} ->
-erlang:display({?MODULE, ?LINE, MatchId, MatchLocale}),
 			MFA = [snmp_collector, query_users, [MatchId, MatchLocale]],
 			case supervisor:start_child(snmp_collector_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
 					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 				{error, _Reason} ->
-erlang:display({?MODULE, ?LINE, _Reason}),
 					{error, 500}
 			end
 	catch
@@ -305,7 +300,6 @@ erlang:display({?MODULE, ?LINE, _Reason}),
 
 %% @hidden
 query_page(PageServer, Etag, _Query, Filters, Start, End) ->
-erlang:display({?MODULE, ?LINE, PageServer, Etag, _Query, Filters, Start, End}),
 	case gen_server:call(PageServer, {Start, End}) of
 		{error, Status} ->
 			{error, Status};
