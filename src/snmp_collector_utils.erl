@@ -485,6 +485,8 @@ security_params1(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
 					{error, authentication_failed}
 			end;
 		[] ->
+			{error, not_found};
+		_ ->
 			{error, not_found}
 	end.
 
