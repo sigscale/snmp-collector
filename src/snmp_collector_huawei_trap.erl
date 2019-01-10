@@ -26,7 +26,7 @@
 		handle_pdu/4, handle_trap/3, handle_inform/3,
 		handle_report/3]).
 
--include_lib("sigscale_fm/include/fm.hrl").
+-include_lib("../../sigscale-fm/include/fm.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).

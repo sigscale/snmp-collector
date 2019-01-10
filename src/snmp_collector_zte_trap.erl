@@ -26,7 +26,7 @@
     handle_report/3]).
 
 %% export snmpm_user call backs.
--include_lib("sigscale_fm/include/fm.hrl").
+-include_lib("../../sigscale-fm/include/fm.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
