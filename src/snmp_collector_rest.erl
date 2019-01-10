@@ -1,7 +1,7 @@
 %%% snmp_collector_rest.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2019 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -19,12 +19,11 @@
 %%%   {@link //sigcale_snmp_collector. sigscale_snmp_collector} application.
 %%%
 -module(snmp_collector_rest).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -export([date/1, iso8601/1, etag/1]).
 -export([parse_query/1, range/1]).
 
-% calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------

@@ -1,7 +1,7 @@
 %%% snmp_collector_debug_fsm.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2017 SigScale Global Inc.
+%%% @copyright 2016 - 2019 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
 -module(snmp_collector_debug_fsm).
--copyright('Copyright (c) 2016 - 2017 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -behaviour(gen_fsm).
 
