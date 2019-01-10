@@ -101,6 +101,10 @@ iso8601day(Year, Month, [$-, D, _ | T])
 		when D >= $1, D =< $9 ->
 	Day = list_to_integer([D]),
 	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [$-, D, $, | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
 iso8601day(Year, Month, [D, $, | T])
 		when D >= $1, D =< $9 ->
 	Day = list_to_integer([D]),
@@ -110,6 +114,10 @@ iso8601day(Year, Month, [$-, D, $- | T])
 	Day = list_to_integer([D]),
 	iso8601hour({Year, Month, Day}, T);
 iso8601day(Year, Month, [$/, D1, D2 | T])
+		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
+	Day = list_to_integer([D1, D2]),
+	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [D1, D2, $, | T])
 		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
 	Day = list_to_integer([D1, D2]),
 	iso8601hour({Year, Month, Day}, T);
