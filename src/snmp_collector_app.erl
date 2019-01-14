@@ -94,38 +94,57 @@ start1(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start2() ->
+	case snmp_collector_mib:load_default_mibs() of
+		ok ->
+			case snmp_collector_mib:load_mibs() of
+				ok ->
+					start3();
+				{error, Reason} ->
+					error_logger:error_report(["SNMP Manager application failed to start",
+							{reason, Reason},
+							{module, ?MODULE}]),
+					{error, Reason}
+			end;
+		{error ,Reason} ->
+			error_logger:error_report(["SNMP Manager application failed to start",
+					{reason, Reason},
+					{module, ?MODULE}]),
+			{error, Reason}
+	end.
+%% @hidden
+start3() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
 			Children = supervisor:which_children(TopSup),
 			{ok, ManagerPorts} = application:get_env(manager_ports),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
-			start3(TopSup, ManagerSup, DebugSup, ManagerPorts);
+			start4(TopSup, ManagerSup, DebugSup, ManagerPorts);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start3(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
+start4(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(ManagerSup, [[Port]]) of
 		{ok, _ManagerServerSup} ->
-			start3(TopSup, ManagerSup, DebugSup, T);
+			start4(TopSup, ManagerSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start3(TopSup, _ManangerSup, DebugSup, []) ->
+start4(TopSup, _ManangerSup, DebugSup, []) ->
 	{ok, DebugPorts} = application:get_env(debug_ports),
-	start4(TopSup, DebugSup, DebugPorts).
+	start5(TopSup, DebugSup, DebugPorts).
 %% @hidden
-start4(TopSup, DebugSup, [Port | T] = _DebugPorts)
+start5(TopSup, DebugSup, [Port | T] = _DebugPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(DebugSup, [[Port], []]) of
 		{ok, _DebugServer} ->
-			start4(TopSup, DebugSup, T);
+			start5(TopSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start4(TopSup, _DebugSup, []) ->
+start5(TopSup, _DebugSup, []) ->
 	StartMods = [snmp_collector_get_sup, [[], []]],
 	case timer:apply_interval(?INTERVAL, supervisor,
 			start_child, StartMods) of
