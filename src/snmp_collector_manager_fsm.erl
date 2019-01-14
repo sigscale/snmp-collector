@@ -253,7 +253,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{error, Reason} ->
-											error_logger:warning_report(["SNMP Manager Incorrect Security Params",
+											error_logger:error_report(["SNMP Manager Incorrect Security Params",
 													{error, Reason},
 													{engine_id, EngineID},
 													{username, UserName},
