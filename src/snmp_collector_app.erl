@@ -62,11 +62,20 @@ start(normal = _StartType, _Args) ->
 	{ok, Dir} = application:get_env(queue_dir),
 	{ok, MibDir} = application:get_env(mib_dir),
 	{ok, BinDir} = application:get_env(bin_dir),
+	{ok, DefaultBinDir} = application:get_env(default_bin_dir),
 	case open_log(Dir, Name, Type ,File, Size) of
 		ok ->
 			case create_dirs(MibDir, BinDir) of
 				ok ->
-					start1(normal, []);
+					case catch load_all_mibs(DefaultBinDir, MibDir, BinDir) of
+						ok ->
+							start1(normal, []);
+						{error, Reason} ->
+							error_logger:error_report(["SNMP Manager application failed to start",
+									{reason, Reason},
+									{module, ?MODULE}]),
+							{error, Reason}
+					end;
 				{error, Reason} ->
 					{error, Reason}
 			end;
@@ -94,57 +103,38 @@ start1(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start2() ->
-	case snmp_collector_mib:load_default_mibs() of
-		ok ->
-			case snmp_collector_mib:load_mibs() of
-				ok ->
-					start3();
-				{error, Reason} ->
-					error_logger:error_report(["SNMP Manager application failed to start",
-							{reason, Reason},
-							{module, ?MODULE}]),
-					{error, Reason}
-			end;
-		{error ,Reason} ->
-			error_logger:error_report(["SNMP Manager application failed to start",
-					{reason, Reason},
-					{module, ?MODULE}]),
-			{error, Reason}
-	end.
-%% @hidden
-start3() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
 			Children = supervisor:which_children(TopSup),
 			{ok, ManagerPorts} = application:get_env(manager_ports),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
-			start4(TopSup, ManagerSup, DebugSup, ManagerPorts);
+			start3(TopSup, ManagerSup, DebugSup, ManagerPorts);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start4(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
+start3(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(ManagerSup, [[Port]]) of
 		{ok, _ManagerServerSup} ->
-			start4(TopSup, ManagerSup, DebugSup, T);
+			start3(TopSup, ManagerSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start4(TopSup, _ManangerSup, DebugSup, []) ->
+start3(TopSup, _ManangerSup, DebugSup, []) ->
 	{ok, DebugPorts} = application:get_env(debug_ports),
-	start5(TopSup, DebugSup, DebugPorts).
+	start4(TopSup, DebugSup, DebugPorts).
 %% @hidden
-start5(TopSup, DebugSup, [Port | T] = _DebugPorts)
+start4(TopSup, DebugSup, [Port | T] = _DebugPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(DebugSup, [[Port], []]) of
 		{ok, _DebugServer} ->
-			start5(TopSup, DebugSup, T);
+			start4(TopSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start5(TopSup, _DebugSup, []) ->
+start4(TopSup, _DebugSup, []) ->
 	StartMods = [snmp_collector_get_sup, [[], []]],
 	case timer:apply_interval(?INTERVAL, supervisor,
 			start_child, StartMods) of
@@ -543,3 +533,24 @@ force([H | T]) ->
 		end;
 force([]) ->
 	ok.
+
+-spec load_all_mibs(DefaultBinDir, MibDir, BinDir) -> Result
+	when
+		DefaultBinDir :: string(),
+		MibDir :: string(),
+		BinDir :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Load all required Mibs into the SNMP Manager.
+load_all_mibs(DefaultBinDir, MibDir, BinDir) ->
+	case snmp_collector_mib:load_default_mibs(DefaultBinDir) of
+		ok ->
+			case catch snmp_collector_mib:load_manager_mibs(MibDir, BinDir) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
