@@ -341,19 +341,6 @@ event_details10(NewObjects, Acc) ->
 		Result :: true | false.
 %% @doc Verify if the event is a HeartBeat event or not.
 heartbeat(Varbinds) ->
-	case snmpm:name_to_oid(nmAgent) of
-		{ok, [HeartBeat]} ->
-			case lists:keyfind(HeartBeat, 2, Varbinds) of
-				{varbind, _, _, _, _} ->
-					true;
-				false ->
-					heartbeat1(Varbinds)
-			end;
-		{error, _Reason} ->
-				false
-	end.
-%% @hidden
-heartbeat1(Varbinds) ->
 	case snmpm:name_to_oid(hwNmAgent) of
 		{ok, [HeartBeat]} ->
 			case lists:keyfind(HeartBeat, 2, Varbinds) of
