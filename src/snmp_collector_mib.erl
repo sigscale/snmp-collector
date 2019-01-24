@@ -49,7 +49,7 @@ load_default_mibs(Dir, [Mib | Rest]) ->
 			error_logger:info_msg(["SNMP MIB Failed To Load Mib",
 				{mib_name, Mib},
 				{error, Reason}]),
-			load_default_mibs(Dir, Rest)
+			{error, Reason}
 	end;
 load_default_mibs(_, []) ->
 	ok.
