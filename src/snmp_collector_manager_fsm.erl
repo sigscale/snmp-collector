@@ -512,7 +512,7 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 		Reason :: target_name_not_found | agent_name_not_found | term().
 %% @doc Identify the Agent Name for the received packet.
 agent_name(Address, Port) ->
-	case ets:match(snmpm_agent_table, {{'$1', '_'}, {Address ,Port}}) of
+	case ets:match(snmpm_agent_table, {{'$1', '_'}, {Address ,'_'}}) of
 		[[TargetName]] ->
 			case ets:match(snmpm_agent_table, {{TargetName, user_id},'$1'}) of
 				[[AgentName]] ->
