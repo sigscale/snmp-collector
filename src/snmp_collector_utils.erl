@@ -134,6 +134,9 @@ iso8601hour(Date, [$T]) ->
 	iso8601hour(Date, []);
 iso8601hour(Date, [$ ]) ->
 	iso8601hour(Date, []);
+iso8601hour(Date, [H1, $:])
+		when H1 >= $0, H1 =< $2 ->
+	iso8601hour(Date, [$T, H1, $0]);
 iso8601hour(Date, [$T, H1])
 		when H1 >= $0, H1 =< $2 ->
 	iso8601hour(Date, [$T, H1, $0]);
@@ -177,6 +180,10 @@ iso8601minute(Date, Hour, [$:]) ->
 iso8601minute(Date, Hour, [$:, M1])
 		when M1 >= $0, M1 =< $5 ->
 	iso8601minute(Date, Hour, [$:, M1, $0]);
+iso8601minute(Date, Hour, [M1, $:, M2 | T])
+		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
+	Minute = list_to_integer([M1, M2]),
+	iso8601second(Date, Hour, Minute, T);
 iso8601minute(Date, Hour, [$:, M1, M2 | T])
 		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
 	Minute = list_to_integer([M1, M2]),
