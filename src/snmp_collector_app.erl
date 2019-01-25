@@ -545,7 +545,7 @@ force([]) ->
 load_all_mibs(DefaultBinDir, MibDir, BinDir) ->
 	case snmp_collector_mib:load_default_mibs(DefaultBinDir) of
 		ok ->
-			case catch snmp_collector_mib:load_manager_mibs(MibDir, BinDir) of
+			case snmp_collector_mib:load_manager_mibs(MibDir, BinDir) of
 				ok ->
 					ok;
 				{error, Reason} ->
