@@ -31,8 +31,7 @@
 -spec load_default_mibs(DefaultMibDir) -> Result
 	when
 		DefaultMibDir :: string(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
+		Result :: ok.
 %% @doc Load default MIBs for the snmp collector.
 load_default_mibs(DefaultMibDir) ->
 	{ok, MibList} = file:list_dir(DefaultMibDir),
@@ -46,10 +45,10 @@ load_default_mibs(Dir, [Mib | Rest]) ->
 		{error, already_loaded} ->
 			load_default_mibs(Dir, Rest);
 		{error, Reason} ->
-			error_logger:info_msg(["SNMP MIB Failed To Load Mib",
-				{mib_name, Mib},
+			error_logger:info_report(["SNMP MIB Failed To Load Mib",
+				{mib, Mib},
 				{error, Reason}]),
-			{error, Reason}
+			load_default_mibs(Dir, Rest)
 	end;
 load_default_mibs(_, []) ->
 	ok.
@@ -66,7 +65,7 @@ load_manager_mibs(MibDir, BinDir) ->
 		{ok, []} ->
 			{error, mib_directory_empty};
 		{ok, MibList} ->
-			case file:list_dir(MibDir) of
+			case file:list_dir(BinDir) of
 				{ok, BinList} ->
 					case compile_mibs(MibDir, BinDir, MibList, BinList) of
 						ok ->
@@ -83,7 +82,7 @@ load_manager_mibs(MibDir, BinDir) ->
 					{error, Reason}
 			end;
 		{error, Reason} ->
-			error_logger:info_msg(["SNMP Manager Failed To Load Mib Directory",
+			error_logger:info_report(["SNMP Manager Failed To Load Mib Directory",
 				{error, Reason}]),
 			{error, Reason}
 	end.
@@ -122,11 +121,11 @@ compile_mibs(MibDir, BinDir ,[Mib | T], BinList) ->
 													{outdir, BinDir}, {group_check, false}, {warnings, false},
 													{i, [BinDir]}, {il, ["snmp/priv/mibs/"]}]) of
 												{ok, BinFileName} ->
-													error_logger:info_msg(["SNMP Manager Complied MIB",
+													error_logger:info_report(["SNMP Manager Complied MIB",
 															{mib, BinFileName}]),
 													compile_mibs(MibDir, BinDir, T, BinList);
 												{error, Reason} ->
-													error_logger:warning_msg(["SNMP Collector MIB Compilation Failed",
+													error_logger:warning_report(["SNMP Collector MIB Compilation Failed",
 															{error, Reason},
 															{mib_name, Mib}]),
 													compile_mibs(MibDir, BinDir, T ++ [Mib], BinList)
@@ -145,11 +144,11 @@ compile_mibs(MibDir, BinDir ,[Mib | T], BinList) ->
 						{outdir, BinDir}, {group_check, false}, {warnings, false},
 								{i, [BinDir]}, {il, ["snmo/priv/mibs/"]}]) of
 							{ok, BinFileName} ->
-								error_logger:info_msg(["SNMP Manager Complied MIB",
+								error_logger:info_report(["SNMP Manager Complied MIB",
 										{mib, BinFileName}]),
 								compile_mibs(MibDir, BinDir, T, BinList);
 							{error, Reason} ->
-								error_logger:warning_msg(["SNMP Collector MIB Compilation Failed",
+								error_logger:warning_report(["SNMP Collector MIB Compilation Failed",
 										{error, Reason},
 										{mib_name, Mib}]),
 								compile_mibs(MibDir, BinDir, T ++ [Mib], BinList)
