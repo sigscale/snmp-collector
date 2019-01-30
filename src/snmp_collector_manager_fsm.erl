@@ -95,6 +95,61 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 					case catch mnesia:ets(Fsearch) of
 						[#snmp_user{authPass = AuthPass, privPass = PrivPass}] ->
 							case catch snmp_pdus:dec_scoped_pdu_data(Data) of
+								#scopedPdu{data = #pdu{varbinds = Varbinds}} ->
+									case snmp_collector_utils:security_params(EngineID, UserName, MsgAuthenticationParams,
+											Packet, AuthPass, PrivPass) of
+										{ok, usmNoAuthProtocol, usmNoPrivProtocol} when Flag == 0 ->
+											case handle_trap(Address, Port, {noError, 0, Varbinds}) of
+												ignore ->
+													{stop, shutdown, StateData};
+												{error, Reason} ->
+													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
+											end;
+										{ok, usmHMACMD5AuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
+											case handle_trap(Address, Port, {noError, 0, Data}) of
+												ignore ->
+													{stop, shutdown, StateData};
+												{error, Reason} ->
+													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
+											end;
+										{ok, usmHMACSHAAuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
+											case handle_trap(Address, Port, {noError, 0, Data}) of
+												ignore ->
+													{stop, shutdown, StateData};
+												{error, Reason} ->
+													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+															{error, Reason},
+															{engine_id, EngineID},
+															{username, UserName},
+															{flags, authPriv},
+															{port, Port},
+															{address, Address}]),
+														{stop, shutdown, StateData}
+											end;
+										{error, Reason}->
+											error_logger:info_report(["SNMP Manager Agent Not Recognized",
+														{error, Reason},
+														{engine_id, EngineID},
+														{username, UserName},
+														{flags, authPriv},
+														{port, Port},
+														{address, Address}]),
+											{stop, shutdown, StateData}
+									end;
 								PDU when is_list(PDU) ->
 									case snmp_collector_utils:security_params(EngineID, UserName, MsgAuthenticationParams,
 											Packet, AuthPass, PrivPass) of
@@ -472,7 +527,7 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 %% @doc Send Varbinds to the associated trap handler modules.
 handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 		when ErrorStatus == noError ->
-	case agent_name(Address, Port) of
+	case agent_name(Address) of
 		{"huawei", TargetName} ->
 			snmp_collector_huawei_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
 		{"zte", TargetName} ->
@@ -502,16 +557,15 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
 	end.
 
--spec agent_name(Address, Port) -> Result
+-spec agent_name(Address) -> Result
 	when
 		Address :: inet:ip_address(),
-		Port :: pos_integer(),
 		Result :: {AgentName, TargetName} | {error, Reason},
 		AgentName :: string(),
 		TargetName :: snmpm:target_name(),
 		Reason :: target_name_not_found | agent_name_not_found | term().
 %% @doc Identify the Agent Name for the received packet.
-agent_name(Address, Port) ->
+agent_name(Address) ->
 	case ets:match(snmpm_agent_table, {{'$1', '_'}, {Address ,'_'}}) of
 		[[TargetName]] ->
 			case ets:match(snmpm_agent_table, {{TargetName, user_id},'$1'}) of
