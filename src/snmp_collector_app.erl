@@ -543,7 +543,7 @@ force([]) ->
 		Reason :: term().
 %% @doc Load all required Mibs into the SNMP Manager.
 load_all_mibs(DefaultBinDir, MibDir, BinDir) ->
-	case snmp_collector_mib:load_default_mibs(DefaultBinDir) of
+	case catch snmp_collector_mib:load_default_mibs(DefaultBinDir) of
 		ok ->
 			case snmp_collector_mib:load_manager_mibs(MibDir, BinDir) of
 				ok ->
@@ -551,6 +551,6 @@ load_all_mibs(DefaultBinDir, MibDir, BinDir) ->
 				{error, Reason} ->
 					{error, Reason}
 			end;
-		{error, Reason} ->
+		{'EXIT', Reason} ->
 			{error, Reason}
 	end.
