@@ -521,10 +521,10 @@ security_params1(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
 		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new usm user to the snmp_usm table.
-%add_usm_user(EngineID, UserName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
-%		when is_list(EngineID), is_list(UserName) ->
-%	Conf = [{sec_name}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
-%	add_usm_user1(EngineID, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
+add_usm_user(EngineID, UserName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	Conf = [{sec_name}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
+	add_usm_user1(EngineID, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineID, UserName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
