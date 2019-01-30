@@ -107,7 +107,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
-															{flags, authPriv},
+															{flags, noAuthNoPriv},
 															{port, Port},
 															{address, Address}]),
 														{stop, shutdown, StateData}
@@ -121,7 +121,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
-															{flags, authPriv},
+															{flags, authNoPriv},
 															{port, Port},
 															{address, Address}]),
 														{stop, shutdown, StateData}
@@ -135,17 +135,17 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
-															{flags, authPriv},
+															{flags, authNoPriv},
 															{port, Port},
 															{address, Address}]),
 														{stop, shutdown, StateData}
 											end;
-										{error, Reason}->
+										{error, Reason} ->
 											error_logger:info_report(["SNMP Manager Agent Not Recognized",
 														{error, Reason},
 														{engine_id, EngineID},
 														{username, UserName},
-														{flags, authPriv},
+														{flags, flag(Flag)},
 														{port, Port},
 														{address, Address}]),
 											{stop, shutdown, StateData}
@@ -578,3 +578,14 @@ agent_name(Address) ->
 			{error, target_name_not_found}
 	end.
 
+-spec flag(Flag) -> Result
+	when
+		Flag :: pos_integer(),
+		Result :: noAuthNoPriv |  authNoPriv |authPriv.
+%% @doc Determine the flag of the trap.
+flag(1) ->
+	noAuthNoPrivl;
+flag(2) ->
+	authNoPriv;
+flag(3) ->
+	authPriv.
