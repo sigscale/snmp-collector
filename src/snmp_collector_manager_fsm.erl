@@ -580,12 +580,12 @@ agent_name(Address) ->
 
 -spec flag(Flag) -> Result
 	when
-		Flag :: pos_integer(),
+		Flag :: integer(),
 		Result :: noAuthNoPriv |  authNoPriv |authPriv.
 %% @doc Determine the flag of the trap.
+flag(0) ->
+	noAuthNoPriv;
 flag(1) ->
-	noAuthNoPrivl;
-flag(2) ->
 	authNoPriv;
 flag(3) ->
 	authPriv.
