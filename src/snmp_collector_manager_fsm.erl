@@ -528,33 +528,19 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 		when ErrorStatus == noError ->
 	case agent_name(Address) of
-		{"huawei", TargetName} ->
-			snmp_collector_huawei_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"zte", TargetName} ->
-			snmp_collector_zte_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"nec", TargetName} ->
-			snmp_collector_nec_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"nokia", TargetName} ->
-			snmp_collector_nokia_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"huawei-datacom", TargetName} ->
-			snmp_collector_huawei_data_com_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"huawei-optical", TargetName} ->
-			snmp_collector_huawei_data_com_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"huawei-rtn-1", TargetName} ->
-			snmp_collector_huawei_data_com_trap:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"emc", _TargetName} ->
-			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-					trap, {ErrorStatus, ErrorIndex, Varbinds}, []);
-		{"hp", _TargetName} ->
-			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-					trap, {ErrorStatus, ErrorIndex, Varbinds}, []);
+		{AgentName, TargetName} when is_list(AgentName), is_list(TargetName) ->
+			case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
+				[[Module, UserData]] ->
+					Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
+				[] ->
+					snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
+							trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
+					{error, agent_name_not_found}
+			end;
 		{error, Reason} ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
-			{error, Reason};
-		{_, _} ->
-			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
+			{error, Reason}
 	end.
 
 -spec agent_name(Address) -> Result
