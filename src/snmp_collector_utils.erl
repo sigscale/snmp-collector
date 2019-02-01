@@ -505,7 +505,6 @@ security_params1(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
 			{error, not_found}
 	end.
 
-
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
