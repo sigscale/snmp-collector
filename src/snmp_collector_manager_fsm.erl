@@ -141,7 +141,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{error, Reason} ->
-											error_logger:info_report(["SNMP Manager Agent Not Recognized",
+											error_logger:info_report(["SNMP Manager Incorrect Security Params",
 														{error, Reason},
 														{engine_id, EngineID},
 														{username, UserName},
@@ -252,7 +252,8 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
-											PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
+											[A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S | _] = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+											PrivKey = [A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S],
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -280,8 +281,9 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
-											case dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) of
+											[A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S | _] = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+											PrivKey = [A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S],
+											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
