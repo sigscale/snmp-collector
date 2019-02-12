@@ -252,7 +252,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
-											[A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S | _] = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+											[A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S | _] = snmp:passwd2localized_key(sha, PrivPass, EngineID),
 											PrivKey = [A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S],
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
@@ -281,7 +281,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											[A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S | _] = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+											[A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S | _] = snmp:passwd2localized_key(sha, PrivPass, EngineID),
 											PrivKey = [A, B, C, D, E, F, G, H, I, J, K, L, P, Q, R, S],
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
