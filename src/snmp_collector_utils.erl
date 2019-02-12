@@ -470,7 +470,7 @@ log_to_disk(CommentEventHeader, FaultFields) ->
 	AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
 	PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
 	Reason :: not_found | authentication_failed | term().
-%% @doc Looks up the Authentication Protocol and the Privacy Protocol.
+%% @doc Looks up the Authentication Protocol and the Privacy Protocol to complete authentication.
 %% @private
 security_params(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
@@ -500,8 +500,6 @@ security_params1(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
 					{error, authentication_failed}
 			end;
 		[] ->
-			{error, not_found};
-		_ ->
 			{error, not_found}
 	end.
 
@@ -511,12 +509,12 @@ security_params1(EngineID, UserName, AuthParms, Packet, AuthPass, PrivPass)
 
 -spec add_usm_user(EngineID, UserName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
 	when
-		EngineID :: string(),
-		UserName :: string(),
+		EngineID :: list(),
+		UserName :: list(),
 		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
 		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
-		AuthPass :: string(),
-		PrivPass :: string(),
+		AuthPass :: list(),
+		PrivPass :: list(),
 		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new usm user to the snmp_usm table.
@@ -582,12 +580,14 @@ add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
 
 -spec authenticate(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
 	when
-		AuthProtocol :: usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
 		AuthKey :: list(),
 		AuthParams :: list(),
 		Packet :: [byte()],
 		Result :: true | false.
 %% @doc Authenticate the SNMP agent.
+authenticate(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
+	true;
 authenticate(usmHMACMD5AuthProtocol, AuthKey, AuthParams ,Packet) ->
 	case snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey,
 			AuthParams, list_to_binary(Packet)) of
