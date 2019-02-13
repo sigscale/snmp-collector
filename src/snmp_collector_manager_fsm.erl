@@ -96,7 +96,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 						[#snmp_user{authPass = AuthPass, privPass = PrivPass}] ->
 							case catch snmp_pdus:dec_scoped_pdu_data(Data) of
 								#scopedPdu{data = #pdu{varbinds = Varbinds}} ->
-									case snmp_collector_utils:security_params(EngineID, UserName, MsgAuthenticationParams,
+									case snmp_collector_utils:security_params(EngineID, Address, UserName, MsgAuthenticationParams,
 											Packet, AuthPass, PrivPass) of
 										{ok, usmNoAuthProtocol, usmNoPrivProtocol} when Flag == 0 ->
 											case handle_trap(Address, Port, {noError, 0, Varbinds}) of
@@ -151,7 +151,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 											{stop, shutdown, StateData}
 									end;
 								PDU when is_list(PDU) ->
-									case snmp_collector_utils:security_params(EngineID, UserName, MsgAuthenticationParams,
+									case snmp_collector_utils:security_params(EngineID, Address, UserName, MsgAuthenticationParams,
 											Packet, AuthPass, PrivPass) of
 										{ok, usmNoAuthProtocol, usmNoPrivProtocol} when Flag == 0 ->
 											case handle_trap(Address, Port, {noError, 0, Data}) of
@@ -529,7 +529,7 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 %% @doc Send Varbinds to the associated trap handler modules.
 handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 		when ErrorStatus == noError ->
-	case agent_name(Address) of
+	case snmp_collector_utils:agent_name(Address) of
 		{AgentName, TargetName} when is_list(AgentName), is_list(TargetName) ->
 			case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 				[[Module, UserData]] ->
@@ -543,27 +543,6 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
 			{error, Reason}
-	end.
-
--spec agent_name(Address) -> Result
-	when
-		Address :: inet:ip_address(),
-		Result :: {AgentName, TargetName} | {error, Reason},
-		AgentName :: string(),
-		TargetName :: snmpm:target_name(),
-		Reason :: target_name_not_found | agent_name_not_found | term().
-%% @doc Identify the Agent Name for the received packet.
-agent_name(Address) ->
-	case ets:match(snmpm_agent_table, {{'$1', '_'}, {Address ,'_'}}) of
-		[[TargetName]] ->
-			case ets:match(snmpm_agent_table, {{TargetName, user_id},'$1'}) of
-				[[AgentName]] ->
-					{AgentName, TargetName};
-				[] ->
-					{error, agent_name_not_found}
-			end;
-		[] ->
-			{error, target_name_not_found}
 	end.
 
 -spec flag(Flag) -> Result
