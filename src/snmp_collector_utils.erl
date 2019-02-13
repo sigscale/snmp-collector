@@ -505,7 +505,7 @@ security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPas
 %% @hidden
 security_params1(EngineID, AgentName, SecName, AuthParms, Packet, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(SecName) ->
-	case ets:match(snmpm_usm_table, {{usmUserTable, '_', AgentName}
+	case ets:match(snmpm_usm_table, {{usmUserTable, '_', AgentName},
 			{usm_user, '_', AgentName, SecName, '$1', '_', '$2', '_'}}) of
 		[[AuthProtocol, PrivProtocol]] ->
 			AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
