@@ -515,6 +515,8 @@ security_params1(EngineID, AgentName, SecName, AuthParms, Packet, AuthPass, Priv
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
+						{error, {already_registered, _, _}} ->
+							{ok, AuthProtocol, PrivProtocol};
 						{error, Reason} ->
 							{error, Reason}
 					end;
