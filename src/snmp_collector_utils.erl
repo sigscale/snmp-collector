@@ -476,23 +476,8 @@ log_to_disk(CommentEventHeader, FaultFields) ->
 security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(SecName) ->
 	case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, SecName}) of
-		[{_, {usm_user, _, _, _, usmNoAuthProtocol = AuthProtocol, _, PrivProtocol, _}}] ->
-			case authenticate(AuthProtocol, [], AuthParms ,Packet) of
-				true ->
-					{ok, AuthProtocol, PrivProtocol};
-				false ->
-					{error, authentication_failed}
-			end;
-		[{_, {usm_user, _, _, _, usmHMACMD5AuthProtocol = AuthProtocol, _, PrivProtocol, _}}] ->
-			AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
-			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
-				true ->
-					{ok, AuthProtocol, PrivProtocol};
-				false ->
-					{error, authentication_failed}
-			end;
-		[{_, {usm_user, _, _, _, usmHMACSHAAuthProtocol = AuthProtocol, _, PrivProtocol, _}}] ->
-			AuthKey = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+		[{_, {usm_user, _, _, _, AuthProtocol, _, PrivProtocol, _}}] ->
+			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
 					{ok, AuthProtocol, PrivProtocol};
@@ -513,7 +498,23 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 	case ets:match(snmpm_usm_table, {{usmUserTable, '_', TargetName},
 			{usm_user, '_', TargetName, SecName, '$1', '_', '$2', '_'}}) of
 		[[AuthProtocol, PrivProtocol]] ->
-			AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
+			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
+			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
+				true ->
+					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
+							PrivProtocol, AuthPass, PrivPass) of
+						{usm_user_added, AuthProtocol, PrivProtocol} ->
+							{ok, AuthProtocol, PrivProtocol};
+						{error, {already_registered, _, _}} ->
+							{ok, AuthProtocol, PrivProtocol};
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				false ->
+					{error, authentication_failed}
+			end;
+		[[AuthProtocol, PrivProtocol | _]] ->
+			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
 					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
@@ -741,4 +742,22 @@ stringify1([H | T], Acc) ->
 	stringify1(T, [H | Acc]);
 stringify1([], Acc) ->
 	lists:reverse(Acc).
+
+
+-spec auth_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
+	when
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		AuthPass :: list(),
+		EngineID :: list(),
+		AuthKey :: list().
+%% @doc Generates a key that can be used as an authentication using MD5 or SHA.
+auth_key(usmNoAuthProtocol, AuthPass, EngineID)
+		when is_list(AuthPass), is_list(EngineID) ->
+	[];
+auth_key(usmHMACMD5AuthProtocol, AuthPass, EngineID)
+		when is_list(AuthPass), is_list(EngineID) ->
+	snmp:passwd2localized_key(md5, AuthPass, EngineID);
+auth_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
+		when is_list(AuthPass), is_list(EngineID) ->
+	snmp:passwd2localized_key(sha, AuthPass, EngineID).
 
