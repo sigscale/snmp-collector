@@ -477,7 +477,12 @@ security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPas
 		when is_list(EngineID), is_list(SecName) ->
 	case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, SecName}) of
 		[{_, {usm_user, _, _, _, usmNoAuthProtocol = AuthProtocol, _, PrivProtocol, _}}] ->
-			{ok, AuthProtocol, PrivProtocol };
+			case authenticate(AuthProtocol, [], AuthParms ,Packet) of
+				true ->
+					{ok, AuthProtocol, PrivProtocol};
+				false ->
+					{error, authentication_failed}
+			end;
 		[{_, {usm_user, _, _, _, usmHMACMD5AuthProtocol = AuthProtocol, _, PrivProtocol, _}}] ->
 			AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
@@ -496,22 +501,22 @@ security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPas
 			end;
 		[] ->
 			case agent_name(Address) of
-				{AgentName, _} when is_list(AgentName) ->
-					security_params1(EngineID, AgentName, SecName, AuthParms, Packet, AuthPass, PrivPass);
+				{_, TargetName} when is_list(TargetName) ->
+					security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, PrivPass);
 				{error, _Reason} ->
 					{error, not_found}
 			end
 	end.
 %% @hidden
-security_params1(EngineID, AgentName, SecName, AuthParms, Packet, AuthPass, PrivPass)
+security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(SecName) ->
-	case ets:match(snmpm_usm_table, {{usmUserTable, '_', AgentName},
-			{usm_user, '_', AgentName, SecName, '$1', '_', '$2', '_'}}) of
+	case ets:match(snmpm_usm_table, {{usmUserTable, '_', TargetName},
+			{usm_user, '_', TargetName, SecName, '$1', '_', '$2', '_'}}) of
 		[[AuthProtocol, PrivProtocol]] ->
 			AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
-					case add_usm_user(EngineID, AgentName, SecName, AuthProtocol,
+					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
@@ -610,7 +615,9 @@ timestamp() ->
 		Packet :: [byte()],
 		Result :: true | false.
 %% @doc Authenticate the SNMP agent.
-authenticate(usmHMACMD5AuthProtocol, AuthKey, AuthParams ,Packet) ->
+authenticate(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
+	true;
+authenticate(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
 	case snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey,
 			AuthParams, list_to_binary(Packet)) of
 		true ->
