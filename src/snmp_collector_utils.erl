@@ -513,7 +513,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 				false ->
 					{error, authentication_failed}
 			end;
-		[[AuthProtocol, PrivProtocol | _]] ->
+		[[AuthProtocol, PrivProtocol],  _] ->
 			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
