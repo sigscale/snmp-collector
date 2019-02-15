@@ -21,7 +21,7 @@
 
 %% export the snmp_collector public API
 -export([add_user/3, list_users/0, get_user/1, delete_user/1,
-		update_user/3, add_mib/1, add_snmp_user/3]).
+		update_user/3, add_mib/1, add_snmp_user/3, remove_snmp_user/1]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -53,7 +53,9 @@ add_snmp_user(UserName, PrivPass, AuthPass) ->
 		{atomic, [_]} ->
 			{error, user_exists};
 		{atomic, []} ->
-			add_snmp_user1(UserName, PrivPass, AuthPass)
+			add_snmp_user1(UserName, PrivPass, AuthPass);
+		{atomic, aborted} ->
+			{error, invalid_entry}
 	end.
 %$ @hidden
 add_snmp_user1(UserName, PrivPass, AuthPass) ->
@@ -65,6 +67,33 @@ add_snmp_user1(UserName, PrivPass, AuthPass) ->
 	case mnesia:transaction(AddUser) of
 		{atomic, ok} ->
 			{ok, snmp_user_added};
+		{atomic, aborted} ->
+			{error, invalid_entry}
+	end.
+
+-spec remove_snmp_user(UserName) -> Result
+	when
+		UserName :: string(),
+		Result :: {ok, snmp_user_removed} | {error, Reason},
+		Reason :: user_does_not_exists | invalid_entry | term().
+%% @doc Remove a SNMP user.
+remove_snmp_user(UserName) ->
+	LookUp = fun() ->
+					mnesia:read(snmp_user, UserName, read)
+	end,
+	case mnesia:transaction(LookUp) of
+		{atomic, [_]} ->
+			Delete = fun() ->
+							mnesia:delete({snmp_user, UserName})
+			end,
+			case mnesia:transaction(Delete) of
+				{atomic, ok} ->
+					{ok, snmp_user_removed};
+				{atomic, aborted} ->
+					{error, invalid_entry}
+			end;
+		{atomic, []} ->
+			{error, user_does_not_exists};
 		{atomic, aborted} ->
 			{error, invalid_entry}
 	end.
