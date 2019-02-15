@@ -87,6 +87,7 @@ init_per_testcase(send_trap_md5_nopriv, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "md5NoPrivAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
@@ -103,6 +104,7 @@ init_per_testcase(send_trap_md5_des, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "md5DesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -120,6 +122,7 @@ init_per_testcase(send_trap_md5_aes, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "md5AesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -137,6 +140,7 @@ init_per_testcase(send_trap_sha_nopriv, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "shaNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
@@ -153,6 +157,7 @@ init_per_testcase(send_trap_sha_aes, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "shaAesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -170,6 +175,7 @@ init_per_testcase(send_trap_sha_des, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "shaDesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -188,6 +194,7 @@ init_per_testcase(_, Config) ->
 %% Cleanup after each test case.
 %%
 end_per_testcase(_TestCase, Config) ->
+	{ok, snmp_user_removed} = snmp_collector:remove_snmp_user("ct"),
 	ok = application:stop(snmp_collector),
 	ok = ct_snmp:stop(Config).
 
