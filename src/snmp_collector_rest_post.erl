@@ -85,6 +85,8 @@ content_type_available(Headers, Uri, Body, Resource, ModData) ->
 
 %% @hidden
 do_post(Resource, ModData, Body, ["snmp", "v1", "mibs"]) ->
+	do_response(ModData, Resource:post_mib(Body));
+do_post(Resource, ModData, Body, ["snmp", "v1", "ves"]) ->
 	do_response(ModData, Resource:post_mib(Body)).
 
 %% @hidden
