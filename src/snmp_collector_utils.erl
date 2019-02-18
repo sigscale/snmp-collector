@@ -437,27 +437,6 @@ event_header(TargetName, EventDetails) ->
 			"startEpochMicrosec" => iso8601(get_values(raisedTime, EventDetails)),
 			"version" => 1}.
 
--spec log_to_disk(CommentEventHeader, FaultFields) -> Result
-   when
-		CommentEventHeader :: map(),
-		FaultFields :: map(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Log the event to disk.
-%% @private
-log_to_disk(CommentEventHeader, FaultFields) ->
-	{ok, LogName} = application:get_env(snmp_collector, queue_name),
-	TimeStamp = erlang:system_time(milli_seconds),
-	Identifer = erlang:unique_integer([positive]),
-	Node = node(),
-	Event = {TimeStamp, Identifer, Node, CommentEventHeader, FaultFields},
-	case disk_log:log(LogName, Event) of
-		ok ->
-			ok;
-		{error, Reason} ->
-			{error, Reason}
-	end.
-
 -spec security_params(EngineID, Address, SecName, AuthParams, Packet, AuthPass, PrivPass) -> Result
 	when
 	EngineID :: string(),
@@ -552,6 +531,27 @@ agent_name(Address) ->
 			end;
 		[] ->
 			{error, target_name_not_found}
+	end.
+
+-spec log_to_disk(CommonEventHeader, FaultFields) -> Result
+   when
+		CommonEventHeader :: map(),
+		FaultFields :: map(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Log the event to disk.
+%% @private
+log_to_disk(CommonEventHeader, FaultFields) ->
+	{ok, LogName} = application:get_env(snmp_collector, queue_name),
+	TimeStamp = erlang:system_time(milli_seconds),
+	Identifer = erlang:unique_integer([positive]),
+	Node = node(),
+	Event = {TimeStamp, Identifer, Node, CommentEventHeader, FaultFields},
+	case disk_log:log(LogName, Event) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
 	end.
 
 %%----------------------------------------------------------------------
@@ -742,7 +742,6 @@ stringify1([H | T], Acc) ->
 	stringify1(T, [H | Acc]);
 stringify1([], Acc) ->
 	lists:reverse(Acc).
-
 
 -spec auth_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
 	when
