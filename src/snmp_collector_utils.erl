@@ -22,7 +22,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
-		log_to_disk/2, get_values/2, security_params/7, agent_name/1]).
+		log_events/2, get_values/2, security_params/7, agent_name/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -533,7 +533,7 @@ agent_name(Address) ->
 			{error, target_name_not_found}
 	end.
 
--spec log_to_disk(CommonEventHeader, FaultFields) -> Result
+-spec log_events(CommonEventHeader, FaultFields) -> Result
    when
 		CommonEventHeader :: map(),
 		FaultFields :: map(),
@@ -541,15 +541,22 @@ agent_name(Address) ->
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_to_disk(CommonEventHeader, FaultFields) ->
+log_events(CommonEventHeader, FaultFields) ->
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	TimeStamp = erlang:system_time(milli_seconds),
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
-	Event = {TimeStamp, Identifer, Node, CommentEventHeader, FaultFields},
-	case disk_log:log(LogName, Event) of
+	LogEvent = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
+	case disk_log:log(LogName, LogEvent) of
 		ok ->
-			ok;
+			VESEvent = #{"TimeStamp" => TimeStamp, "Identifer" => Identifer,
+					"CommonEventHeader" => CommonEventHeader, "FaultFeilds" => FaultFields},
+			case snmp_collector_rest_res_ves:post_event(VESEvent) of
+				{ok, _Header, _Body} ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
 		{error, Reason} ->
 			{error, Reason}
 	end.
