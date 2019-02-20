@@ -60,10 +60,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, snmp_collector_rest_res_mib, Data);
 						["snmp", "v1", "mibs", _Id] ->
 							check_content_type_header(Headers, Method, snmp_collector_rest_res_mib, Data);
-						["partyManagement", "v1", "individual"] ->
-							check_content_type_header(Headers, Method, snmp_collector_rest_res_user, Data);
-						["partyManagement", "v1", "individual", _Id] ->
-							check_content_type_header(Headers, Method, snmp_collector_rest_res_user, Data);
+						["ves", "v2", "events"] ->
+							check_content_type_header(Headers, Method, snmp_collector_rest_res_ves, Data);
 						_ ->
 							{proceed, Data}
 					end;
