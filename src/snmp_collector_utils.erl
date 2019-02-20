@@ -22,7 +22,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
-		log_to_disk/2, get_values/2, security_params/7, agent_name/1]).
+		log_events/2, get_values/2, security_params/7, agent_name/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -437,27 +437,6 @@ event_header(TargetName, EventDetails) ->
 			"startEpochMicrosec" => iso8601(get_values(raisedTime, EventDetails)),
 			"version" => 1}.
 
--spec log_to_disk(CommentEventHeader, FaultFields) -> Result
-   when
-		CommentEventHeader :: map(),
-		FaultFields :: map(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Log the event to disk.
-%% @private
-log_to_disk(CommentEventHeader, FaultFields) ->
-	{ok, LogName} = application:get_env(snmp_collector, queue_name),
-	TimeStamp = erlang:system_time(milli_seconds),
-	Identifer = erlang:unique_integer([positive]),
-	Node = node(),
-	Event = {TimeStamp, Identifer, Node, CommentEventHeader, FaultFields},
-	case disk_log:log(LogName, Event) of
-		ok ->
-			ok;
-		{error, Reason} ->
-			{error, Reason}
-	end.
-
 -spec security_params(EngineID, Address, SecName, AuthParams, Packet, AuthPass, PrivPass) -> Result
 	when
 	EngineID :: string(),
@@ -552,6 +531,34 @@ agent_name(Address) ->
 			end;
 		[] ->
 			{error, target_name_not_found}
+	end.
+
+-spec log_events(CommonEventHeader, FaultFields) -> Result
+   when
+		CommonEventHeader :: map(),
+		FaultFields :: map(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Log the event to disk.
+%% @private
+log_events(CommonEventHeader, FaultFields) ->
+	{ok, LogName} = application:get_env(snmp_collector, queue_name),
+	TimeStamp = erlang:system_time(milli_seconds),
+	Identifer = erlang:unique_integer([positive]),
+	Node = node(),
+	LogEvent = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
+	case disk_log:log(LogName, LogEvent) of
+		ok ->
+			VESEvent = #{"TimeStamp" => TimeStamp, "Identifer" => Identifer,
+					"CommonEventHeader" => CommonEventHeader, "FaultFeilds" => FaultFields},
+			case snmp_collector_rest_res_ves:post_event(VESEvent) of
+				{ok, _Header, _Body} ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
 	end.
 
 %%----------------------------------------------------------------------
@@ -742,7 +749,6 @@ stringify1([H | T], Acc) ->
 	stringify1(T, [H | Acc]);
 stringify1([], Acc) ->
 	lists:reverse(Acc).
-
 
 -spec auth_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
 	when
