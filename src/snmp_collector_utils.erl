@@ -549,14 +549,7 @@ log_events(CommonEventHeader, FaultFields) ->
 	LogEvent = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
 	case disk_log:log(LogName, LogEvent) of
 		ok ->
-			VESEvent = #{"TimeStamp" => TimeStamp, "Identifer" => Identifer,
-					"CommonEventHeader" => CommonEventHeader, "FaultFeilds" => FaultFields},
-			case snmp_collector_rest_res_ves:post_event(VESEvent) of
-				{ok, _Header, _Body} ->
-					ok;
-				{error, Reason} ->
-					{error, Reason}
-			end;
+			ok;
 		{error, Reason} ->
 			{error, Reason}
 	end.
