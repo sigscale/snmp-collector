@@ -106,7 +106,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					FieldData = snmp_collector_utils:map_names_values(Objects, []),
 					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_to_disk(CommentEventHeader, FaultFields) of
+					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
 						ok;
 					{error, _Reason} ->
@@ -128,7 +128,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 					FieldData = snmp_collector_utils:map_names_values(Objects, []),
 					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_to_disk(CommentEventHeader, FaultFields) of
+					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
 						ok;
 					{error, _Reason} ->
