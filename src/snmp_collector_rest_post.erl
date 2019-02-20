@@ -85,7 +85,9 @@ content_type_available(Headers, Uri, Body, Resource, ModData) ->
 
 %% @hidden
 do_post(Resource, ModData, Body, ["snmp", "v1", "mibs"]) ->
-	do_response(ModData, Resource:post_mib(Body)).
+	do_response(ModData, Resource:post_mib(Body));
+do_post(Resource, ModData, Body, ["ves", "v2", "events"]) ->
+	do_response(ModData, Resource:post_event(Body)).
 
 %% @hidden
 do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
