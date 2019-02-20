@@ -21,12 +21,10 @@
 
 -behaviour(snmpm_user).
 
+%% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
 		handle_pdu/4, handle_trap/3, handle_inform/3,
 		handle_report/3]).
-
-%% export snmpm_user call backs.
--include_lib("../../sigscale-fm/include/fm.hrl").
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -108,23 +106,9 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					FieldData = snmp_collector_utils:map_names_values(Objects, []),
 					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_to_disk(CommentEventHeader, FaultFields) of
+					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
 						ok;
-%						ID = {entity_name(TargetName), get_values(eventName, EventDetails)},
-%						Alarm = #alarm{id = ID,
-%						event_id = get_values(eventId, EventDetails),
-%						source_id = get_values(sourceId, EventDetails),
-%						fault_fields = FaultFields},
-%						case get_values(eventStatus, EventDetails) of
-%						Value when Value == "cleared" ->
-%							fm:delete_alarm(ID);
-%						Value when Value == "uncleared" ->
-%							fm:update_alarm(Alarm, get_values(raisedTime, EventDetails),
-%									FaultFields);
-%						Value when Value == "" ->
-%							ignore
-%						end;
 					{error, _Reason} ->
 						ignore
 				end,
@@ -144,23 +128,9 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 					FieldData = snmp_collector_utils:map_names_values(Objects, []),
 					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_to_disk(CommentEventHeader, FaultFields) of
+					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
 						ok;
-%						ID = {entity_name(TargetName), get_values(eventName, EventDetails)},
-%						Alarm = #alarm{id = ID,
-%						event_id = get_values(eventId, EventDetails),
-%						source_id = get_values(sourceId, EventDetails),
-%						fault_fields = FaultFields},
-%						case get_values(eventStatus, EventDetails) of
-%						Value when Value == "cleared" ->
-%							fm:delete_alarm(ID);
-%						Value when Value == "uncleared" ->
-%							fm:update_alarm(Alarm, get_values(raisedTime, EventDetails),
-%									FaultFields);
-%						Value when Value == "" ->
-%							ignore
-%						end;
 					{error, _Reason} ->
 						ignore
 				end,
