@@ -258,7 +258,6 @@ send_trap_noauth_nopriv(_Config) ->
 			ct:fail(Reason)
 	end.
 
-
 send_trap_md5_nopriv() ->
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
