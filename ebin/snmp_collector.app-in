@@ -40,5 +40,8 @@
 				{default_bin_dir, "/usr/lib/erlang/lib/snmp-5.2.2/priv/mibs/"},
 				{bin_dir, "mibs/bin"},
 				{debug_ports, []},
-				{manager_ports, []}]},
+				{manager_ports, []},
+				{ves_url, ""},
+				{ves_username, "admin"},
+				{ves_password, "admin"}]},
 		{mod, {snmp_collector_app, []}}]}.
