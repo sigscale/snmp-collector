@@ -535,8 +535,7 @@ agent_name(Address) ->
 
 -spec log_events(CommonEventHeader, FaultFields) -> Result
    when
-		CommonEventHeader :: map(),
-		FaultFields :: map(),
+		CommonEventHeader :: map(), FaultFields :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log the event to disk.
@@ -546,17 +545,72 @@ log_events(CommonEventHeader, FaultFields) ->
 	TimeStamp = erlang:system_time(milli_seconds),
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
-	LogEvent = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
-	case disk_log:log(LogName, LogEvent) of
+	Event = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
+	case disk_log:log(LogName, Event) of
 		ok ->
-			ok;
+			case post_event(CommonEventHeader, FaultFields) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					error_logger:info_report(["SNMP Manager POST Failed",
+							{timestamp, TimeStamp},
+							{identifier, Identifer},
+							{node, Node},
+							{reason, Reason}]),
+					{error, Reason}
+			end;
 		{error, Reason} ->
+			error_logger:info_report(["SNMP Manager Event Logging Failed",
+					{timestamp, TimeStamp},
+					{identifier, Identifer},
+					{node, Node},
+					{reason, Reason}]),
 			{error, Reason}
+	end.
+
+-spec post_event(CommonEventHeader, FaultFields) -> Result
+   when
+		CommonEventHeader :: map(),
+		FaultFields :: map(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Log the event to disk.
+post_event(CommonEventHeader, FaultFields) ->
+	{ok, Url} = application:get_env(snmp_collector, ves_url),
+	{ok, UserName } = application:get_env(snmp_collector, ves_username),
+	{ok, Password} = application:get_env(snmp_collector, ves_password),
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
+	Authentication = {"authorization", EncodeKey},
+	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields}},
+	RequestBody = zj:encode(Event),
+	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
+	case httpc:request(post, Request, [],
+		[{sync, false}, {receiver, fun check_response/1}]) of
+			{error, Reason} ->
+				error_logger:info_report(["SNMP Manager POST Failed",
+						{error, Reason}]);
+			_RequestID ->
+				ok
 	end.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
+
+-spec check_response(ReplyInfo) -> any()
+	when
+		ReplyInfo :: tuple().
+%% @doc Check the response of a httpc request.
+check_response({_RequestId, {error, Reason}}) ->
+	error_logger:info_report(["SNMP Manager POST Failed",
+			{error, Reason}]);
+check_response({_RequestId, {{"HTTP/1.1",400,"Bad Request"},_ , _}}) ->
+			error_logger:info_report(["SNMP Manager POST Failed",
+					{error, "400, bad_request"}]);
+check_response({_RequestId, {{"HTTP/1.1",200,"Bad Request"},_ , _}}) ->
+			void.
 
 -spec get_values(Name, EventDetails) -> Value
 	when
