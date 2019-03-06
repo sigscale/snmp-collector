@@ -22,7 +22,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
-		log_events/2, get_values/2, security_params/7, agent_name/1]).
+		log_events/2, get_values/2, security_params/7, agent_name/1, destringify/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -584,7 +584,7 @@ post_event(CommonEventHeader, FaultFields) ->
 	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
 	Authentication = {"authorization", EncodeKey},
 	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields}},
-	RequestBody = zj:encode(Event),
+	RequestBody = destringify(zj:encode(Event)),
 	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
 	case httpc:request(post, Request, [],
 		[{sync, false}, {receiver, fun check_response/1}]) of
@@ -795,6 +795,36 @@ stringify1([$\\ | T], Acc) ->
 stringify1([H | T], Acc) ->
 	stringify1(T, [H | Acc]);
 stringify1([], Acc) ->
+	lists:reverse(Acc).
+
+-spec destringify(String) -> Result
+	when
+		String :: string(),
+		Result :: string().
+%% @doc JSON encode a string.
+%% @private
+destringify(String) ->
+	destringify1(String, []).
+%% @hidden
+destringify1([$\\, $b| T], Acc) ->
+	destringify1(T, [$\b | Acc]);
+destringify1([$\\, $d | T], Acc) ->
+	destringify1(T, [$\d | Acc]);
+destringify1([$\\, $e | T], Acc) ->
+	destringify1(T, [$\e | Acc]);
+destringify1([$\\, $f | T], Acc) ->
+	destringify1(T, [$\f | Acc]);
+destringify1([$\n | T], Acc) ->
+	destringify1(T, Acc);
+destringify1([$\\, $r | T], Acc) ->
+	destringify1(T, [$\r | Acc]);
+destringify1([$\\, $t | T], Acc) ->
+	destringify1(T, [$\t | Acc]);
+destringify1([$\\, $v | T], Acc) ->
+	destringify1(T, [$\v | Acc]);
+destringify1([H | T], Acc) ->
+	destringify1(T, [H | Acc]);
+destringify1([], Acc) ->
 	lists:reverse(Acc).
 
 -spec auth_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
