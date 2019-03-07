@@ -403,13 +403,13 @@ map_names_values([], Acc) ->
 
 -spec fault_fields(FieldData, EventDetails) -> Result
 	when
-		FieldData :: {ok, Acc},
+		FieldData :: AdditionalInformation,
 		EventDetails :: [tuple()],
 		Acc :: list(),
 		Result :: #{}.
 %% @doc Create the Fault Fields map.
-fault_fields({ok, Acc}, EventDetails) ->
-	#{"alarmAdditionalInformation" => lists:reverse(Acc),
+fault_fields(AdditionalInformation, EventDetails) ->
+	#{"alarmAdditionalInformation" => lists:reverse(AdditionalInformation),
 		"alarmCondition" => get_values(alarmCondtion, EventDetails),
 		"eventCategory" => get_values(eventCategory, EventDetails),
 		"eventSeverity" => get_values(eventSeverity, EventDetails),
