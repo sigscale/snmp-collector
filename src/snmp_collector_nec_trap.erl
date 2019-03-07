@@ -103,8 +103,8 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
 					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
 					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					FieldData = snmp_collector_utils:map_names_values(Objects, []),
-					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
+					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
+					FaultFields = snmp_collector_utils:fault_fields(AdditionalInformation, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
@@ -125,8 +125,8 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
 					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
 					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					FieldData = snmp_collector_utils:map_names_values(Objects, []),
-					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
+					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
+					FaultFields = snmp_collector_utils:fault_fields(AdditionalInformation, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->

@@ -104,8 +104,9 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
 					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
 					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					FieldData = snmp_collector_utils:map_names_values(Objects, []),
-					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
+					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
+					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
+					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
@@ -126,8 +127,9 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
 					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
 					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					FieldData = snmp_collector_utils:map_names_values(Objects, []),
-					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
+					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
+					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
+					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
@@ -297,6 +299,20 @@ event_details7(Objects, Acc) ->
 %% @hidden
 event_details8(NewObjects, Acc) ->
 	{ok, NewObjects, Acc}.
+
+-spec additional_information(AddtionalInformation) -> AddtionalInformation
+	when
+		AddtionalInformation :: [map()] | [map()].
+%% @doc Normalize name fields.
+additional_information(AddtionalInformation) ->
+	additional_information1(AddtionalInformation, []).
+%% @hidden
+additional_information1([#{"name" := Name, "value" := Value} | T], Acc) ->
+	[H | T] = string:sub_string(Name, 4),
+	NormalizedName = string:to_lower(H) ++ T,
+	additional_information1(T, [#{"name" => NormalizedName, "value" => Value} | Acc]);
+additional_information1([], Acc) ->
+	{ok, Acc}.
 
 -spec heartbeat(Varbinds) -> Result
 	when

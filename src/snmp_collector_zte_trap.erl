@@ -104,8 +104,9 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
 					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
 					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					FieldData = snmp_collector_utils:map_names_values(Objects, []),
-					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
+					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
+					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
+					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
@@ -126,8 +127,9 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
 					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
 					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					FieldData = snmp_collector_utils:map_names_values(Objects, []),
-					FaultFields = snmp_collector_utils:fault_fields(FieldData, EventDetails),
+					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
+					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
+					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
@@ -297,6 +299,24 @@ event_details8(Objects, Acc) ->
 event_details9(NewObjects, Acc) ->
 	{ok, NewObjects, Acc}.
 
+-spec additional_information(AddtionalInformation) -> AddtionalInformation
+	when
+		AddtionalInformation :: [map()] | [map()].
+%% @doc Normalize name fields.
+additional_information(AddtionalInformation) ->
+	additional_information1(AddtionalInformation, []).
+%% @hidden
+additional_information1([#{"name" := "alarmProbableCause", "value" := Value} | T], Acc) ->
+	additional_information1(T, [#{"name" => "probableCause", "value" => Value} | Acc]);
+additional_information1([#{"name" := "alarmEventType", "value" := Value} | T], Acc) ->
+	additional_information1(T, [#{"name" => "eventType", "value" => Value} | Acc]);
+additional_information1([#{"name" := "alarmMocObjectInstance", "value" := Value} | T], Acc) ->
+	additional_information1(T, [#{"name" => "objectInstance", "value" => Value} | Acc]);
+additional_information1([#{"name" := Name, "value" := Value} | T], Acc) ->
+	additional_information1(T, [#{"name" => Name, "value" => Value} | Acc]);
+additional_information1([], Acc) ->
+	{ok, Acc}.
+
 -spec heartbeat(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
@@ -322,55 +342,11 @@ heartbeat(Varbinds) ->
 %% @doc Removes the index from required names.
 strip_name(Name) ->
 	case string:tokens(Name, ".") of
-		[NName, _Index] ->
-			case keep_index(NName) of 
-				no ->
-					NName;
-				yes ->
-					Name
-			end;
+		[StripedName, _Index] ->
+			StripedName;
+		["alarmIRP", _Index] ->
+			Name;
 		[Name] ->
 			Name
 	end.
-
--spec keep_index(Name) -> Result
-	when
-		Name :: string(),
-		Result :: no | {error, Reason},
-		Reason :: term().
-%% @doc Check if the index should be left in the name.
-keep_index("alarmNeIP") ->
-	no;
-keep_index("alarmIndex") ->
-	no;
-keep_index("alarmManagedObjectInstanceName") ->
-	no;
-keep_index("alarmManagedObjectInstance") ->
-	no;
-keep_index("systemDN") ->
-	no;
-keep_index("alarmSpecificProblem") ->
-	no;
-keep_index("alarmProbableCause") ->
-	no;
-keep_index("alarmNetype") ->
-	no;
-keep_index("alarmPerceivedSeverity") ->
-	no;
-keep_index("alarmEventType") ->
-	no;
-keep_index("snmpTrapOID") ->
-	no;
-keep_index("alarmCode") ->
-	no;
-keep_index("alarmCodeName") ->
-	no;
-keep_index("alarmId") ->
-	no;
-keep_index("alarmAdditionalText") ->
-	no;
-keep_index("alarmEventTime") ->
-	no;
-keep_index(_) ->
-	yes.
 
