@@ -401,11 +401,10 @@ map_names_values([{Name, Value} | T], Acc) ->
 map_names_values([], Acc) ->
 	{ok, Acc}.
 
--spec fault_fields(FieldData, EventDetails) -> Result
+-spec fault_fields(AdditionalInformation, EventDetails) -> Result
 	when
-		FieldData :: AdditionalInformation,
+		AdditionalInformation :: [map()],
 		EventDetails :: [tuple()],
-		Acc :: list(),
 		Result :: #{}.
 %% @doc Create the Fault Fields map.
 fault_fields(AdditionalInformation, EventDetails) ->
