@@ -305,12 +305,67 @@ event_details9(NewObjects, Acc) ->
 additional_information(AddtionalInformation) ->
 	additional_information1(AddtionalInformation, []).
 %% @hidden
-additional_information1([#{"name" := Name, "value" := Value} | T], Acc) ->
-	[H | T] = string:sub_string(Name, 15),
-	NormalizedName = string:to_lower(H) ++ T,
-	additional_information1(T, [#{"name" => NormalizedName, "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmAdditionalInfo",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "additionalInfo", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmServiceAffectFlag",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "serviceAffectFlag", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmClearType",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "clearType", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmClearCategory",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "clearCategory", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmObjectInstanceType",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "objectInstanceType", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmClearOperator",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "clearOperator", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmProposedrepairactions",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "proposedRepairactions", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmProbablecause",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "probablecause", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmExtendInfo",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "extendInfo", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmOperator",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmOperator", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmRestoreTime",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "restoreTime", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmAckTime",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "ackTime", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmConfirm",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmConfirm", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmRestore",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmRestore", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmType",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmType", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmID",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmID", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmDevCsn",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmDevCsn", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmProductID",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmProductID", "value" => Value} | Acc]);
+additional_information1([#{"name" := "iMAPNorthboundAlarmOccurTime",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "alarmOccurTime", "value" => Value} | Acc]);
+additional_information1([_H | T], Acc) ->
+   additional_information1(T, Acc);
 additional_information1([], Acc) ->
-	{ok, Acc}.
+   Acc.
 
 -spec heartbeat(Varbinds) -> Result
 	when
