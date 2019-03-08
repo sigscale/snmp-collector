@@ -313,12 +313,55 @@ event_details10(NewObjects, Acc) ->
 additional_information(AddtionalInformation) ->
 	additional_information1(AddtionalInformation, []).
 %% @hidden
-additional_information1([#{"name" := Name, "value" := Value} | T], Acc) ->
-	[H | T] = string:sub_string(Name, 15),
-	NormalizedName = string:to_lower(H) ++ T,
-	additional_information1(T, [#{"name" => NormalizedName, "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundNEType",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "nEType", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundObjectInstance",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "objectInstance", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundEventType",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "eventType", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundProbableCause",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "probableCause", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundAdditionalInfo",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "additionalInfo", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundFaultFunction",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "faultFunction", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundDeviceIP",
+		"value" := Value} | T], Acc) when is_integer(Value) ->
+	additional_information1(T, [#{"name" => "deviceIP", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundProbableRepair",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "probableRepair", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundResourceIDs",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "resourceIDs", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundReasonID",
+		"value" := Value} | T], Acc) when is_integer(Value) ->
+	additional_information1(T, [#{"name" => "reasonID", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundFaultID",
+		"value" := Value} | T], Acc) when is_integer(Value) ->
+	additional_information1(T, [#{"name" => "faultID", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundTrailName",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "trailName", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundRootAlarm",
+		"value" := Value} | T], Acc) when is_integer(Value) ->
+	additional_information1(T, [#{"name" => "rootAlarm", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundGroupID",
+		"value" := Value} | T], Acc) when is_integer(Value) ->
+	additional_information1(T, [#{"name" => "groupID", "value" => Value} | Acc]);
+additional_information1([#{"name" := "hwNmNorthboundMaintainStatus",
+		"value" := Value} | T], Acc) when is_integer(Value) ->
+	additional_information1(T, [#{"name" => "maintainStatus", "value" => Value} | Acc]);
+additional_information1([_H | T], Acc) ->
+   additional_information1(T, Acc);
 additional_information1([], Acc) ->
-	{ok, Acc}.
+   Acc.
 
 -spec heartbeat(Varbinds) -> Result
 	when
