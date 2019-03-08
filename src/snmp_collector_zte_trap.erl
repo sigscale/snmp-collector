@@ -315,7 +315,7 @@ additional_information1([#{"name" := "alarmMocObjectInstance", "value" := Value}
 additional_information1([#{"name" := Name, "value" := Value} | T], Acc) ->
 	additional_information1(T, [#{"name" => Name, "value" => Value} | Acc]);
 additional_information1([], Acc) ->
-	{ok, Acc}.
+	Acc.
 
 -spec heartbeat(Varbinds) -> Result
 	when
