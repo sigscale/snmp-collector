@@ -57,7 +57,7 @@
 %% @private
 %%
 init([Port]) ->
-	case gen_udp:open(Port, [binary, {active, once}]) of
+	case gen_udp:open(Port, [{active, once}]) of
 	{ok, Socket} ->
 		{ok, #state{socket = Socket}};
 	{error, Reason} ->
