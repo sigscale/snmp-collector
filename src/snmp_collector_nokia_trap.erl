@@ -303,16 +303,34 @@ event_details8(NewObjects, Acc) ->
 -spec additional_information(AddtionalInformation) -> AddtionalInformation
 	when
 		AddtionalInformation :: [map()] | [map()].
-%% @doc Normalize name fields.
+%% @doc CODEC to normalize name fields.
 additional_information(AddtionalInformation) ->
 	additional_information1(AddtionalInformation, []).
 %% @hidden
+additional_information1([#{"name" := "nbiSequenceId",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "sequenceId", "value" => Value} | Acc]);
+additional_information1([#{"name" := "nbiEventTime",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "eventTime", "value" => Value} | Acc]);
+additional_information1([#{"name" := "nbiProbableCause",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "probableCause", "value" => Value} | Acc]);
+additional_information1([#{"name" := "nbiProposedRepairAction",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "proposedRepairactions", "value" => Value} | Acc]);
+additional_information1([#{"name" := "nbiAdditionalText",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "additionalInformation", "value" => Value} | Acc]);
+additional_information1([#{"name" := "nbiOptionalInformation",
+		"value" := Value} | T], Acc) when is_list(Value) ->
+	additional_information1(T, [#{"name" => "optionalInformation", "value" => Value} | Acc]);
 additional_information1([#{"name" := Name, "value" := Value} | T], Acc) ->
-	[H | T] = string:sub_string(Name, 4),
-	NormalizedName = string:to_lower(H) ++ T,
-	additional_information1(T, [#{"name" => NormalizedName, "value" => Value} | Acc]);
+	additional_information1(T, [#{"name" => Name, "value" => Value} | Acc]);
+additional_information1([_H | T], Acc) ->
+   additional_information1(T, Acc);
 additional_information1([], Acc) ->
-	{ok, Acc}.
+   Acc.
 
 -spec heartbeat(Varbinds) -> Result
 	when
