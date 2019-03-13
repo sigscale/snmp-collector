@@ -150,13 +150,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec start_fsm(Packet, Socket, Address, Port) -> Result
-	when
-		Packet :: binary(),
-		Socket :: inet:socket(),
-		Address :: inet:ip_address(),
-		Port :: pos_integer(),
-		Result :: ok.
-%% @doc Start a new {@link radius_fsm. radius_fsm} transaction state
-%%%   handler and forward the request to it.
-%% @hidden
