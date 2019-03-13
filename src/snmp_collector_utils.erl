@@ -541,23 +541,14 @@ agent_name(Address) ->
 %% @private
 log_events(CommonEventHeader, FaultFields) ->
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
+	{ok, Url} = application:get_env(snmp_collector, ves_url),
 	TimeStamp = erlang:system_time(milli_seconds),
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
 	Event = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
 	case disk_log:log(LogName, Event) of
 		ok ->
-			case post_event(CommonEventHeader, FaultFields) of
-				ok ->
-					ok;
-				{error, Reason} ->
-					error_logger:info_report(["SNMP Manager POST Failed",
-							{timestamp, TimeStamp},
-							{identifier, Identifer},
-							{node, Node},
-							{reason, Reason}]),
-					{error, Reason}
-			end;
+			post_event(CommonEventHeader, FaultFields, Url);
 		{error, Reason} ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
 					{timestamp, TimeStamp},
@@ -567,15 +558,16 @@ log_events(CommonEventHeader, FaultFields) ->
 			{error, Reason}
 	end.
 
--spec post_event(CommonEventHeader, FaultFields) -> Result
+-spec post_event(CommonEventHeader, FaultFields, Url) -> Result
    when
 		CommonEventHeader :: map(),
 		FaultFields :: map(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
+		Url :: inet:ip_address() | [],
+		Result :: ok.
 %% @doc Log the event to disk.
-post_event(CommonEventHeader, FaultFields) ->
-	{ok, Url} = application:get_env(snmp_collector, ves_url),
+post_event(_CommonEventHeader, _FaultFields, []) ->
+	ok;
+post_event(CommonEventHeader, FaultFields, Url) ->
 	{ok, UserName } = application:get_env(snmp_collector, ves_username),
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
 	ContentType = "application/json",
