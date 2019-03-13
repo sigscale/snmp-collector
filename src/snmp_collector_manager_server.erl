@@ -57,7 +57,7 @@
 %% @private
 %%
 init([Port]) ->
-	case gen_udp:open(Port, [{active, once}]) of
+	case gen_udp:open(Port, [binary, {active, once}]) of
 	{ok, Socket} ->
 		{ok, #state{socket = Socket}};
 	{error, Reason} ->
@@ -113,12 +113,12 @@ handle_cast(stop, State) ->
 %%
 handle_info({udp, Socket, Address, Port, Packet} = _Info,
 		#state{} = State) ->
-	case catch snmp_pdus:dec_message(Packet) of
-		#message{} ->
-			start_fsm(Packet, Socket, Address, Port),
+	case supervisor:start_child(snmp_collector_manager_fsm_sup,
+			[[Socket, Address, Port, Packet], []] ) of
+		{ok, _Fsm} ->
 			inet:setopts(Socket, [{active, once}]),
 			{noreply, State};
-		{'EXIT', Reason} ->
+		{error, Reason} ->
 			{stop, Reason, State}
 	end.
 
@@ -160,15 +160,3 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc Start a new {@link radius_fsm. radius_fsm} transaction state
 %%%   handler and forward the request to it.
 %% @hidden
-start_fsm(Packet, Socket, Address, Port) ->
-	case supervisor:start_child(snmp_collector_manager_fsm_sup,
-			[[Socket, Address, Port, Packet], []] ) of
-		{ok, _Fsm} ->
-			ok;
-		{error, Error} ->
-			error_logger:error_report(["Error starting trap handler",
-					{error, Error},
-					{socket, Socket},
-					{address, Address},
-					{port, Port}])
-	end.
