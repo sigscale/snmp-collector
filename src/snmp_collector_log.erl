@@ -19,8 +19,11 @@
 -module(snmp_collector_log).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
-%% export snmpm_user call backs.
+%% export the snmp_collector_log_public API.
 -export([fault_open/0, fault_close/0, fault_query/6]).
+
+%% exported the private function
+-export([fault_query/3]).
 
 -include("snmp_collector_log.hrl").
 
