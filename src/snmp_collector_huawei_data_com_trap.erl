@@ -107,7 +107,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
 						ok ->
-							ingore;
+							ignore;
 						{error, _Reason} ->
 							ignore
 					end

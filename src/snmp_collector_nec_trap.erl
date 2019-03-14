@@ -108,7 +108,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
-						ok;
+						ignore;
 					{error, _Reason} ->
 						ignore
 				end,
@@ -130,7 +130,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
 					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
 					ok ->
-						ok;
+						ignore;
 					{error, _Reason} ->
 						ignore
 				end,
