@@ -22,6 +22,7 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector.beam \
 			snmp_collector_utils.beam \
 			snmp_collector_log.beam \
+			snmp_collector_snmp_usm.beam \
 			snmp_collector_mib.beam \
 			snmp_collector_rest.beam \
 			snmp_collector_snmpm_user_default.beam \
