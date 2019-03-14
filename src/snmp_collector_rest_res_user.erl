@@ -128,7 +128,7 @@ get_user(Id, Query) ->
 	end.
 %% @hidden
 get_user(Id, [] = _Query, _Filters) ->
-	case fm:get_user(Id) of
+	case snmp_collector:get_user(Id) of
 		{ok, #httpd_user{user_data = UserData} = UserRec} ->
 			UserMap = user(UserRec),
 			Chars = maps:get("characteristic", UserMap),
@@ -172,7 +172,7 @@ post_user(RequestBody) ->
 			false ->
 				"en"
 		end,
-		case fm:add_user(Username, Password, Locale) of
+		case snmp_collector:add_user(Username, Password, Locale) of
 			{ok, LastModified} ->
 				Body = zj:encode(user(User)),
 				Location = "/partyManagement/v1/individual/" ++ Username,
@@ -191,10 +191,10 @@ post_user(RequestBody) ->
 		Id :: string(),
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()} .
-%% @doc Respond to `DELETE /fm/v1/subscriber/{id}' request and deletes
+%% @doc Respond to `DELETE /snmp/v1/subscriber/{id}' request and deletes
 %% a `subscriber' resource. If the deletion is succeeded return true.
 delete_user(Id) ->
-	case fm:delete_user(Id) of
+	case snmp_collector:delete_user(Id) of
 		ok ->
 			{ok, [], []};
 		{error, _Reason} ->
