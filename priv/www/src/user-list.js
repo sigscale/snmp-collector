@@ -10,7 +10,7 @@
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
-import './shared-styles.js';
+import './style-element.js';
 
 class userList extends PolymerElement {
 	static get template() {
@@ -96,9 +96,9 @@ class userList extends PolymerElement {
 				}
 				callback(vaadinItems);
 			}).catch(function(error) {
-				var fm = document.body.querySelector('snmp-collector');
-				fm.shadowRoot.getElementById('restError').text = error.message;
-				fm.shadowRoot.getElementById('restError').open();
+				var snmp = document.body.querySelector('snmp-collector');
+				snmp.shadowRoot.getElementById('restError').text = error.message;
+				snmp.shadowRoot.getElementById('restError').open();
 				var vaadinItems = new Array();
 				grid.size = 0;
 				console.log('Looks like there was a problem: \n', error);
