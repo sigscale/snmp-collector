@@ -22,7 +22,8 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
 		arrange_list/2, map_names_values/2, log_events/2, security_params/7,
-		agent_name/1, destringify/1, oids_to_names/2, generate_maps/2]).
+		agent_name/1, destringify/1, oids_to_names/2, generate_maps/2,
+		common_event_header/2, fault_fields/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -358,6 +359,7 @@ common_event_header(T, TargetName, Acc) ->
 			"eventId" => event_id(),
 			"lastEpochMicrosec" => timestamp(),
 			"priority" => "Normal",
+			"reportingEntityName" => TargetName,
 			"reportingEntityID" => stringify(entity_id(TargetName)),
 			"sequence" => 0,
 			"version" => 1},
@@ -383,7 +385,8 @@ fault_fields([{"eventSeverity", Value} | T], Acc) ->
 fault_fields([{"eventSourceType", Value} | T], Acc) ->
 	fault_fields(T, maps:put("eventSourceType", Value, Acc));
 fault_fields([{"specificProblem", Value} | T], Acc) ->
-	maps:put("specificProblem", Value, Acc),
+	fault_fields(T, maps:put("specificProblem", Value, Acc));
+fault_fields(T, Acc) ->
 	AdditionalInfo = map_names_values(T, []),
 	DefaultMap = #{"alarmAdditionalInformation" => AdditionalInfo,
 			"faultFieldsVersion" => 1},
@@ -403,19 +406,20 @@ map_names_values([{Name, Value} | T], Acc) ->
 map_names_values([], Acc) ->
 	lists:reverse(Acc).
 
--spec security_params(EngineID, Address, SecName, AuthParams, Packet, AuthPass, PrivPass) -> Result
+-spec security_params(EngineID, Address, SecName,
+		AuthParams, Packet, AuthPass, PrivPass) -> Result
 	when
-	EngineID :: string(),
-	Address :: inet:ip_address(),
-	SecName :: string(),
-	AuthParams :: list(),
-	Packet :: [byte()],
-	AuthPass :: string(),
-	PrivPass :: string(),
-	Result :: {ok, AuthProtocol, PrivProtocol } | {error, Reason},
-	AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
-	PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
-	Reason :: not_found | authentication_failed | term().
+		EngineID :: string(),
+		Address :: inet:ip_address(),
+		SecName :: string(),
+		AuthParams :: list(),
+		Packet :: [byte()],
+		AuthPass :: string(),
+		PrivPass :: string(),
+		Result :: {ok, AuthProtocol, PrivProtocol } | {error, Reason},
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+		Reason :: not_found | authentication_failed | term().
 %% @doc Looks up the Authentication Protocol and the Privacy Protocol to complete authentication.
 %% @private
 security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPass)
