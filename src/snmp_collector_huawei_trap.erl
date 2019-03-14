@@ -102,19 +102,15 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
-					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					{ok, AddtionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
-					NormalizedAdditonalInfo = additional_information(AddtionalInformation),
-					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditonalInfo, EventDetails),
-					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
-					ok ->
-						ok;
-					{error, _Reason} ->
-						ignore
-				end,
-				ignore
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					AlarmDetails = event(NamesValues),
+					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
+						ok ->
+							ok;
+						{error, _Reason} ->
+							ignore
+					end
 			end
 	end;
 handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
@@ -125,19 +121,15 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
-					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					{ok, AddtionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
-					NormalizedAdditonalInfo = additional_information(AddtionalInformation),
-					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditonalInfo, EventDetails),
-					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
-					ok ->
-						ok;
-					{error, _Reason} ->
-						ignore
-				end,
-				ignore
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					AlarmDetails = event(NamesValues),
+					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
+						ok ->
+							ok;
+						{error, _Reason} ->
+							ignore
+					end
 			end
 	end.
 
@@ -169,203 +161,118 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec oid_to_name(OIDsValues, Acc) -> Result
+-spec event(NameValuePair) -> NameValuePair
 	when
-		OIDsValues :: [{OID, Value}],
-		Acc :: list(),
-		OID :: list(),
-		Value :: string() | integer(),
-		Result :: {ok, [{Name, Value}]},
-		Name :: string().
-%% @doc Convert OIDs to valid names.
-oid_to_name([{OID, Value} | T], Acc) ->
-	Name = snmp_collector_utils:oid_to_name(OID),
-	oid_to_name(T, [{Name, Value} | Acc]);
-oid_to_name([], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	{ok, NewAcc}.
-
--spec event_details(NameValuePair, Acc) -> Result
-	when
-		NameValuePair :: [{Name, Value}],
-		Name :: string(),
-		Value :: term(),
-		Result :: {ok, NewObjects, Acc},
-		NewObjects :: [{Name, Value}],
-		Acc :: [{Name, Value}].
-%% @doc Turn the list of names and values into a map format.
+		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+%% @doc CODEC for event.
+event(NameValuePair) ->
+	event(NameValuePair, []).
 %% @hidden
-event_details(NameValuePair, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmNEDevID", 1,
-			NameValuePair) of
-		{value, {_, Value}, Objects} ->
-			event_details1(Objects, [ {sourceId, Value} | Acc]);
-		false ->
-			event_details1(NameValuePair, Acc)
-	end.
-%% @hidden
-event_details1(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmMOName", 1,
-			Objects) of
-		{value, {_, Value}, Objects1} ->
-			event_details2(Objects1, [ {sourceName, Value} | Acc]);
-		false ->
-			event_details2(Objects, Acc)
-	end.
-%% @hidden
-event_details2(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmCSN", 1,
-			Objects) of
-		{value, {_, Value}, Objects2} ->
-			event_details3(Objects2, [ {eventName, Value} | Acc]);
-		false ->
-			event_details3(Objects, Acc)
-	end.
-%% @hidden
-event_details3(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmSpecificproblems", 1,
-			Objects) of
-		{value, {_, Value}, Objects3} ->
-			event_details4(Objects3, [ {specificProblem, Value} | Acc]);
-		false ->
-			event_details4(Objects, Acc)
-	end.
-%% @hidden
-event_details4(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmNEType", 1,
-			Objects) of
-		{value, {_, Value}, Objects4} ->
-			event_details5(Objects4, [ {eventSourceType, Value} | Acc]);
-		false ->
-			event_details5(Objects, Acc)
-	end.
-%% @hidden
-event_details5(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmLevel", 1,
-			Objects) of
-		{value, {_, Value}, Objects5} when Value == "1" ->
-			event_details6(Objects5, [ {eventSeverity, "CRITICAL"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "2" ->
-			event_details6(Objects5, [ {eventSeverity, "MAJOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "3" ->
-			event_details6(Objects5, [ {eventSeverity, "MINOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "4" ->
-			event_details6(Objects5, [ {eventSeverity, "WARNING"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "6" ->
-			event_details6(Objects5, Acc);
-		false ->
-			event_details6(Objects, Acc)
-	end.
-%% @hidden
-event_details6(Objects, Acc) ->
-	case lists:keytake("iMAPNorthboundAlarmCategory", 1,
-			Objects) of
-		{value, {_, Value}, Objects6} when Value == "1" ->
-			event_details7(Objects6, [ {alarmCondtion, "fault"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "2" ->
-			event_details7(Objects6, [ {alarmCondtion, "clear"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "3" ->
-			event_details7(Objects6, [ {alarmCondtion, "event"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "4" ->
-			event_details7(Objects6, [ {alarmCondtion, "acknowledge"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "5" ->
-			event_details7(Objects6, [ {alarmCondtion, unacknowledge} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "9" ->
-			event_details7(Objects6, [ {alarmCondtion, "changed"} | Acc]);
-		false ->
-			event_details7(Objects, Acc)
-	end.
-event_details7(Objects, Acc) ->
-	case lists:keyfind("iMAPNorthboundAlarmRestore", 1,
-			Objects) of
-		{_, Value} when Value == "1" ->
-			event_details8(Objects, [ {eventStatus, "cleared"} | Acc]);
-		{_, Value} when Value == "2" ->
-			event_details8(Objects, [ {eventStatus, "uncleared"} | Acc]);
-		false ->
-			event_details8(Objects, Acc)
-	end.
-%% @hidden
-event_details8(Objects, Acc) ->
-	case lists:keyfind("iMAPNorthboundAlarmOccurTime", 1,
-			Objects) of
-		{_, Value} ->
-			event_details9(Objects, [ {raisedTime, Value} | Acc]);
-		false ->
-			event_details9(Objects, Acc)
-	end.
-%% @hidden
-event_details9(NewObjects, Acc) ->
-	{ok, NewObjects, Acc}.
-
--spec additional_information(AddtionalInformation) -> AddtionalInformation
-	when
-		AddtionalInformation :: [map()] | [map()].
-%% @doc CODEC to normalize name fields.
-additional_information(AddtionalInformation) ->
-	additional_information1(AddtionalInformation, []).
-%% @hidden
-additional_information1([#{"name" := "iMAPNorthboundAlarmAdditionalInfo",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "additionalInfo", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmServiceAffectFlag",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "serviceAffectFlag", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmClearType",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "clearType", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmClearCategory",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "clearCategory", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmObjectInstanceType",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "objectInstanceType", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmClearOperator",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "clearOperator", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmProposedrepairactions",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "proposedRepairactions", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmProbablecause",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "probablecause", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmExtendInfo",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "extendInfo", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmOperator",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmOperator", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmRestoreTime",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "restoreTime", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmAckTime",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "ackTime", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmConfirm",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmConfirm", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmRestore",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmRestore", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmType",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmType", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmID",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmID", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmDevCsn",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmDevCsn", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmProductID",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmProductID", "value" => Value} | Acc]);
-additional_information1([#{"name" := "iMAPNorthboundAlarmOccurTime",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "alarmOccurTime", "value" => Value} | Acc]);
-additional_information1([_H | T], Acc) ->
-   additional_information1(T, Acc);
-additional_information1([], Acc) ->
-   Acc.
+event([{"iMAPNorthboundAlarmNEDevID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceId", Value} | Acc]);
+event([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceName", Value} | Acc]);
+event([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventName", Value} | Acc]);
+event([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"specificProblem", Value} | Acc]);
+event([{"iMAPNorthboundAlarmNEType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventSourceType", Value} | Acc]);
+event([{"iMAPNorthboundAlarmLevel", "1"} | T], Acc) ->
+	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
+event([{"iMAPNorthboundAlarmLevel", "2"} | T], Acc) ->
+	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
+event([{"iMAPNorthboundAlarmLevel", "3"} | T], Acc) ->
+	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+event([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
+	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
+	event(T, [{"alarmCondition", "fault"} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
+	event(T, [{"alarmCondition", "clear"} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "3"} | T], Acc) ->
+	event(T, [{"alarmCondition", "event"} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "4"} | T], Acc) ->
+	event(T, [{"alarmCondition", "acknowledged"} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "5"} | T], Acc) ->
+	event(T, [{"alarmCondition", "unacknowledged"} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
+	event(T, [{"alarmCondition", "changed"} | Acc]);
+event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmRestore", Value} | Acc]);
+event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmOccurTime", Value} | Acc]);
+event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"raisedTime", Value} | Acc]);
+event([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"additionalInfo", Value} | Acc]);
+event([{"iMAPNorthboundAlarmServiceAffectFlag", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"serviceAffectFlag", Value} | Acc]);
+event([{"iMAPNorthboundAlarmClearType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"clearType", Value} | Acc]);
+event([{"iMAPNorthboundAlarmClearCategory", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"clearCategory", Value} | Acc]);
+event([{"iMAPNorthboundAlarmObjectInstanceType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"objectInstanceType", Value} | Acc]);
+event([{"iMAPNorthboundAlarmClearOperator", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"clearOperator", Value} | Acc]);
+event([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"proposedRepairactions", Value} | Acc]);
+event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"probableCause", Value} | Acc]);
+event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"extendInfo", Value} | Acc]);
+event([{"iMAPNorthboundAlarmOperator", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmOperator", Value} | Acc]);
+event([{"iMAPNorthboundAlarmRestoreTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"restoreTime", Value} | Acc]);
+event([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"ackTime", Value} | Acc]);
+event([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmConfirm", Value} | Acc]);
+event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmRestore", Value} | Acc]);
+event([{"iMAPNorthboundAlarmType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmType", Value} | Acc]);
+event([{"iMAPNorthboundAlarmID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmID", Value} | Acc]);
+event([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmDevCsn", Value} | Acc]);
+event([{"iMAPNorthboundAlarmProductID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmProductID", Value} | Acc]);
+event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmOccurTime", Value} | Acc]);
+event([_H | T], Acc) ->
+	event(T, Acc);
+event([], Acc) ->
+	Acc.
 
 -spec heartbeat(Varbinds) -> Result
 	when

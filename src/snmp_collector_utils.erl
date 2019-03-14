@@ -21,8 +21,8 @@
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
-		arrange_list/2, map_names_values/2, fault_fields/2, event_header/2,
-		log_events/2, get_values/2, security_params/7, agent_name/1, destringify/1]).
+		arrange_list/2, map_names_values/2, log_events/2, security_params/7,
+		agent_name/1, destringify/1, oids_to_names/2, generate_maps/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -319,73 +319,75 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 	generate_identity(Rest, Charset, NumChars, NewAcc);
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
--spec create_pairs(Varbinds) -> Result
-	when
-		Varbinds :: [Varbind],
-		Varbind :: {varbind, OID, Type, Value, Seqnum},
-		OID :: snmp:oid(),
-		Type :: 'OCTET STRING' | 'OBJECT IDENTIFIER' | 'INTEGER',
-		Value :: string() | atom() | integer(),
-		Seqnum :: integer(),
-		Result :: {ok, Pairs} | {error, no_sysuptime},
-		Pairs :: list().
-%% @doc Create a list of the OIDS ,Types and Values.
-%% @private
-create_pairs(Varbinds) ->
-	case snmpm:name_to_oid(sysUpTime) of
-		{ok, SysUpTime} ->
-			NewSysUpTime = lists:flatten(SysUpTime ++ [0]),
-				case lists:keytake(NewSysUpTime, 2, Varbinds) of
-					{value, {varbind, _, 'TimeTicks', _, _}, Varbind1} ->
-						Pairs = [{OID, Type, Value} || {varbind, OID, Type, Value, _} <- Varbind1],
-						{ok, Pairs};
-					false ->
-						{error, no_sysuptime}
-				end;
-		{error, _Reason} ->
-			Pairs = [{OID, Type, Value} || {varbind ,OID, Type, Value, _} <- Varbinds],
-			{ok, Pairs}
-	end.
 
--spec arrange_list(Pairs, Acc) -> Result
+-spec generate_maps(TargetName, AlarmDetails) -> Result
 	when
-		Pairs :: [tuple()],
-		Result :: {ok ,NewAcc},
-		NewAcc :: [tuple()],
-		Acc :: list().
-%% @doc Filter and map the OIDs to names and appropriate values.
-%% @private
-arrange_list([{OID, Type, Value} | T], Acc)
-		when Type == 'OCTET STRING', is_list(Value) ->
-	case unicode:characters_to_list(Value, utf8) of
-		Value2 when is_list(Value2) ->
-			arrange_list(T, [{OID, stringify(Value2)} | Acc]);
-		{incomplete, Good, Bad} ->
-			error_logger:info_report(["Error parsing 'OCTET STRING'",
-					{error, incomplete},
-					{oid, OID},
-					{good, Good},
-					{bad, Bad}]),
-			arrange_list(T, Acc);
-		{error, Good, Bad} ->
-			error_logger:info_report(["Error parsing 'OCTET STRING'",
-					{oid, OID},
-					{good, Good},
-					{bad, Bad}]),
-			arrange_list(T, Acc)
-	end;
-arrange_list([{OID, Type, Value} | T], Acc)
-		when Type == 'OBJECT IDENTIFIER', is_list(Value) ->
-	arrange_list(T, [{OID, oid_to_name(Value)} | Acc]);
-arrange_list([{OID, Type, Value} | T], Acc)
-		when Type =='INTEGER', is_integer(Value) ->
-	Value2 = integer_to_list(Value),
-	arrange_list(T, [{OID, Value2} | Acc]);
-arrange_list([_ | T], Acc) ->
-	arrange_list(T, Acc);
-arrange_list([], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	{ok ,NewAcc}.
+		TargetName :: list(),
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		Result :: {CommonEventHeader, FaultFields},
+		CommonEventHeader :: map(),
+		FaultFields :: map().
+%% @doc Generate the Common event header and Fault Fields maps.
+generate_maps(TargetName, AlarmDetails) ->
+	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails),
+	{CommonEventHeader, fault_fields(Remainder)}.
+
+-spec common_event_header(TargetName, AlarmDetails) -> Result
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		TargetName :: string(),
+		Value :: list(),
+		Result :: {map(), AlarmDetails}.
+%% @doc Create the VES common event header map.
+common_event_header(TargetName, AlarmDetails) ->
+	common_event_header(AlarmDetails, TargetName, #{}).
+%% @hidden
+common_event_header([{"eventName", Value}| T], TargetName, Acc) ->
+	common_event_header(T, TargetName, maps:put("eventName", Value, Acc));
+common_event_header([{"sourceId", Value}| T], TargetName, Acc) ->
+	common_event_header(T, TargetName, maps:put("sourceId", Value, Acc));
+common_event_header([{"sourceName", Value}| T], TargetName, Acc) ->
+	common_event_header(T, TargetName, maps:put("sourceName", Value, Acc));
+common_event_header([{"raisedTime", Value}| T], TargetName, Acc) ->
+	common_event_header(T, TargetName, maps:put("startEpochMicrosec", iso8601(Value), Acc));
+common_event_header(T, TargetName, Acc) ->
+	DefaultMap = #{"domain" => "fault",
+			"eventId" => event_id(),
+			"lastEpochMicrosec" => timestamp(),
+			"priority" => "Normal",
+			"reportingEntityID" => stringify(entity_id(TargetName)),
+			"sequence" => 0,
+			"version" => 1},
+	FinalMap = maps:merge(DefaultMap, Acc),
+	{FinalMap, T}.
+
+-spec fault_fields(AlarmDetails) -> Result
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		Result :: map().
+%% @doc Create the fault fields map.
+fault_fields(AlarmDetails) ->
+	fault_fields(AlarmDetails, #{}).
+%% @hidden
+fault_fields([{"alarmCondition", Value} | T], Acc) ->
+	fault_fields(T, maps:put("alarmCondition", Value, Acc));
+fault_fields([{"eventCategory", Value} | T], Acc) ->
+	fault_fields(T, maps:put("eventCategory", Value, Acc));
+fault_fields([{"eventSeverity", Value} | T], Acc) ->
+	fault_fields(T, maps:put("eventSeverity", Value, Acc));
+fault_fields([{"eventSourceType", Value} | T], Acc) ->
+	fault_fields(T, maps:put("eventSourceType", Value, Acc));
+fault_fields([{"specificProblem", Value} | T], Acc) ->
+	maps:put("specificProblem", Value, Acc),
+	AdditionalInfo = map_names_values(T, []),
+	DefaultMap = #{"alarmAdditionalInformation" => AdditionalInfo,
+			"faultFieldsVersion" => 1},
+	maps:merge(DefaultMap, Acc).
 
 -spec map_names_values(Objects, Acc) -> Result
 	when
@@ -393,48 +395,13 @@ arrange_list([], Acc) ->
 		Acc :: list(),
 		Name :: string(),
 		Value :: term(),
-		Result :: {ok, Acc}.
+		Result :: [map()].
 %% @doc Turn the list of names and values into a map format.
 %% @private
 map_names_values([{Name, Value} | T], Acc) ->
 	map_names_values(T, [#{"name" => Name, "value" => Value} | Acc]);
 map_names_values([], Acc) ->
-	{ok, Acc}.
-
--spec fault_fields(AdditionalInformation, EventDetails) -> Result
-	when
-		AdditionalInformation :: [map()],
-		EventDetails :: [tuple()],
-		Result :: #{}.
-%% @doc Create the Fault Fields map.
-fault_fields(AdditionalInformation, EventDetails) ->
-	#{"alarmAdditionalInformation" => lists:reverse(AdditionalInformation),
-		"alarmCondition" => get_values(alarmCondtion, EventDetails),
-		"eventCategory" => get_values(eventCategory, EventDetails),
-		"eventSeverity" => get_values(eventSeverity, EventDetails),
-		"eventSourceType" => get_values(eventSourceType, EventDetails),
-		"faultFieldsVersion" => 1,
-		"specificProblem"=> get_values(specificProblem, EventDetails)}.
-
--spec event_header(TargetName, EventDetails) -> EventHeader
-	when
-		TargetName :: string(),
-		EventDetails :: [tuple()],
-		EventHeader :: map().
-%% @doc Create VES common event header.
-event_header(TargetName, EventDetails) ->
-	#{"domain" => "fault",
-			"eventId" => event_id(),
-			"eventName" => get_values(eventName, EventDetails),
-			"lastEpochMicrosec" => timestamp(),
-			"priority" => "Normal",
-			"reportingEntityID" => stringify(entity_id(TargetName)),
-			"reportingEntityName" => entity_name(TargetName),
-			"sequence" => 0,
-			"sourceId" => get_values(sourceId, EventDetails),
-			"sourceName" => get_values(sourceName, EventDetails),
-			"startEpochMicrosec" => iso8601(get_values(raisedTime, EventDetails)),
-			"version" => 1}.
+	lists:reverse(Acc).
 
 -spec security_params(EngineID, Address, SecName, AuthParams, Packet, AuthPass, PrivPass) -> Result
 	when
@@ -586,9 +553,94 @@ post_event(CommonEventHeader, FaultFields, Url) ->
 				ok
 	end.
 
+-spec create_pairs(Varbinds) -> Result
+	when
+		Varbinds :: [Varbind],
+		Varbind :: {varbind, OID, Type, Value, Seqnum},
+		OID :: snmp:oid(),
+		Type :: 'OCTET STRING' | 'OBJECT IDENTIFIER' | 'INTEGER',
+		Value :: string() | atom() | integer(),
+		Seqnum :: integer(),
+		Result :: {ok, Pairs} | {error, no_sysuptime},
+		Pairs :: list().
+%% @doc Create a list of the OIDS ,Types and Values.
+%% @private
+create_pairs(Varbinds) ->
+	case snmpm:name_to_oid(sysUpTime) of
+		{ok, SysUpTime} ->
+			NewSysUpTime = lists:flatten(SysUpTime ++ [0]),
+				case lists:keytake(NewSysUpTime, 2, Varbinds) of
+					{value, {varbind, _, 'TimeTicks', _, _}, Varbind1} ->
+						Pairs = [{OID, Type, Value} || {varbind, OID, Type, Value, _} <- Varbind1],
+						{ok, Pairs};
+					false ->
+						{error, no_sysuptime}
+				end;
+		{error, _Reason} ->
+			Pairs = [{OID, Type, Value} || {varbind ,OID, Type, Value, _} <- Varbinds],
+			{ok, Pairs}
+	end.
+
+-spec arrange_list(Pairs, Acc) -> Result
+	when
+		Pairs :: [tuple()],
+		Result :: {ok ,NewAcc},
+		NewAcc :: [tuple()],
+		Acc :: list().
+%% @doc Filter and map the OIDs to names and appropriate values.
+%% @private
+arrange_list([{OID, Type, Value} | T], Acc)
+		when Type == 'OCTET STRING', is_list(Value) ->
+	case unicode:characters_to_list(Value, utf8) of
+		Value2 when is_list(Value2) ->
+			arrange_list(T, [{OID, stringify(Value2)} | Acc]);
+		{incomplete, Good, Bad} ->
+			error_logger:info_report(["Error parsing 'OCTET STRING'",
+					{error, incomplete},
+					{oid, OID},
+					{good, Good},
+					{bad, Bad}]),
+			arrange_list(T, Acc);
+		{error, Good, Bad} ->
+			error_logger:info_report(["Error parsing 'OCTET STRING'",
+					{oid, OID},
+					{good, Good},
+					{bad, Bad}]),
+			arrange_list(T, Acc)
+	end;
+arrange_list([{OID, Type, Value} | T], Acc)
+		when Type == 'OBJECT IDENTIFIER', is_list(Value) ->
+	arrange_list(T, [{OID, oid_to_name(Value)} | Acc]);
+arrange_list([{OID, Type, Value} | T], Acc)
+		when Type =='INTEGER', is_integer(Value) ->
+	Value2 = integer_to_list(Value),
+	arrange_list(T, [{OID, Value2} | Acc]);
+arrange_list([_ | T], Acc) ->
+	arrange_list(T, Acc);
+arrange_list([], Acc) ->
+	NewAcc = lists:reverse(Acc),
+	{ok ,NewAcc}.
+
+-spec oids_to_names(OIDsValues, Acc) -> Result
+	when
+		OIDsValues :: [{OID, Value}],
+		Acc :: list(),
+		OID :: list(),
+		Value :: string() | integer(),
+		Result :: {ok, [{Name, Value}]},
+		Name :: string().
+%% @doc Convert OIDs to valid names.
+oids_to_names([{OID, Value} | T], Acc) ->
+	Name = oid_to_name(OID),
+	oids_to_names(T, [{strip_name(Name), Value} | Acc]);
+oids_to_names([], Acc) ->
+	NewAcc = lists:reverse(Acc),
+	{ok, NewAcc}.
+
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
+
 
 -spec check_response(ReplyInfo) -> any()
 	when
@@ -601,22 +653,19 @@ check_response({_RequestId, {{"HTTP/1.1",400, "Bad Request"},_ , _}}) ->
 			error_logger:info_report(["SNMP Manager POST Failed",
 					{error, "400, bad_request"}]);
 check_response({_RequestId, {{"HTTP/1.1",200, _Created},_ , _}}) ->
-			void.
+	void.
 
--spec get_values(Name, EventDetails) -> Value
+-spec strip_name(Name) -> Name
 	when
-		Name :: atom(),
-		EventDetails :: [tuple()],
-		Value :: string() | atom() | integer() | list().
-%% @doc Use a name to get a value from a list of names and value.
-get_values(Name, EventDetails) ->
-	case lists:keyfind(Name, 1, EventDetails) of
-		{_, Value} ->
-			Value;
-		false ->
-			""
+		Name :: string().
+%% @doc Removes the index from required names.
+strip_name(Name) ->
+	case string:tokens(Name, ".") of
+		[StripedName, _Index] ->
+			StripedName;
+		[Name] ->
+			Name
 	end.
-
 -spec entity_name(TargetName) -> EntityName
 	when
 	TargetName :: string(),

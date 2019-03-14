@@ -102,19 +102,15 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
-					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
-					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
-					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
-					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
-					ok ->
-						ok;
-					{error, _Reason} ->
-						ignore
-				end,
-				ignore
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					AlarmDetails = event(NamesValues),
+					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
+						ok ->
+							ok;
+						{error, _Reason} ->
+							ignore
+					end
 			end
 	end;
 handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
@@ -125,19 +121,15 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
-					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
-					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
-					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
-					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
-					ok ->
-						ok;
-					{error, _Reason} ->
-						ignore
-				end,
-				ignore
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					AlarmDetails = event(NamesValues),
+					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
+						ok ->
+							ok;
+						{error, _Reason} ->
+							ignore
+					end
 			end
 	end.
 
@@ -169,152 +161,55 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec oid_to_name(OIDsValues, Acc) -> Result
+-spec event(NameValuePair) -> NameValuePair
 	when
-		OIDsValues :: [{OID, Value}],
-		Acc :: list(),
-		OID :: list(),
-		Value :: string() | integer(),
-		Result :: {ok, [{Name, Value}]},
-		Name :: string().
-%% @doc Convert OIDs to valid names.
-oid_to_name([{OID, Value} | T], Acc) ->
-	Name = snmp_collector_utils:oid_to_name(OID),
-	oid_to_name(T, [{strip_name(Name), Value} | Acc]);
-oid_to_name([], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	{ok, NewAcc}.
-
--spec event_details(NameValuePair, Acc) -> Result
-	when
-		NameValuePair :: [{Name, Value}],
-		Name :: string(),
-		Value :: term(),
-		Result :: {ok, NewObjects, Acc},
-		NewObjects :: [{Name, Value}],
-		Acc :: list().
-%% @doc Turn the list of names and values into a map format.
+		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+%% @doc CODEC for event.
+event(NameValuePair) ->
+	event(NameValuePair, []).
 %% @hidden
-event_details(NameValuePair, Acc) ->
-	case lists:keytake("alarmNeIP", 1,
-			NameValuePair) of
-		{value, {_, Value}, Objects} ->
-			event_details1(Objects, [ {sourceId, Value} | Acc]);
-		false ->
-			event_details1(NameValuePair, Acc)
-	end.
-%% @hidden
-event_details1(Objects, Acc) ->
-	case lists:keytake("alarmManagedObjectInstanceName", 1,
-			Objects) of
-		{value, {_, Value}, Objects1} ->
-			event_details2(Objects1, [ {sourceName, Value} | Acc]);
-		false ->
-			event_details2(Objects, Acc)
-	end.
-%% @hidden
-event_details2(Objects, Acc) ->
-	case lists:keytake("systemDN", 1,
-			Objects) of
-		{value, {_, Value}, Objects2} ->
-			event_details3(Objects2, [ {eventName, Value} | Acc]);
-		false ->
-			event_details3(Objects, Acc)
-	end.
-%% @hidden
-event_details3(Objects, Acc) ->
-	case lists:keytake("alarmSpecificProblem", 1,
-			Objects) of
-		{value, {_, Value}, Objects3} ->
-			event_details4(Objects3, [ {specificProblem, Value} | Acc]);
-		false ->
-			event_details4(Objects, Acc)
-	end.
-%% @hidden
-event_details4(Objects, Acc) ->
-	case lists:keytake("alarmNetype", 1,
-			Objects) of
-		{value, {_, Value}, Objects4} ->
-			event_details5(Objects4, [ {eventSourceType, Value} | Acc]);
-		false ->
-			event_details5(Objects, Acc)
-	end.
-%% @hidden
-event_details5(Objects, Acc) ->
-	case lists:keytake("alarmPerceivedSeverity", 1,
-			Objects) of
-		{value, {_, Value}, Objects5} when Value == "1" ->
-			event_details6(Objects5, [ {eventSeverity, "CRITICAL"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "2" ->
-			event_details6(Objects5, [ {eventSeverity, "MAJOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "3" ->
-			event_details6(Objects5, [ {eventSeverity, "MINOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "4" ->
-			event_details6(Objects5, [ {eventSeverity, "WARNING"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "5" ->
-			event_details6(Objects5, Acc);
-		{value, {_, Value}, Objects5} when Value == "6" ->
-			event_details6(Objects5, Acc);
-		false ->
-			event_details6(Objects, Acc)
-end.
-%% @hidden
-event_details6(Objects, Acc) ->
-	case lists:keytake("snmpTrapOID", 1,
-			Objects) of
-		{value, {_, Value}, Objects5} when Value == "alarmCleared" ->
-			event_details7(Objects5, [ {alarmCondtion, "cleared"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "alarmNew" ->
-			event_details7(Objects5, [ {alarmCondtion, "new"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "alarmAckChange" ->
-			event_details7(Objects5, [ {alarmCondtion, "ackChanged"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "alarmCommentChange" ->
-			event_details7(Objects5, [ {alarmCondtion, "commented"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "alarmSeverityChange" ->
-			event_details7(Objects5, [ {alarmCondtion, "SeverityChanged"} | Acc]);
-		false ->
-			event_details7(Objects, Acc)
-end.
-%% @hidden
-event_details7(Objects, Acc) ->
-	case lists:keyfind("snmpTrapOID", 1,
-			Objects) of
-		{_, "alarmCleared"} ->
-			event_details8(Objects, [ {eventStatus, "cleared"} | Acc]);
-		{_, _ } ->
-			event_details8(Objects, [ {eventStatus, "uncleared"} | Acc]);
-		false ->
-			event_details8(Objects, Acc)
-	end.
-%% @hidden
-event_details8(Objects, Acc) ->
-	case lists:keyfind("alarmEventTime", 1,
-			Objects) of
-		{_, Value} ->
-			event_details9(Objects, [ {raisedTime, Value} | Acc]);
-		false ->
-			event_details9(Objects, Acc)
-	end.
-%% @hidden
-event_details9(NewObjects, Acc) ->
-	{ok, NewObjects, Acc}.
-
--spec additional_information(AddtionalInformation) -> AddtionalInformation
-	when
-		AddtionalInformation :: [map()] | [map()].
-%% @doc Normalize name fields.
-additional_information(AddtionalInformation) ->
-	additional_information1(AddtionalInformation, []).
-%% @hidden
-additional_information1([#{"name" := "alarmProbableCause", "value" := Value} | T], Acc) ->
-	additional_information1(T, [#{"name" => "probableCause", "value" => Value} | Acc]);
-additional_information1([#{"name" := "alarmEventType", "value" := Value} | T], Acc) ->
-	additional_information1(T, [#{"name" => "eventType", "value" => Value} | Acc]);
-additional_information1([#{"name" := "alarmMocObjectInstance", "value" := Value} | T], Acc) ->
-	additional_information1(T, [#{"name" => "objectInstance", "value" => Value} | Acc]);
-additional_information1([#{"name" := Name, "value" := Value} | T], Acc) ->
-	additional_information1(T, [#{"name" => Name, "value" => Value} | Acc]);
-additional_information1([], Acc) ->
+event([{"alarmNeIP", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceId", Value} | Acc]);
+event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceName", Value} | Acc]);
+event([{"systemDN", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventName", Value} | Acc]);
+event([{"alarmSpecificProblem", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"specificProblem", Value} | Acc]);
+event([{"alarmNetype", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventSourceType", Value} | Acc]);
+event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
+	event(T, [{"eventSourceType", "CRITICAL"} | Acc]);
+event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
+	event(T, [{"eventSourceType", "MAJOR"} | Acc]);
+event([{"alarmPerceivedSeverity", "3"} | T], Acc) ->
+	event(T, [{"eventSourceType", "MINOR"} | Acc]);
+event([{"alarmPerceivedSeverity", "4"} | T], Acc) ->
+	event(T, [{"eventSourceType", "WARNING"} | Acc]);
+event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
+	event(T, [{"alarmCondition", "cleared"} | Acc]);
+event([{"snmpTrapOID", _Value} | T], Acc) ->
+	event(T, [{"alarmCondition", "uncleared"} | Acc]);
+event([{"alarmEventTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"raisedTime", Value} | Acc]);
+event([{"alarmProbableCause", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"probableCause", Value} | Acc]);
+event([{"alarmEventType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventType", Value} | Acc]);
+event([{"alarmMocObjectInstance", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"objectInstance", Value} | Acc]);
+event([_H | T], Acc) ->
+	event(T, Acc);
+event([], Acc) ->
 	Acc.
 
 -spec heartbeat(Varbinds) -> Result
@@ -333,20 +228,6 @@ heartbeat(Varbinds) ->
 					false
 			end;
 		{error, _Reason} ->
-				false
-	end.
-
--spec strip_name(Name) -> Name
-	when
-		Name :: string().
-%% @doc Removes the index from required names.
-strip_name(Name) ->
-	case string:tokens(Name, ".") of
-		[StripedName, _Index] ->
-			StripedName;
-		["alarmIRP", _Index] ->
-			Name;
-		[Name] ->
-			Name
+			false
 	end.
 

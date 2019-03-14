@@ -23,8 +23,8 @@
 
 %% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
-    handle_pdu/4, handle_trap/3, handle_inform/3,
-    handle_report/3]).
+		handle_pdu/4, handle_trap/3, handle_inform/3,
+		handle_report/3]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -67,12 +67,12 @@ handle_error(ReqId, Reason, UserData) ->
 %% @doc Handle messages received from an unknown agent.
 %% @private
 handle_agent(Domain, Address, Type, {ErrorStatus, ErrorIndex, Varbind}, UserData) ->
-	snmp_collector_snmpm_user_default:handle_agent(Domain, 
-			Address , Type, {ErrorStatus, ErrorIndex, Varbind}, 
+	snmp_collector_snmpm_user_default:handle_agent(Domain,
+			Address , Type, {ErrorStatus, ErrorIndex, Varbind},
 			UserData);
 handle_agent(Domain, Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
-	snmp_collector_snmpm_user_default:handle_agent(Domain, 
-			Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds}, 
+	snmp_collector_snmpm_user_default:handle_agent(Domain,
+			Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds},
 			UserData).
 
 -spec handle_pdu(TargetName, ReqId, SnmpPduInfo, UserData) -> snmp:void()
@@ -102,19 +102,15 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
-					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
-					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
-					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
-					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
-					ok ->
-						ignore;
-					{error, _Reason} ->
-						ignore
-				end,
-				ignore
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					AlarmDetails = event(NamesValues),
+					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
+						ok ->
+							ok;
+						{error, _Reason} ->
+							ignore
+					end
 			end
 	end;
 handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
@@ -125,19 +121,15 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			case snmp_collector_utils:create_pairs(Varbinds) of
 				{ok, Pairs} ->
 					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NewOIDsValues} = oid_to_name(OIDsValues, []),
-					{ok, Objects, EventDetails} = event_details(NewOIDsValues, []),
-					{ok, AdditionalInformation} = snmp_collector_utils:map_names_values(Objects, []),
-					NormalizedAdditionalInfo = additional_information(AdditionalInformation),
-					FaultFields = snmp_collector_utils:fault_fields(NormalizedAdditionalInfo, EventDetails),
-					CommentEventHeader = snmp_collector_utils:event_header(TargetName, EventDetails),
-					case snmp_collector_utils:log_events(CommentEventHeader, FaultFields) of
-					ok ->
-						ignore;
-					{error, _Reason} ->
-						ignore
-				end,
-				ignore
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					AlarmDetails = event(NamesValues),
+					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
+						ok ->
+							ok;
+						{error, _Reason} ->
+							ignore
+					end
 			end
 	end.
 
@@ -169,199 +161,100 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec oid_to_name(OIDsValues, Acc) -> Result
+-spec event(NameValuePair) -> NameValuePair
 	when
-		OIDsValues :: [{OID, Value}],
-		Acc :: list(),
-		OID :: list(),
-		Value :: string() | integer(),
-		Result :: {ok, [{Name, Value}]},
-		Name :: string().
-%% @doc Convert OIDs to valid names.
-oid_to_name([{OID, Value} | T], Acc) ->
-	Name = snmp_collector_utils:oid_to_name(OID),
-	oid_to_name(T, [{Name, Value} | Acc]);
-oid_to_name([], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	{ok, NewAcc}.
-
--spec event_details(NameValuePair, Acc) -> Result
-	when
-		NameValuePair :: [{Name, Value}],
-		Name :: string(),
-		Value :: term(),
-		Result :: {ok, NewObjects, Acc},
-		NewObjects :: [{Name, Value}],
-		Acc :: list().
-%% @doc Turn the list of names and values into a map format.
+		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+%% @doc CODEC for event.
+event(NameValuePair) ->
+	event(NameValuePair, []).
 %% @hidden
-event_details(NameValuePair, Acc) ->
-	case lists:keytake("hwNmNorthboundSerialNo", 1,
-			NameValuePair) of
-		{value, {_, Value}, Objects} ->
-			event_details1(Objects, [ {sourceId, Value} | Acc]);
-		false ->
-			event_details1(NameValuePair, Acc)
-	end.
-%% @hidden
-event_details1(Objects, Acc) ->
-	case lists:keytake("hwNmNorthboundNEName", 1,
-			Objects) of
-		{value, {_, Value}, Objects1} ->
-			event_details2(Objects1, [ {sourceName, Value} | Acc]);
-		false ->
-			event_details2(Objects, Acc)
-	end.
-%% @hidden
-event_details2(Objects, Acc) ->
-	case lists:keytake("hwNmNorthboundEventName", 1,
-			Objects) of
-		{value, {_, Value}, Objects2} ->
-			event_details3(Objects2, [ {eventName, Value} | Acc]);
-		false ->
-			event_details3(Objects, Acc)
-	end.
-%% @hidden
-event_details3(Objects, Acc) ->
-	case lists:keytake("hwNmNorthboundEventDetail", 1,
-			Objects) of
-		{value, {_, Value}, Objects3} ->
-			event_details4(Objects3, [ {specificProblem, Value} | Acc]);
-		false ->
-			event_details4(Objects, Acc)
-	end.
-%% @hidden
-event_details4(Objects, Acc) ->
-	case lists:keytake("hwNmNorthboundDeviceType", 1,
-			Objects) of
-		{value, {_, Value}, Objects4} ->
-			event_details5(Objects4, [ {eventSourceType, Value} | Acc]);
-		false ->
-			event_details5(Objects, Acc)
-	end.
-%% @hidden
-event_details5(Objects, Acc) ->
-	case lists:keytake("hwNmNorthboundSeverity", 1,
-			Objects) of
-		{value, {_, Value}, Objects5} when Value == "Critical" ->
-			event_details6(Objects5, [ {eventSeverity, "CRITICAL"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "Major" ->
-			event_details6(Objects5, [ {eventSeverity, "MAJOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "Minor" ->
-			event_details6(Objects5, [ {eventSeverity, "MINOR"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "Warning" ->
-			event_details6(Objects5, [ {eventSeverity, "WARNING"} | Acc]);
-		{value, {_, Value}, Objects5} when Value == "Indeterminate" ->
-			event_details6(Objects5, Acc);
-		false ->
-			event_details6(Objects, Acc)
-	end.
-%% @hidden
-event_details6(Objects, Acc) ->
-	case lists:keytake("hwNmNorthboundFaultFlag", 1,
-			Objects) of
-		{value, {_, Value}, Objects6} when Value == "Fault" ->
-			event_details7(Objects6, [ {eventCategory, "fault"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "Event" ->
-			event_details7(Objects6, [ {eventCategory, "event"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "Acknowledge" ->
-			event_details7(Objects6, [ {eventCategory, "acknowledge"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "Unacknowledge" ->
-			event_details7(Objects6, [ {eventCategory, unacknowledge} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "Change" ->
-			event_details7(Objects6, [ {eventCategory, "changed"} | Acc]);
-		{value, {_, Value}, Objects6} when Value == "Recovery" ->
-			event_details7(Objects6, [ {eventCategory, "recovery"} | Acc]);
-		false ->
-			event_details7(Objects, Acc)
-	end.
-%% @hidden
-event_details7(Objects, Acc) ->
-	case lists:keytake("", 1,
-			Objects) of
-		{value, {_, Value}, Objects7} ->
-			event_details8(Objects7, [ {alarmCondtion, Value} | Acc]);
-		false ->
-			event_details8(Objects, Acc)
-	end.
-%% @hidden
-event_details8(Objects, Acc) ->
-	case lists:keyfind("hwNmNorthboundRestoreStatus", 1,
-			Objects) of
-		{_, Value} ->
-			event_details9(Objects, [ {eventStatus, Value} | Acc]);
-		false ->
-			event_details9(Objects, Acc)
-	end.
-%% @hidden
-event_details9(Objects, Acc) ->
-	case lists:keyfind("hwNmNorthboundEventTime", 1,
-			Objects) of
-		{_, Value} ->
-			event_details10(Objects, [ {raisedTime, Value} | Acc]);
-		false ->
-			event_details10(Objects, Acc)
-	end.
-%% @hidden
-event_details10(NewObjects, Acc) ->
-	{ok, NewObjects, Acc}.
-
--spec additional_information(AddtionalInformation) -> AddtionalInformation
-	when
-		AddtionalInformation :: [map()] | [map()].
-%% @doc CODEC to normalize name fields.
-additional_information(AddtionalInformation) ->
-	additional_information1(AddtionalInformation, []).
-%% @hidden
-additional_information1([#{"name" := "hwNmNorthboundNEType",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "nEType", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundObjectInstance",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "objectInstance", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundEventType",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "eventType", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundProbableCause",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "probableCause", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundAdditionalInfo",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "additionalInfo", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundFaultFunction",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "faultFunction", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundDeviceIP",
-		"value" := Value} | T], Acc) when is_integer(Value) ->
-	additional_information1(T, [#{"name" => "deviceIP", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundProbableRepair",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "probableRepair", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundResourceIDs",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "resourceIDs", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundReasonID",
-		"value" := Value} | T], Acc) when is_integer(Value) ->
-	additional_information1(T, [#{"name" => "reasonID", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundFaultID",
-		"value" := Value} | T], Acc) when is_integer(Value) ->
-	additional_information1(T, [#{"name" => "faultID", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundTrailName",
-		"value" := Value} | T], Acc) when is_list(Value) ->
-	additional_information1(T, [#{"name" => "trailName", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundRootAlarm",
-		"value" := Value} | T], Acc) when is_integer(Value) ->
-	additional_information1(T, [#{"name" => "rootAlarm", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundGroupID",
-		"value" := Value} | T], Acc) when is_integer(Value) ->
-	additional_information1(T, [#{"name" => "groupID", "value" => Value} | Acc]);
-additional_information1([#{"name" := "hwNmNorthboundMaintainStatus",
-		"value" := Value} | T], Acc) when is_integer(Value) ->
-	additional_information1(T, [#{"name" => "maintainStatus", "value" => Value} | Acc]);
-additional_information1([_H | T], Acc) ->
-   additional_information1(T, Acc);
-additional_information1([], Acc) ->
-   Acc.
+event([{"hwNmNorthboundSerialNo", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceId", Value} | Acc]);
+event([{"hwNmNorthboundNEName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceName", Value} | Acc]);
+event([{"hwNmNorthboundEventName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventName", Value} | Acc]);
+event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"specificProblem", Value} | Acc]);
+event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventSourceType", Value} | Acc]);
+event([{"hwNmNorthboundDeviceType", "Critical"} | T], Acc) ->
+	event(T, [{"eventSourceType", "CRITICAL"} | Acc]);
+event([{"hwNmNorthboundDeviceType", "Major"} | T], Acc) ->
+	event(T, [{"eventSourceType", "MAJOR"} | Acc]);
+event([{"hwNmNorthboundDeviceType", "Minor"} | T], Acc) ->
+	event(T, [{"eventSourceType", "MINOR"} | Acc]);
+event([{"hwNmNorthboundDeviceType", "Warning"} | T], Acc) ->
+	event(T, [{"eventSourceType", "WARNING"} | Acc]);
+event([{"hwNmNorthboundFaultFlag", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventCategory", string:to_lower(Value)} | Acc]);
+event([{"hwNmNorthboundRestoreStatus", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmCondtion", Value} | Acc]);
+event([{"hwNmNorthboundRestoreStatus", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventStatus", Value} | Acc]);
+event([{"hwNmNorthboundEventTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"raisedTime", Value} | Acc]);
+event([{"hwNmNorthboundNEType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"networkElementType", Value} | Acc]);
+event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"objectInstanceType", Value} | Acc]);
+event([{"hwNmNorthboundEventType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventType", Value} | Acc]);
+event([{"hwNmNorthboundProbableCause", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"probableCause", Value} | Acc]);
+event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"additionalInfo", Value} | Acc]);
+event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"additionalInformation", Value} | Acc]);
+event([{"hwNmNorthboundFaultFunction", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"faultFunction", Value} | Acc]);
+event([{"hwNmNorthboundDeviceIP", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"deviceIP", Value} | Acc]);
+event([{"hwNmNorthboundProbableRepair", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"proposedRepairactions", Value} | Acc]);
+event([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"resourceIDs", Value} | Acc]);
+event([{"hwNmNorthboundReasonID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"resonID", Value} | Acc]);
+event([{"hwNmNorthboundFaultID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"faultID", Value} | Acc]);
+event([{"hwNmNorthboundTrailName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"trailName", Value} | Acc]);
+event([{"hwNmNorthboundRootAlarm", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"rootAlarm", Value} | Acc]);
+event([{"hwNmNorthboundGroupID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"groupID", Value} | Acc]);
+event([{"hwNmNorthboundMaintainStatus", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"maintainStatus", Value} | Acc]);
+event([_H | T], Acc) ->
+	event(T, Acc);
+event([], Acc) ->
+	Acc.
 
 -spec heartbeat(Varbinds) -> Result
 	when
@@ -380,6 +273,4 @@ heartbeat(Varbinds) ->
 		{error, _Reason} ->
 				false
 	end.
-
-
 
