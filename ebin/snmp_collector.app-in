@@ -21,6 +21,7 @@
 					snmp_collector_rest_res_mib,
 					snmp_collector_utils,
 					snmp_collector_log,
+					snmp_collector_snmp_usm,
 					snmp_collector_mib,
 					snmp_collector_debug_sup,
 					snmp_collector_debug_fsm,

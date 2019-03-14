@@ -717,16 +717,14 @@ timestamp() ->
 authenticate(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
 	true;
 authenticate(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
-	case snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey,
-			AuthParams, list_to_binary(Packet)) of
+	case snmp_collector_snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) of
 		true ->
 			true;
 		false ->
 			false
 	end;
 authenticate(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
-	case snmp_usm:auth_in(usmHMACSHAAuthProtocol, AuthKey,
-			AuthParams, list_to_binary(Packet)) of
+	case snmp_collector_snmp_usm:auth_in(usmHMACSHAAuthProtocol, AuthKey, AuthParams, Packet) of
 		true ->
 			true;
 		false ->

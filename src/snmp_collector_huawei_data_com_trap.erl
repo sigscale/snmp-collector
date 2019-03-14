@@ -108,9 +108,11 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
 						ok ->
 							ignore;
-						{error, _Reason} ->
-							ignore
-					end
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
 			end
 	end;
 handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
@@ -127,9 +129,11 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
 						ok ->
 							ignore;
-						{error, _Reason} ->
-							ignore
-					end
+						{error, Reason} ->
+							{error, Reason}
+					end;
+				{error, Reason} ->
+					{error, Reason}
 			end
 	end.
 

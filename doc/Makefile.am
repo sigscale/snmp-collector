@@ -18,6 +18,7 @@ modhtml = snmp_collector_app.html \
 			snmp_collector.html \
 			snmp_collector_utils.html \
 			snmp_collector_log.html \
+			snmp_collector_snmp_usm.html \
 			snmp_collector_mib.html \
 			snmp_collector_snmpm_user_default.html \
 			snmp_collector_rest_accepted_content.html \
