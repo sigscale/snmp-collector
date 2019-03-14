@@ -61,12 +61,11 @@ start(normal = _StartType, _Args) ->
 	{ok, Dir} = application:get_env(queue_dir),
 	{ok, MibDir} = application:get_env(mib_dir),
 	{ok, BinDir} = application:get_env(bin_dir),
-	{ok, DefaultBinDir} = application:get_env(default_bin_dir),
 	case open_log(Dir, Name, Type ,File, Size) of
 		ok ->
 			case create_dirs(MibDir, BinDir) of
 				ok ->
-					case catch load_all_mibs(DefaultBinDir, MibDir, BinDir) of
+					case catch load_all_mibs(MibDir, BinDir) of
 						ok ->
 							start1(normal, []);
 						{error, Reason} ->
@@ -533,16 +532,15 @@ force([H | T]) ->
 force([]) ->
 	ok.
 
--spec load_all_mibs(DefaultBinDir, MibDir, BinDir) -> Result
+-spec load_all_mibs(MibDir, BinDir) -> Result
 	when
-		DefaultBinDir :: string(),
 		MibDir :: string(),
 		BinDir :: string(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Load all required Mibs into the SNMP Manager.
-load_all_mibs(DefaultBinDir, MibDir, BinDir) ->
-	case catch snmp_collector_mib:load_default_mibs(DefaultBinDir) of
+load_all_mibs(MibDir, BinDir) ->
+	case catch snmp_collector_mib:load_default_mibs() of
 		ok ->
 			case snmp_collector_mib:load_manager_mibs(MibDir, BinDir) of
 				ok ->
@@ -553,3 +551,4 @@ load_all_mibs(DefaultBinDir, MibDir, BinDir) ->
 		{'EXIT', Reason} ->
 			{error, Reason}
 	end.
+
