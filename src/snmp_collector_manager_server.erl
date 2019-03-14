@@ -58,10 +58,10 @@
 %%
 init([Port]) ->
 	case gen_udp:open(Port, [{active, once}]) of
-	{ok, Socket} ->
-		{ok, #state{socket = Socket}};
-	{error, Reason} ->
-		{stop, Reason}
+		{ok, Socket} ->
+			{ok, #state{socket = Socket}};
+		{error, Reason} ->
+			{stop, Reason}
    end.
 
 -spec handle_call(Request, From, State) -> Result
