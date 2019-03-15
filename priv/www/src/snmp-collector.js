@@ -21,6 +21,7 @@ import '@polymer/app-route/app-location.js';
 import '@polymer/app-route/app-route.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/iron-selector/iron-selector.js';
+import '@polymer/iron-collapse/iron-collapse.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-toast/paper-toast.js';
@@ -71,6 +72,13 @@ class SnmpCollector extends PolymerElement {
 									icon="my-icons:refresh"
 									on-click="refreshClick">
 							</paper-icon-button>
+							<paper-icon-button
+									toggles
+									id="overFlowIcon"
+									active="{{overFlowActive}}"
+									on-click="_overFlowMenu"
+									icon="my-icons:overFlowMenu">
+							</paper-icon-button>
 						</app-toolbar>
 					</app-header>
 					<iron-pages
@@ -85,7 +93,7 @@ class SnmpCollector extends PolymerElement {
 						</mib-list>
 						<log-list
 								id="logList"
-								finished-loading="{{progress}}"
+								loading="{{logLoading}}"
 								name="logView">
 						</log-list>
 						<user-list
@@ -114,28 +122,48 @@ class SnmpCollector extends PolymerElement {
 							</paper-icon-button>
 							MIBs
 						</a>
-						<a name="logView" href="[[rootPath]]logView">
-							<paper-icon-button
-									icon="my-icons:logIcon">
-							</paper-icon-button>
-							Logs
-						</a>
 						<a name="userView" href="[[rootPath]]userView">
 							<paper-icon-button
 									icon="my-icons:users">
 							</paper-icon-button>
 							User
 						</a>
+						<a on-click="_collapseLogs">
+							<paper-icon-button
+								icon="my-icons:logIcon">
+							</paper-icon-button>
+							Logs
+						</a>
+						<iron-collapse id="logs">
+							<a name="logView" href="[[rootPath]]logView">
+								<paper-icon-button
+									icon="my-icons:data">
+								</paper-icon-button>
+								Events
+							</a>
+							<a name="httpView" href="[[rootPath]]httpView">
+								<paper-icon-button
+									icon="my-icons:logIcon">
+								</paper-icon-button>
+								HTTP
+							</a>
+						</iron-collapse>
 					</iron-selector>
 				</app-drawer>
-				<paper-progress
-						id="pro"
-						indeterminate
-						class="slow red"
-						disabled="{{progress}}">
-				</paper-progress>
 			</app-drawer-layout>
+			<!-- Modal Definitions -->
+			<snmp-collector-help id="snmpGetHelp" active="[[overFlowActive]]"></snmp-collector-help>
 		`;
+	}
+
+	_collapseLogs(event) {
+		var snmp = document.body.querySelector('snmp-collector');
+		var logObj = snmp.shadowRoot.getElementById('logs');
+		if(logObj.opened == false) {
+			logObj.show();
+		} else {
+			logObj.hide();
+		}
 	}
 
 	refreshClick() {
@@ -160,13 +188,17 @@ class SnmpCollector extends PolymerElement {
 				observer: '_pageChanged'
 			},
 			routeData: Object,
-			ubroute: Object
+			ubroute: Object,
+			logLoading: {
+				type: String
+			}
 		};
 	}
 
 	static get observers() {
 		return [
-			'_routePageChanged(routeData.page)'
+			'_routePageChanged(routeData.page)',
+			'_loadingChanged(logLoading)'
 		];
 	}
 
@@ -203,7 +235,19 @@ class SnmpCollector extends PolymerElement {
 				break;
 			}
 		}
+
+	_loadingChanged() {
+		if(this.logLoading) {
+			this.loading = true;
+		} else {
+			this.loading = false;
+		}
 	}
+
+	_overFlowMenu() {
+		import('./snmp-collector-help.js');
+	}
+}
 
 window.customElements.define('snmp-collector', SnmpCollector);
 
