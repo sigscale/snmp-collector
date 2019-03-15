@@ -112,6 +112,9 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["eventManagement", "v1", "event"], Query) ->
 	do_response(ModData, Resource:get_events(Query, Headers));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["snmp", "v1", "log", "http"], Query) ->
+	do_response(ModData, Resource:get_http());
 do_get(Resource, ModData, ["eventManagement", "v1", "event", Id], Query) ->
 	do_response(ModData, Resource:get_event(Id, Query));
 do_get(_, _, _, _) ->

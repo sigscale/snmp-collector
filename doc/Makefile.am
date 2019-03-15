@@ -30,6 +30,7 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_rest_res_event.html \
 			snmp_collector_rest_pagination_sup.html \
 			snmp_collector_rest_pagination_server.html \
+			snmp_collector_rest_res_http.html \
 			snmp_collector_manager_fsm.html \
 			snmp_collector_manager_fsm_sup.html \
 			snmp_collector_manager_server.html \

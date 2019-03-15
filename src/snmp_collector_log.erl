@@ -7,7 +7,7 @@
 %%% you may not use this file except in compliance with the License.
 %%% You may obtain a copy of the License at
 %%%
-%%%     http://www.apache.org/licenses/LICENSE-2.0
+%%%  http://www.apache.org/licenses/LICENSE-2.0
 %%%
 %%% Unless required by applicable law or agreed to in writing, software
 %%% distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,9 +21,13 @@
 
 %% export the snmp_collector_log_public API.
 -export([fault_open/0, fault_close/0, fault_query/6]).
+-export([httpd_logname/1, http_query/8, http_file/2, last/2]).
 
 %% exported the private function
 -export([fault_query/3]).
+
+%% export the fm_log event types
+-export_type([fault_event/0, http_event/0]).
 
 -include("snmp_collector_log.hrl").
 
@@ -59,6 +63,209 @@ fault_open() ->
 %% @doc Close the fault disk log.
 fault_close() ->
 	close_log(?FAULTLOG).
+
+-record(event,
+		{host :: string(),
+		user :: string() | undefined,
+		date :: string() | undefined,
+		method :: string() | undefined,
+		uri :: string() | undefined,
+		httpStatus :: integer() | undefined}).
+
+-spec http_query(Continuation, LogType, DateTime, Host, User, Method, URI, HTTPStatus) -> Result
+	when
+		Continuation :: start | disk_log:continuation(),
+		LogType ::  transfer | error | security,
+		DateTime :: '_' | string(),
+		Host :: '_' | string(),
+		User :: '_' | string(),
+		Method :: '_' | string(),
+		URI :: '_' | string(),
+		HTTPStatus :: '_' | string() | integer(),
+		Result :: {Continuation2, Events} | {error, Reason},
+		Continuation2 :: eof | disk_log:continuation(),
+		Events :: [http_event()],
+		Reason :: term().
+%% @doc query http log events with filters
+http_query(start, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
+	Log = fm_log:httpd_logname(LogType),
+	http_query1(disk_log:chunk(Log, start), Log,
+		DateTime, Host, User, Method, URI, HTTPStatus, []);
+http_query(Cont, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
+	Log = fm_log:httpd_logname(LogType),
+	http_query1(disk_log:chunk(Log, Cont), Log,
+		DateTime, Host, User, Method, URI, HTTPStatus, []).
+%% @hidden
+http_query1({error, Reason}, _, _, _, _, _, _, _, _) ->
+	{error, Reason};
+http_query1(eof, _Log, DateTime, Host, User, Method, URI, HTTPStatus, Prevchunk) ->
+	http_query2(lists:flatten(Prevchunk), DateTime, Host, User, Method, URI, HTTPStatus);
+http_query1({Cont, Chunk}, Log, DateTime, Host, User, Method, URI, HTTPStatus, PrevChunk) ->
+	ParseChunk = lists:map(fun http_parse/1, Chunk),
+	CurrentChunk = [ParseChunk | PrevChunk],
+	http_query1(disk_log:chunk(Log, Cont), Log, DateTime,
+			Host, User, Method, URI, HTTPStatus, CurrentChunk).
+%% @hidden
+http_query2(Chunks, DateTime, Host, User, Method, URI, '_') ->
+	http_query3(Chunks, DateTime, Host, User, Method, URI);
+http_query2(Chunks, DateTime, Host, User, Method, URI, HTTPStatus) when is_list(HTTPStatus) ->
+	http_query2(Chunks, DateTime, Host, User, Method, URI, list_to_integer(HTTPStatus));
+http_query2(Chunks, DateTime, Host, User, Method, URI, HTTPStatus) ->
+	F = fun(#event{httpStatus = HS}) when HS =:= HTTPStatus -> true; (_) -> false end,
+	http_query3(lists:filtermap(F, Chunks), DateTime, Host, User, Method, URI).
+%% @hidden
+http_query3(Chunks, DateTime, Host, User, Method, '_') ->
+	http_query4(Chunks, DateTime, Host, User, Method);
+http_query3(Chunks, DateTime, Host, User, Method, URI) ->
+	F = fun(#event{uri = U}) -> lists:prefix(URI, U) end,
+	http_query4(lists:filtermap(F, Chunks), DateTime, Host, User, Method).
+%% @hidden
+http_query4(Chunks, DateTime, Host, User, '_') ->
+	http_query5(Chunks, DateTime, Host, User);
+http_query4(Chunks, DateTime, Host, User, Method) ->
+	F = fun(#event{method = M}) -> lists:prefix(Method, M) end,
+	http_query5(lists:filtermap(F, Chunks), DateTime, Host, User).
+%% @hidden
+http_query5(Chunks, DateTime, Host, '_') ->
+	http_query6(Chunks, DateTime, Host);
+http_query5(Chunks, DateTime, Host, User) ->
+	F = fun(#event{user = U}) -> lists:prefix(User, U) end,
+	http_query6(lists:filtermap(F, Chunks), DateTime, Host).
+%% @hidden
+http_query6(Chunks, DateTime, '_') ->
+	http_query7(Chunks, DateTime);
+http_query6(Chunks, DateTime, Host) ->
+	F = fun(#event{host = H}) -> lists:prefix(Host, H) end,
+	http_query7(lists:filtermap(F, Chunks), DateTime).
+%% @hidden
+http_query7(Chunks, '_') ->
+	http_query8(Chunks);
+http_query7(Chunks, DateTime) ->
+	F = fun(#event{date = D}) -> lists:prefix(DateTime, D) end,
+	http_query8(lists:filtermap(F, Chunks)).
+%% @hidden
+http_query8(Chunks) ->
+	F = fun(#event{host = H, user = U, date = D, method = M, uri = URI, httpStatus = S}, Acc) ->
+			[{H, U, D, M, URI, S} | Acc]
+	end,
+	{eof, lists:reverse(lists:foldl(F, [], Chunks))}.
+
+-spec http_file(LogType, FileName) -> Result
+	when
+		LogType :: transfer | error | security,
+		FileName :: file:filename(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write events logged by `httpd' to a file.
+%%
+http_file(LogType, FileName) when is_atom(LogType), is_list(FileName) ->
+	Log = httpd_logname(LogType),
+	case file:open(FileName, [raw, write]) of
+		{ok, IoDevice} ->
+			file_chunk(Log, IoDevice, binary, start);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log},
+					{filename, FileName}, {error, Reason}]),
+		{error, Reason}
+	end.
+
+-spec httpd_logname(LogType) -> disk_log:log()
+	when
+		LogType :: transfer | error | security.
+%% @doc Find local name of {@link //inets/httpd. httpd} disk_log.
+%%
+httpd_logname(LogType) ->
+	{ok, Services} = application:get_env(inets, services),
+	{_, HttpdConfig} = lists:keyfind(httpd, 1, Services),
+	{_, ServerRoot} = lists:keyfind(server_root, 1, HttpdConfig),
+	httpd_logname(LogType, ServerRoot, HttpdConfig).
+%% @hidden
+httpd_logname(transfer, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(transfer_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_logname(error, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(error_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName));
+httpd_logname(security, ServerRoot, HttpdConfig) ->
+	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
+	filename:join(ServerRoot, string:strip(LogName)).
+
+-spec last(Log, MaxItems) -> Result
+	when
+		Log :: disk_log:log(),
+		MaxItems :: pos_integer(),
+		Result :: {NumItems, Items} | {error, Reason},
+		NumItems :: non_neg_integer(),
+		Items :: [term()],
+		Reason :: term().
+%% @doc Get the last `MaxItems' events in most recent item first order.
+last(Log, MaxItems) ->
+	case disk_log:chunk_step(Log, start, 0) of
+		{error, end_of_log} ->
+			{0, []};
+		{error, Reason} ->
+			{error, Reason};
+		{ok, Cont1} ->
+			last(Log, MaxItems, Cont1, [Cont1])
+	end.
+%% @hidden
+last(Log, MaxItems, Cont1, [H | _] = Acc) ->
+	case disk_log:chunk_step(Log, H, 1) of
+		{error, end_of_log} ->
+			last1(Log, MaxItems, Acc, {0, []});
+		{ok, Cont1} ->
+			last1(Log, MaxItems, Acc, {0, []});
+		{ok, ContN} ->
+			last(Log, MaxItems, Cont1, [ContN | Acc])
+	end.
+%% @hidden
+last1(Log, MaxItems, [Cont | T], _Acc) ->
+	case last2(Log, MaxItems, Cont, []) of
+		{error, Reason} ->
+			{error, Reason};
+		{N, Items} when N < MaxItems ->
+			last1(Log, MaxItems, T, {N, Items});
+		{MaxItems, Items} ->
+			{MaxItems, lists:flatten(Items)}
+	end;
+last1(_Log, _MaxItems, [], {NumItems, Items}) ->
+	{NumItems, lists:flatten(Items)}.
+%% @hidden
+last2(Log, MaxItems, Cont, Acc) ->
+	case disk_log:bchunk(Log, Cont) of
+		{error, Reason} ->
+			{error, Reason};
+		eof ->
+			last3(Log, MaxItems, Acc, 0, []);
+		{Cont1, _Chunk} ->
+			last2(Log, MaxItems, Cont1, [Cont | Acc])
+	end.
+%% @hidden
+last3(Log, MaxItems, [Cont | T], NumItems, Acc) ->
+	case disk_log:chunk(Log, Cont) of
+		{error, Reason} ->
+			{error, Reason};
+		{_, Items} ->
+			RevItems = lists:reverse(Items),
+			NumNewItems = length(RevItems),
+			case NumItems + NumNewItems of
+				MaxItems ->
+					NewAcc = [RevItems | Acc],
+					{MaxItems, lists:reverse(NewAcc)};
+				N when N > MaxItems ->
+					NumHead = MaxItems - NumItems,
+					{NewItems, _} = lists:split(NumHead, RevItems),
+					NewAcc = [NewItems | Acc],
+					{MaxItems, lists:reverse(NewAcc)};
+				N ->
+					NewAcc = [RevItems | Acc],
+					last3(Log, MaxItems, T, N, NewAcc)
+			end
+	end;
+last3(_Log, _MaxItems, [], NumItems, Acc) ->
+	{NumItems, lists:reverse(Acc)}.
+
 
 -spec open_log(Directory, Log, LogSize, LogFiles, LogNodes) -> Result
 	when
@@ -139,6 +346,74 @@ fault_query(Continuation, _Size, Start, End, HeaderMatch, FieldMatch) ->
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
+
+%% @hidden
+file_chunk(Log, IoDevice, Type, Cont) when Type == binary; Type == tuple ->
+	case disk_log:chunk(Log, Cont) of
+		eof ->
+			file:close(IoDevice);
+		{error, Reason} ->
+	      Descr = lists:flatten(disk_log:format_error(Reason)),
+	      Trunc = lists:sublist(Descr, length(Descr) - 1),
+	      error_logger:error_report([Trunc, {module, ?MODULE},
+	            {log, Log}, {error, Reason}]),
+	      file:close(IoDevice),
+	      {error, Reason};
+	   {NextCont, Terms} ->
+	      file_chunk1(Log, IoDevice, Type, NextCont, Terms)
+	end.
+%% @hidden
+file_chunk1(Log, IoDevice, tuple, Cont, [Event | T]) ->
+	io:fwrite(IoDevice, "~999p~n", [Event]),
+	file_chunk1(Log, IoDevice, tuple, Cont, T);
+file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
+	case file:write(IoDevice, Event) of
+	   ok ->
+	      file_chunk1(Log, IoDevice, binary, Cont, T);
+	   {error, Reason} ->
+	      error_logger:error_report([file:format_error(Reason),
+	            {module, ?MODULE}, {log, Log}, {error, Reason}]),
+	      file:close(IoDevice),
+	      {error, Reason}
+	end;
+file_chunk1(Log, IoDevice, Type, Cont, []) ->
+	file_chunk(Log, IoDevice, Type, Cont).
+
+% @private
+http_parse(Event) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<Host:Offset/binary, 32, $-, 32, Rest/binary>> = Event,
+	http_parse1(Rest, #event{host = binary_to_list(Host)}).
+% @hidden
+http_parse1(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<User:Offset/binary, 32, $[, Rest/binary>> = Event,
+	http_parse2(Rest, Acc#event{user = binary_to_list(User)}).
+% @hidden
+http_parse2(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<$]>>),
+	<<Date:Offset/binary, $], 32, $", Rest/binary>> = Event,
+	http_parse3(Rest, Acc#event{date = binary_to_list(Date)}).
+% @hidden
+http_parse3(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<Method:Offset/binary, 32, Rest/binary>> = Event,
+	http_parse4(Rest, Acc#event{method = binary_to_list(Method)}).
+% @hidden
+http_parse4(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<URI:Offset/binary, 32, Rest/binary>> = Event,
+	http_parse5(Rest, Acc#event{uri = binary_to_list(URI)}).
+% @hidden
+http_parse5(Event, Acc) ->
+	{Offset, 2} = binary:match(Event, <<$", 32>>),
+	<<_Http:Offset/binary, $", 32, Rest/binary>> = Event,
+	http_parse6(Rest, Acc).
+% @hidden
+http_parse6(Event, Acc) ->
+	{Offset, 1} = binary:match(Event, <<32>>),
+	<<Status:Offset/binary, 32, _Rest/binary>> = Event,
+	Acc#event{httpStatus = binary_to_integer(Status)}.
 
 -spec close_log(Log) -> Result
 	when
