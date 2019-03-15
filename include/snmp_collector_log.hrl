@@ -24,3 +24,12 @@
 		CommonEventHeader :: map(),
 		FaultFields :: map()}.
 
+%% REST API event
+-type http_event() :: {
+      Host :: string(),
+      User :: string(),
+      DateTime :: string(),
+      Method :: string(),
+      URI :: string(),
+      HttpStatus :: string()}.
+

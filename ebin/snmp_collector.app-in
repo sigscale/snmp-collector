@@ -22,6 +22,7 @@
 					snmp_collector_rest_res_event,
 					snmp_collector_rest_pagination_sup,
 					snmp_collector_rest_pagination_server,
+					snmp_collector_rest_res_http,
 					snmp_collector_utils,
 					snmp_collector_log,
 					snmp_collector_snmp_usm,

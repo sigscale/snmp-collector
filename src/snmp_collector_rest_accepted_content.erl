@@ -62,6 +62,9 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, snmp_collector_rest_res_user, Data);
 						["eventManagement", "v1", "event" | _] ->
 							check_content_type_header(Headers, Method, snmp_collector_rest_res_event, Data);
+						["snmp", "v1", "log", "http" | _] ->
+erlang:display({?MODULE, ?LINE}),
+							check_content_type_header(Headers, Method, snmp_collector_rest_res_http, Data);
 						_ ->
 							{proceed, Data}
 					end;
