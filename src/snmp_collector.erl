@@ -21,7 +21,8 @@
 
 %% export the snmp_collector public API
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
-		update_user/3, add_mib/1, add_snmp_user/3, remove_snmp_user/1]).
+		update_user/3, query_users/4, add_mib/1, add_snmp_user/3,
+		remove_snmp_user/1]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -266,6 +267,120 @@ add_mib(Body) ->
 			{error, Reason}
 	end.
 
+-spec query_users(Cont, Size, MatchId, MatchLocale) -> Result
+	when
+		Cont :: start | any(),
+		Size :: pos_integer() | undefined,
+		MatchId :: Match,
+		MatchLocale :: Match,
+		Match :: {exact, string()} | {notexact, string()} | {like, string()},
+		Result :: {Cont1, [#httpd_user{}]} | {error, Reason},
+		Cont1 :: eof | any(),
+		Reason :: term().
+%% @doc Query the user table.
+query_users(Cont, undefined, MatchId, MatchLocale) ->
+	{ok, Size} = application:get_env(rest_page_size),
+	query_users(Cont, Size, MatchId, MatchLocale);
+query_users(start, Size, '_', MatchLocale) ->
+	MatchSpec = [{'_', [], ['$_']}],
+	query_users1(Size, MatchSpec, MatchLocale);
+query_users(start, Size, {Op, String} = _MatchId, MatchLocale)
+		when is_list(String), ((Op == exact) orelse (Op == like)) ->
+	MatchSpec = case lists:last(String) of
+		$% when Op == like ->
+			Prefix = lists:droplast(String),
+			Username = {Prefix ++ '_', '_', '_', '_'},
+			MatchHead = #httpd_user{username = Username, _ = '_'},
+			[{MatchHead, [], ['$_']}];
+		_ ->
+			Username = {String, '_', '_', '_'},
+			MatchHead = #httpd_user{username = Username, _ = '_'},
+			[{MatchHead, [], ['$_']}]
+	end,
+	query_users1(Size, MatchSpec, MatchLocale);
+query_users(start, Size, {notexact, String} = _MatchId, MatchLocale)
+		when is_list(String) ->
+	Username = {'$1', '_', '_', '_'},
+	MatchHead = #httpd_user{username = Username, _ = '_'},
+	MatchSpec = [{MatchHead, [{'/=', '$1', String}], ['$_']}],
+	query_users1(Size, MatchSpec, MatchLocale);
+query_users(Cont, _Size, _MatchId, MatchLocale) when is_tuple(Cont) ->
+	F = fun() ->
+			mnesia:select(Cont)
+	end,
+	case mnesia:ets(F) of
+		{Users, Cont1} ->
+			query_users2(MatchLocale, Cont1, Users);
+		'$end_of_table' ->
+			{eof, []}
+	end;
+query_users(start, Size, MatchId, MatchLocale) when is_tuple(MatchId) ->
+	MatchCondition = [match_condition('$1', MatchId)],
+	Username = {'$1', '_', '_', '_'},
+	MatchHead = #httpd_user{username = Username, _ = '_'},
+	MatchSpec = [{MatchHead, MatchCondition, ['$_']}],
+	query_users1(Size, MatchSpec, MatchLocale).
+%% @hidden
+query_users1(Size, MatchSpec, MatchLocale) ->
+	F = fun() ->
+			mnesia:select(httpd_user, MatchSpec, Size, read)
+	end,
+	case mnesia:ets(F) of
+		{Users, Cont} ->
+			query_users2(MatchLocale, Cont, Users);
+		'$end_of_table' ->
+			{eof, []}
+	end.
+%% @hidden
+query_users2('_' = _MatchLocale, Cont, Users) ->
+	{Cont, Users};
+query_users2({exact, String} = _MatchLocale, Cont, Users)
+		when is_list(String) ->
+	F = fun(#httpd_user{user_data = UD}) ->
+			case lists:keyfind(locale, 1, UD) of
+				{_, String} ->
+					true;
+				_ ->
+					false
+			end
+	end,
+	{Cont, lists:filter(F, Users)};
+query_users2({notexact, String} = _MatchLocale, Cont, Users)
+		when is_list(String) ->
+	F = fun(#httpd_user{user_data = UD}) ->
+			case lists:keyfind(locale, 1, UD) of
+				{_, String} ->
+					false;
+				_ ->
+					true
+			end
+	end,
+	{Cont, lists:filter(F, Users)};
+query_users2({like, String} = _MatchLocale, Cont, Users)
+		when is_list(String) ->
+	F = case lists:last(String) of
+		$% ->
+			Prefix = lists:droplast(String),
+			fun(#httpd_user{user_data = UD}) ->
+					case lists:keyfind(locale, 1, UD) of
+						{_, Locale} ->
+							lists:prefix(Prefix, Locale);
+						_ ->
+							false
+					end
+			end;
+		_ ->
+			fun(#httpd_user{user_data = UD}) ->
+					case lists:keyfind(locale, 1, UD) of
+						{_, String} ->
+							true;
+						_ ->
+							false
+					end
+			end
+	end,
+	{Cont, lists:filter(F, Users)}.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
@@ -313,4 +428,27 @@ get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->
 	{Port, Address, Directory, Group};
 get_params5(_, _, _, false) ->
 	{error, httpd_group_undefined}.
+
+-spec match_condition(MatchVariable, Match) -> MatchCondition
+	when
+		MatchVariable :: atom(), % '$<number>'
+		Match :: {exact, term()} | {notexact, term()} | {lt, term()}
+				| {lte, term()} | {gt, term()} | {gte, term()},
+		MatchCondition :: {GuardFunction, MatchVariable, Term},
+		Term :: any(),
+		GuardFunction :: '=:=' | '=/=' | '<' | '=<' | '>' | '>='.
+%% @doc Convert REST query patterns to Erlang match specification conditions.
+%% @hidden
+match_condition(Var, {exact, Term}) ->
+	{'=:=', Var, Term};
+match_condition(Var, {notexact, Term}) ->
+	{'=/=', Var, Term};
+match_condition(Var, {lt, Term}) ->
+	{'<', Var, Term};
+match_condition(Var, {lte, Term}) ->
+	{'=<', Var, Term};
+match_condition(Var, {gt, Term}) ->
+	{'>', Var, Term};
+match_condition(Var, {gte, Term}) ->
+	{'>=', Var, Term}.
 
