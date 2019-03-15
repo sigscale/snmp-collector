@@ -48,5 +48,6 @@
 				{ves_url, ""},
 				{ves_username, "admin"},
 				{ves_password, "admin"},
-				{rest_page_size, 1000}]},
+				{rest_page_size, 1000},
+				{rest_page_timeout, 60000}]},
 		{mod, {snmp_collector_app, []}}]}.
