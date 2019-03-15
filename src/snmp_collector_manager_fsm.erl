@@ -495,7 +495,7 @@ dec_des(PrivKey, MsgPrivParams, Data)
 		ErrorIndex :: integer(),
 		Varbinds :: [snmp:varbinds()],
 		Reason :: aes_decryption_failed | term().
-%% @doc Decrypt a SNMP packet data using DES privacy protocol.
+%% @doc Decrypt a SNMP packet data using AES privacy protocol.
 dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 	case catch snmp_usm:aes_decrypt(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) of
 		{ok, DecryptedData} ->
