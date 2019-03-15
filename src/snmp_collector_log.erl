@@ -480,14 +480,14 @@ file_chunk(Log, IoDevice, Type, Cont) when Type == binary; Type == tuple ->
 		eof ->
 			file:close(IoDevice);
 		{error, Reason} ->
-	      Descr = lists:flatten(disk_log:format_error(Reason)),
-	      Trunc = lists:sublist(Descr, length(Descr) - 1),
-	      error_logger:error_report([Trunc, {module, ?MODULE},
-	            {log, Log}, {error, Reason}]),
-	      file:close(IoDevice),
-	      {error, Reason};
-	   {NextCont, Terms} ->
-	      file_chunk1(Log, IoDevice, Type, NextCont, Terms)
+			Descr = lists:flatten(disk_log:format_error(Reason)),
+			Trunc = lists:sublist(Descr, length(Descr) - 1),
+			error_logger:error_report([Trunc, {module, ?MODULE},
+					{log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			{error, Reason};
+		{NextCont, Terms} ->
+			file_chunk1(Log, IoDevice, Type, NextCont, Terms)
 	end.
 %% @hidden
 file_chunk1(Log, IoDevice, tuple, Cont, [Event | T]) ->
@@ -495,13 +495,13 @@ file_chunk1(Log, IoDevice, tuple, Cont, [Event | T]) ->
 	file_chunk1(Log, IoDevice, tuple, Cont, T);
 file_chunk1(Log, IoDevice, binary, Cont, [Event | T]) ->
 	case file:write(IoDevice, Event) of
-	   ok ->
-	      file_chunk1(Log, IoDevice, binary, Cont, T);
-	   {error, Reason} ->
-	      error_logger:error_report([file:format_error(Reason),
-	            {module, ?MODULE}, {log, Log}, {error, Reason}]),
-	      file:close(IoDevice),
-	      {error, Reason}
+		ok ->
+			file_chunk1(Log, IoDevice, binary, Cont, T);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log}, {error, Reason}]),
+			file:close(IoDevice),
+			{error, Reason}
 	end;
 file_chunk1(Log, IoDevice, Type, Cont, []) ->
 	file_chunk(Log, IoDevice, Type, Cont).
