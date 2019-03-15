@@ -20,7 +20,7 @@
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 %% export the snmp_collector_mib_loader public API
--export[load_default_mibs/1, load_manager_mibs/2].
+-export[load_default_mibs/0, load_manager_mibs/2].
 
  -include_lib("kernel/include/file.hrl").
 
@@ -28,12 +28,10 @@
 %%  The snmp_collector_mib_loader public API
 %%----------------------------------------------------------------------
 
--spec load_default_mibs(DefaultMibDir) -> Result
-	when
-		DefaultMibDir :: string(),
-		Result :: ok.
-%% @doc Load default MIBs for the snmp collector.
-load_default_mibs(DefaultMibDir) ->
+-spec load_default_mibs() -> ok.
+%% @doc Load default SNMP MIBs.
+load_default_mibs() ->
+	DefaultMibDir = code:priv_dir(snmp) ++ "/mibs",
 	{ok, MibList} = file:list_dir(DefaultMibDir),
 	load_default_mibs(DefaultMibDir, MibList).
 %% @hidden

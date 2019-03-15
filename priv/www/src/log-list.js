@@ -14,7 +14,7 @@ import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-lumo-styles/color.js'
 import '@polymer/polymer/lib/elements/dom-repeat.js';
 import '@polymer/paper-toast/paper-toast.js';
-import './shared-styles.js';
+import './style-element.js';
 
 class logs extends PolymerElement {
 	static get template() {
@@ -319,9 +319,9 @@ class logs extends PolymerElement {
 				}
 				callback(vaadinItems);
 			}).catch(function(error) {
-				var fm = document.body.querySelector('snmp-collector');
-				fm.shadowRoot.getElementById('restError').text = error.message;
-				fm.shadowRoot.getElementById('restError').open();
+				var snmp = document.body.querySelector('snmp-collector');
+				snmp.shadowRoot.getElementById('restError').text = error.message;
+				snmp.shadowRoot.getElementById('restError').open();
 				var vaadinItems = new Array();
 				grid.size = 0;
 				console.log('Looks like there was a problem: \n', error);

@@ -3,13 +3,15 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = include ebin doc test
+SUBDIRS = include ebin doc priv test
 
 .PHONY: release
 release: $(PACKAGE_VERSION).tar.gz
 
-$(PACKAGE_VERSION).tar.gz: $(PACKAGE_NAME).rel sys.config
+$(PACKAGE_VERSION).rel:	$(PACKAGE_NAME).rel
 	cp $(PACKAGE_NAME).rel $(PACKAGE_VERSION).rel
+
+$(PACKAGE_VERSION).tar.gz: $(PACKAGE_VERSION).rel sys.config
 	$(ERL) -noinput \
 		-eval "systools:make_script(\"$(PACKAGE_VERSION)\")" \
 		-eval "systools:make_tar(\"$(PACKAGE_VERSION)\", [{dirs, [include, mibs]}])" \
