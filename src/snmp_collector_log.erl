@@ -22,7 +22,7 @@
 %% export the snmp_collector_log_public API.
 -export([fault_open/0, fault_close/0, fault_query/6]).
 -export([httpd_logname/1, http_query/8, http_file/2, last/2]).
--export([date/1, iso8601/1]).
+-export([dump_file/2, date/1, iso8601/1]).
 
 %% exported the private function
 -export([fault_query/3]).
@@ -191,6 +191,25 @@ httpd_logname(error, ServerRoot, HttpdConfig) ->
 httpd_logname(security, ServerRoot, HttpdConfig) ->
 	{_, LogName} = lists:keyfind(security_disk_log, 1, HttpdConfig),
 	filename:join(ServerRoot, string:strip(LogName)).
+
+-spec dump_file(Log, FileName) -> Result
+	when
+		Log :: disk_log:log(),
+		FileName :: file:filename(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Write all logged events to a file.
+%%
+dump_file(Log, FileName) when is_list(FileName) ->
+	case file:open(FileName, [write]) of
+		{ok, IoDevice} ->
+			file_chunk(Log, IoDevice, tuple, start);
+		{error, Reason} ->
+			error_logger:error_report([file:format_error(Reason),
+					{module, ?MODULE}, {log, Log},
+					{filename, FileName}, {error, Reason}]),
+			{error, Reason}
+	end.
 
 -spec last(Log, MaxItems) -> Result
 	when
