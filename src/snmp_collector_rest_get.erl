@@ -109,6 +109,11 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_users(Query, Headers));
 do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 	do_response(ModData, Resource:get_user(Id, Query));
+do_get(Resource, #mod{parsed_header = Headers} = ModData,
+		["eventManagement", "v1", "event"], Query) ->
+	do_response(ModData, Resource:get_events(Query, Headers));
+do_get(Resource, ModData, ["eventManagement", "v1", "event", Id], Query) ->
+	do_response(ModData, Resource:get_event(Id, Query));
 do_get(_, _, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{break, [{response, {404, Response}}]}.

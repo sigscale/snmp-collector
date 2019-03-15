@@ -56,10 +56,12 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 				undefined ->
 					Path = http_uri:decode(Uri),
 					case string:tokens(Path, "/?") of
-						["snmp", "v1", "mibs"] ->
+						["snmp", "v1", "mibs" | _] ->
 							check_content_type_header(Headers, Method, snmp_collector_rest_res_mib, Data);
-						["snmp", "v1", "mibs", _Id] ->
-							check_content_type_header(Headers, Method, snmp_collector_rest_res_mib, Data);
+						["partyManagement", "v1", "individual" | _] ->
+							check_content_type_header(Headers, Method, snmp_collector_rest_res_user, Data);
+						["eventManagement", "v1", "event" | _] ->
+							check_content_type_header(Headers, Method, snmp_collector_rest_res_event, Data);
 						_ ->
 							{proceed, Data}
 					end;
