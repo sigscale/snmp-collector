@@ -25,6 +25,7 @@ import '@polymer/paper-icon-button/paper-icon-button.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-toast/paper-toast.js';
 import './snmp-collector-icons.js';
+import './style-element.js';
 
 // Gesture events like tap and track generated from touch will not be
 // preventable, allowing for better scrolling performance.
@@ -37,64 +38,7 @@ setRootPath(MyAppGlobals.rootPath);
 class SnmpCollector extends PolymerElement {
 	static get template() {
 		return html`
-			<style>
-				:host {
-					@apply(--paper-font-common-base);
-					--app-primary-color: #f57f17;
-					--app-secondary-color: #aeea00;
-					display: block;
-				}
-				app-header {
-					position: fixed;
-					top: 0;
-					left: 0;
-					width: 100%;
-					text-align: center;
-					background-color: var(--app-primary-color);
-					border-bottom: 1px solid #eee;
-					color: #fff;
-				}
-				.toolbar-top {
-					background-color: var(--app-primary-color);
-				}
-				app-header paper-icon-button {
-					--paper-icon-button-ink-color: white;
-				}
-				app-drawer {
-					--app-drawer-content-container: {
-						padding-top: 10px;
-					};
-					height: 100%;
-					top: 64px;
-				}
-				paper-progress {
-					display: block;
-					width: 100%;
-					--paper-progress-active-color: var(--paper-lime-a700);
-					--paper-progress-container-color: transparent;
-				}
-				.drawer-list {
-					box-sizing: border-box;
-					width: 100%;
-					height: 100%;
-					padding: 10px;
-					background: white;
-					position: relative;
-				}
-				.drawer-list a {
-					display: block;
-					padding: 0 24px;
-					text-decoration: none;
-					color: black;
-					line-height: 40px;
-				}
-				.drawer-list a.iron-selected {
-					color: #78909C;
-					font-weight: bold;
-				}
-				#restError {
-					--paper-toast-background-color: var(--paper-red-a400);
-				}
+			<style include="style-element">
 			</style>
 			<app-location
 					route="{{route}}"

@@ -15,14 +15,7 @@ import './style-element.js';
 class userList extends PolymerElement {
 	static get template() {
 		return html`
-			<style include="shared-styles">
-				:host {
-					display: block;
-				}
-				vaadin-grid {
-					height: 100vh; 
-					font-size: inherit;
-				}
+			<style include="style-element">
 			</style>
 			<vaadin-grid id="userGrid" loading="{{!finishedLoading}}">
 				<vaadin-grid-column>

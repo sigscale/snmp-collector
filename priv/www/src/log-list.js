@@ -19,26 +19,7 @@ import './style-element.js';
 class logs extends PolymerElement {
 	static get template() {
 		return html`
-			<style include="shared-styles">
-				:host {
-					display: block;
-				}
-				input::placeholder {
-					color: black;
-					font-weight: 500;
-					font-size: inherit;
-				}
-				vaadin-grid {
-					height: 100vh; 
-					font-size: inherit;
-				}
-				vaadin-grid input {
-					font-size: inherit;
-					border-style: none;
-				}
-				.timestamplog {
-					direction: rtl;
-				}
+			<style include="style-element">
 			</style>
 			<vaadin-grid
 					id="logGrid"

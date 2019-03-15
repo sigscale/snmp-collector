@@ -15,23 +15,7 @@ import './style-element.js';
 class mibList extends PolymerElement {
 	static get template() {
 		return html`
-			<style include="shared-styles">
-				:host {
-					display: block;
-				}
-				input::placeholder {
-					color: black;
-               font-weight: 500;
-               font-size: inherit;
-            }
-				vaadin-grid {
-					height: 100vh;
-					font-size: inherit;
-				}
-				vaadin-grid input {
-					font-size: inherit;
-					border-style: none;
-				}
+			<style include="style-element">
 			</style>
 			<vaadin-grid
 					id="mibGrid"
