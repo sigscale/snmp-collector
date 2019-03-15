@@ -27,7 +27,7 @@
 %% exported the private function
 -export([fault_query/3]).
 
-%% export the fm_log event types
+%% export the snmp_collector_log event types
 -export_type([fault_event/0, http_event/0]).
 
 -include("snmp_collector_log.hrl").
@@ -89,11 +89,11 @@ fault_close() ->
 		Reason :: term().
 %% @doc query http log events with filters
 http_query(start, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
-	Log = fm_log:httpd_logname(LogType),
+	Log = httpd_logname(LogType),
 	http_query1(disk_log:chunk(Log, start), Log,
 		DateTime, Host, User, Method, URI, HTTPStatus, []);
 http_query(Cont, LogType, DateTime, Host, User, Method, URI, HTTPStatus) ->
-	Log = fm_log:httpd_logname(LogType),
+	Log = httpd_logname(LogType),
 	http_query1(disk_log:chunk(Log, Cont), Log,
 		DateTime, Host, User, Method, URI, HTTPStatus, []).
 %% @hidden
