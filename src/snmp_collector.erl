@@ -20,7 +20,7 @@
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 %% export the snmp_collector public API
--export([add_user/3, list_users/0, get_user/1, delete_user/1,
+-export([add_user/3, get_users/0, get_user/1, delete_user/1,
 		update_user/3, add_mib/1, add_snmp_user/3, remove_snmp_user/1]).
 
 -include_lib("inets/include/httpd.hrl").
@@ -145,20 +145,20 @@ add_user4(LM, true) ->
 add_user4(_, {error, Reason}) ->
 	{error, Reason}.
 
--spec list_users() -> Result
+-spec get_users() -> Result
 	when
 		Result :: {ok, Users} | {error, Reason},
 		Users :: [Username],
 		Username :: string(),
 		Reason :: term().
-%% @doc List HTTP users.
+%% @doc Get HTTP users.
 %% @equiv  mod_auth:list_users(Address, Port, Dir)
-list_users() ->
-	list_users1(get_params()).
+get_users() ->
+	get_users(get_params()).
 %% @hidden
-list_users1({Port, Address, Dir, _}) ->
+get_users({Port, Address, Dir, _}) ->
 	mod_auth:list_users(Address, Port, Dir);
-list_users1({error, Reason}) ->
+get_users({error, Reason}) ->
 	{error, Reason}.
 
 -spec get_user(Username) -> Result
@@ -266,7 +266,6 @@ add_mib(Body) ->
 			{error, Reason}
 	end.
 
-%
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------

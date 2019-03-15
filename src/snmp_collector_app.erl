@@ -413,7 +413,7 @@ install11(Tables, false) ->
 	{ok, Tables}.
 %% @hidden
 install12(Tables) ->
-	case snmp_collector:list_users() of
+	case snmp_collector:get_users() of
 		{ok, []} ->
 			case snmp_collector:add_user("admin", "admin", "en") of
 				{ok, _LastModified} ->
