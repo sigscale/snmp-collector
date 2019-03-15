@@ -54,7 +54,7 @@ fault_open() ->
 	{ok, Directory} = application:get_env(snmp_collector, queue_dir),
 	{ok, LogSize} = application:get_env(snmp_collector, queue_size),
 	{ok, LogFiles} = application:get_env(snmp_collector, queue_size),
-	{ok, LogNodes} = application:get_env(snmp_collector, fault_log_nodes),
+	{ok, LogNodes} = application:get_env(snmp_collector, queue_nodes),
 	open_log(Directory, ?FAULTLOG, LogSize, LogFiles, LogNodes).
 
 -spec fault_close() -> Result
