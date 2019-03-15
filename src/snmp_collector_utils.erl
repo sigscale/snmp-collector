@@ -714,8 +714,6 @@ timestamp() ->
 		Packet :: [byte()],
 		Result :: true | false.
 %% @doc Authenticate the SNMP agent.
-authenticate(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
-	true;
 authenticate(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
 	case snmp_collector_snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) of
 		true ->
