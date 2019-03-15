@@ -138,37 +138,37 @@ class snmpHelp extends PolymerElement {
 	}
 
 	_about(event) {
-		var aboutFm = document.querySelector('snmp-collector').shadowRoot.getElementById('faultGetHelp');
-		var aboutFm1 = aboutFm.shadowRoot.getElementById('overFlowMenu');
-		aboutFm1.close();
-		var aboutObj = aboutFm.shadowRoot.getElementById('aboutHelp');
+		var aboutSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');
+		var aboutSnmp1 = aboutSnmp.shadowRoot.getElementById('overFlowMenu');
+		aboutSnmp1.close();
+		var aboutObj = aboutSnmp.shadowRoot.getElementById('aboutHelp');
 		aboutObj.open();
 	}
 	helpId(event) {
-		var helpFm = document.querySelector('snmp-collector').shadowRoot.getElementById('faultGetHelp');
-		var helpFm1 = helpFm.shadowRoot.getElementById('overFlowMenu');
-		helpFm1.close();
-		var helpObj = helpFm.shadowRoot.getElementById('helpMenu');
+		var helpSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');
+		var helpSnmp1 = helpSnmp.shadowRoot.getElementById('overFlowMenu');
+		helpSnmp1.close();
+		var helpObj = helpSnmp.shadowRoot.getElementById('helpMenu');
 		helpObj.open();
 	}
 	users(event) {
-		var userFm = document.querySelector('snmp-collector').shadowRoot.getElementById('faultGetHelp');     
-		var userObj = userFm.shadowRoot.getElementById('helpMenu');
+		var userSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');
+		var userObj = userSnmp.shadowRoot.getElementById('helpMenu');
 		userObj.close();
-		var userObjDialog = userFm.shadowRoot.getElementById('helpUsers');
+		var userObjDialog = userSnmp.shadowRoot.getElementById('helpUsers');
 		userObjDialog.open();
 	}
 	helpBack(event) {
-		var helpBackFm = document.querySelector('snmp-collector').shadowRoot.getElementById('faultGetHelp');     
-		var helpObjDialog = helpBackFm.shadowRoot.getElementById('helpUsers');
+		var helpBackSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');     
+		var helpObjDialog = helpBackSnmp.shadowRoot.getElementById('helpUsers');
 		helpObjDialog.close();
-		var helpBackObj = helpBackFm.shadowRoot.getElementById('helpMenu');
+		var helpBackObj = helpBackSnmp.shadowRoot.getElementById('helpMenu');
 		helpBackObj.open();
 	}
 
 	_dialog(newValue) {
 		var snmp = document.querySelector('snmp-collector');
-		var help = snmp.shadowRoot.getElementById('faultGetHelp');
+		var help = snmp.shadowRoot.getElementById('snmpGetHelp');
 		var dialog = help.shadowRoot.getElementById('overFlowMenu');
 		var overFlow = snmp.shadowRoot.getElementById('overFlowIcon');
 		if(newValue) {
@@ -180,7 +180,7 @@ class snmpHelp extends PolymerElement {
 	}
 
 	_collapseLogsContact(event) {
-		var snmp = document.querySelector('snmp-collector').shadowRoot.getElementById('faultGetHelp');
+		var snmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');
 		var snmpContact = snmp.shadowRoot.getElementById('contact');
 		if(snmpContact.opened == false) {
 			snmpContact.show();
@@ -190,4 +190,4 @@ class snmpHelp extends PolymerElement {
 	}
 }
 
-window.customElements.define('fault-help', snmpHelp);
+window.customElements.define('snmp-collector-help', snmpHelp);
