@@ -75,7 +75,7 @@ get_events1(Query, Filters, Headers) ->
 				undefined ->
 					{error, 412};
 				PageServer ->
-					case snmp_collector_rst:range(Range) of
+					case snmp_collector_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
 						{ok, {Start, End}} ->
@@ -92,14 +92,14 @@ get_events1(Query, Filters, Headers) ->
 		{false, {"if-range", Etag}, {"range", Range}} ->
 			case global:whereis_name(Etag) of
 				undefined ->
-					case snmp_collector_rst:range(Range) of
+					case snmp_collector_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
 						{ok, {Start, End}} ->
 							query_start(Query, Filters, Start, End)
 					end;
 				PageServer ->
-					case snmp_collector_rst:range(Range) of
+					case snmp_collector_rest:range(Range) of
 						{error, _} ->
 							{error, 400};
 						{ok, {Start, End}} ->
@@ -111,7 +111,7 @@ get_events1(Query, Filters, Headers) ->
 		{_, {"if-range", _}, false} ->
 			{error, 400};
 		{false, false, {"range", "items=1-" ++ _ = Range}} ->
-			case snmp_collector_rst:range(Range) of
+			case snmp_collector_rest:range(Range) of
 				{error, _Reason} ->
 					{error, 400};
 				{ok, {Start, End}} ->
@@ -185,13 +185,13 @@ query_start1(Query, Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 	try
 		case lists:keyfind("filter", 1, Query) of
 			{_, String} ->
-				{ok, Tokens, _} = snmp_collector_rst_query_scanner:string(String),
-				case snmp_collector_rst_query_parser:parse(Tokens) of
+				{ok, Tokens, _} = snmp_collector_rest_query_scanner:string(String),
+				case snmp_collector_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Filter}]}]} ->
 						HeaderMatch = match_header(Filter, []),
 						FieldsMatch = match_fields(Filter, []),
 						MFA = [snmp_collector_log, fault_query, [DateStart, DateEnd, HeaderMatch, FieldsMatch]],
-						case supervisor:start_child(snmp_collector_rst_pagination_sup, [MFA]) of
+						case supervisor:start_child(snmp_collector_rest_pagination_sup, [MFA]) of
 							{ok, PageServer, Etag} ->
 								query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 							{error, _Reason} ->
@@ -200,7 +200,7 @@ query_start1(Query, Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 				end;
 			false ->
 				MFA1 = [snmp_collector_log, fault_query, [DateStart, DateEnd, '_', '_']],
-				case supervisor:start_child(snmp_collector_rst_pagination_sup, [MFA1]) of
+				case supervisor:start_child(snmp_collector_rest_pagination_sup, [MFA1]) of
 					{ok, PageServer1, Etag1} ->
 						query_page(PageServer1, Etag1, Query, Filters, RangeStart, RangeEnd);
 					{error, _Reason1} ->
