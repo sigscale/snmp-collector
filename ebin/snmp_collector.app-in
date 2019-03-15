@@ -37,7 +37,7 @@
 				{queue_name, fault},
 				{queue_type, wrap},
 				{queue_size, 100485760},
-				{queue_dir, "traps"},
+				{queue_dir, "log/fault"},
 				{mib_dir, "mibs"},
 				{bin_dir, "mibs/bin"},
 				{debug_ports, []},
