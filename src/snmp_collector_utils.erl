@@ -727,7 +727,9 @@ authenticate(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
 			true;
 		false ->
 			false
-	end.
+	end;
+authenticate(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
+	true.
 
 -spec add_usm_user(EngineID, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
 	when
