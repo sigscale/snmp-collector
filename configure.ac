@@ -95,7 +95,7 @@ AC_ERLANG_CHECK_LIB([ssl], [], [AC_MSG_ERROR([ssl was not found!])])
 ## Output:  create output files
 ## 
 
-AC_OUTPUT([Makefile include/Makefile ebin/Makefile doc/Makefile
-		priv/Makefile priv/www/Makefile priv/www/package.json
+AC_OUTPUT([Makefile include/Makefile src/Makefile ebin/Makefile
+		doc/Makefile priv/Makefile priv/www/Makefile priv/www/package.json
 		test/Makefile $PACKAGE_NAME.rel sys.config])
 

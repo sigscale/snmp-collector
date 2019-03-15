@@ -36,6 +36,8 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_rest_pagination_sup.beam \
 			snmp_collector_rest_pagination_server.beam \
 			snmp_collector_rest_res_http.beam \
+			snmp_collector_rest_query_scanner.beam \
+			snmp_collector_rest_query_parser.beam \
 			snmp_collector_manager_fsm.beam \
 			snmp_collector_manager_fsm_sup.beam \
 			snmp_collector_manager_server.beam \
@@ -44,6 +46,12 @@ beam_DATA = snmp_collector_app.beam \
 
 %.beam:$(top_srcdir)/src/%.erl	$(top_srcdir)/include/snmp_collector.hrl
 	$(ERLC) $(ERLCFLAGS) -I $(top_srcdir)/include -I $(top_builddir)/include $<
+
+snmp_collector_rest_query_scanner.beam:$(top_builddir)/src/snmp_collector_rest_query_scanner.erl
+	$(ERLC) $<
+
+snmp_collector_rest_query_parser.beam:$(top_builddir)/src/snmp_collector_rest_query_parser.erl
+	$(ERLC) $<
 
 %.app:   %.app-in
 	sed -e 's/%APP_NAME%/$(PACKAGE_NAME)/' \
