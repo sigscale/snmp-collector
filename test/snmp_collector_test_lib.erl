@@ -48,19 +48,15 @@ initialize_db() ->
 			case mnesia:wait_for_tables(Tables, 1000) of
 				{timeout, _} ->
 					ok = application:stop(mnesia),
-					{ok, Tables} = snmp_collector_app:install(),
-					F = fun(T) ->
-							lists:member(T, Tables)
-					end,
-					true = lists:all(F, Tables),
-					initialize_db();
+					{ok, _} = snmp_collector_app:install(),
+					ok;
 				ok ->
 					ok
 			end
 	end.
 
 start() ->
-	start([crypto, inets, asn1, public_key, ssl, snmp_collector]).
+	start([crypto, inets, asn1, public_key, ssl, snmp, snmp_collector]).
 %% @hidden
 start([H | T]) ->
 	case application:start(H) of
@@ -73,6 +69,9 @@ start([H | T]) ->
 	end;
 start([]) ->
 	ok.
+
+stop() ->
+	application:stop(snmp_collector).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
