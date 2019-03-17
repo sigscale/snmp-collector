@@ -64,6 +64,7 @@ init_per_suite(Config) ->
 	ok = file:make_dir(MnesiaDir),
 	ok = application:set_env(mnesia, dir, MnesiaDir),
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
+	ok = application:start(crypto),
 	ok = application:start(snmp_collector),
 	snmp_collector_app:install(),
 	Config.
@@ -79,6 +80,29 @@ end_per_suite(_Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before each test case.
 %%
+init_per_testcase(query_faults, Config) ->
+	{ok, LogName} = application:get_env(snmp_collector, queue_name),
+	LogInfo = disk_log:info(LogName),
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	TargetNames = [string(20) || lists:seq(1, 25)],
+	Fdetails = fun Fdetails(0, Acc) ->
+				Acc;
+			Fdetails(N, Acc) ->
+				Fdetails(N - 1, [{string(15), string(50)} | Acc])
+	end,
+	Fill = fun Fill(0) ->
+				ok;
+			Fill(N) ->
+				TN = lists:nth(rand:uniform(length(TargetNames)), TargetNames),
+				AlarmDetails = Fdetails(rand:uniform(12)),
+				{CH, FF} = snmp_collector_utils:generate_maps(TN, AlarmDetails),
+				ok = snmp_collector_utils:log_events(CH, FF),
+				Fill(N - 1)
+	end,
+	EventSize = erlang:external_size(Fill(1)),
+	NumItems = (FileSize div EventSize) * 5,
+	ok = Fill(NumItems),
+	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
@@ -98,7 +122,7 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[add_user, get_user, delete_user, get_mib].
+	[add_user, get_user, delete_user, get_mib, query_faults].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -153,6 +177,11 @@ get_mib(_Config) ->
 	{ok, Data} = file:read_file(TestMib),
 	{ok, _} = snmp_collector:add_mib(Data).
 	
+query_faults() ->
+	[{userdata, [{doc, "Query event log for faults"}]}].
+
+query_faults(_Config) ->
+	{skip, unimplemented}.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -182,3 +211,14 @@ basic_auth() ->
 	RestPass = ct:get_config(rest_pass),
 	EncodeKey = base64:encode_to_string(string:concat(RestUser ++ ":", RestPass)),
 	"Basic " ++ EncodeKey.
+
+%% @hidden
+string(N) ->
+	Charset = lists:seq($0, $9) ++ lists:seq($a, $z),
+	CharsetLen = length(Charset),
+	string(Charset, CharsetLen, N, []).
+%% @hidden
+string(Charset, CharsetLen, N, Acc) ->
+	string(Charset, CharsetLen, N,
+			[lists:seq(rand:uniform(CharsetLen), Charset) | Acc]).
+
