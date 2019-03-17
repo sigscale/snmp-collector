@@ -269,10 +269,13 @@ range_request({StartRange, EndRange}, _From,
 	{reply, {RespItems, ContentRange}, NewState, Timeout};
 range_request({StartRange, EndRange}, From,
 		#state{cont = Cont1, module = Module, function = Function,
-		args = Args, buffer = Buffer} = State) ->
+		args = Args, buffer = Buffer, etag = Etag} = State) ->
 	Size = (EndRange - StartRange) + 1,
 	case apply(Module, Function, [Cont1, Size | Args]) of
-		{error, _Reason} ->
+		{error, Reason} ->
+			error_logger:error_report(["Query function failed",
+					{etag, Etag}, {module, Module}, {function, Function},
+					{args, Args}, {reason, Reason}]),
 			{stop, shutdown, {error, 500}, State};
 		{Cont2, Items} ->
 			NewState = State#state{cont = Cont2, buffer = Buffer ++ Items},
