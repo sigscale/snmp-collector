@@ -471,7 +471,7 @@ create_dirs(MibDir, BinDir) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Open a disk log file.
-open_log(Dir, Name, Type ,File, Size) ->
+open_log(Dir, Name, Type, File, Size) ->
 	case file:make_dir(Dir) of
 		ok ->
 			open_log1(Dir, Name, Type ,File, Size);
