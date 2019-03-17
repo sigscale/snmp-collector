@@ -25,7 +25,7 @@
 -export([dump_file/2, date/1, iso8601/1]).
 
 %% exported the private function
--export([fault_query/3]).
+-export([fault_filter/3]).
 
 %% export the snmp_collector_log event types
 -export_type([fault_event/0, http_event/0]).
@@ -343,14 +343,12 @@ open_log2(_Log, OkNodes, [], Reason) ->
 			{error, Reason}
 	end.
 
--spec fault_query(Continuation, Size, Start, End, HeaderMatch, FieldMatch) -> Result
+-spec fault_query(Continuation, Size, Start, End, HeaderMatch, FieldsMatch) -> Result
 	when
 		Continuation :: start | disk_log:continuation(),
 		Size :: pos_integer() | undefined,
-		HeaderMatch :: [{Header, Match}] | '_',
-		FieldMatch :: [{Header, Match}] | '_',
-		Header :: string(),
-		Match :: {like, [term()]},
+		HeaderMatch :: '_' | ets:match_spec(),
+		FieldsMatch :: '_' | ets:match_spec(),
 		Start :: calendar:datetime() | pos_integer(),
 		End :: calendar:datetime() | pos_integer(),
 		Result :: {Continuation2, Events} | {error, Reason},
@@ -359,8 +357,8 @@ open_log2(_Log, OkNodes, [], Reason) ->
 		Reason :: term().
 %% @doc Query fault log events with filters.
 %%
-fault_query(Continuation, _Size, Start, End, HeaderMatch, FieldMatch) ->
-	MFA = {?MODULE, fault_query, [HeaderMatch, FieldMatch]},
+fault_query(Continuation, _Size, Start, End, HeaderMatch, FieldsMatch) ->
+	MFA = {?MODULE, fault_filter, [HeaderMatch, FieldsMatch]},
 	query_log(Continuation, Start, End, ?FAULTLOG, MFA).
 
 -spec date(MilliSeconds) -> Result
@@ -625,87 +623,64 @@ query_log1(Start, End, MFA, {Cont, [_ | T]}, Acc) ->
 query_log1(_Start, _End, {M, F, A}, {Cont, []}, Acc) ->
 	apply(M, F, [{Cont, lists:reverse(Acc)} | A]).
 
--spec fault_query(Continuation, HeaderMatch, FieldMatch) -> Result
+-spec fault_filter(Chunk, HeaderMatch, FieldsMatch) -> Result
 	when
-		HeaderMatch :: [{Header, Match}] | '_',
-		FieldMatch :: [{Field, Match}] | '_',
-		Header :: string(),
-		Field :: string(),
-		Match :: {like, [term()]},
-		Continuation :: {Continuation2, Events},
-		Result :: {Continuation2, Events},
-		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [fault_event()].
-%% @private
-%% @doc Query fault log events with filters.
+		Chunk :: {Cont, Events},
+		Cont :: eof | disk_log:continuation(),
+		Events :: [fault_event()],
+		HeaderMatch :: '_' | ets: match_spec(),
+		FieldsMatch :: '_' |  ets:match_spec(),
+		Result :: {Cont, FilteredEvents} | {error, Reason},
+		FilteredEvents :: [fault_event()],
+		Reason :: [{ErrorType, string()}],
+		ErrorType :: error | warning.
+%% @doc Filter fault events.
 %%
-fault_query({Cont, Events}, HeaderMatch, FieldMatch) ->
-	{Cont, fault_query1(Events, HeaderMatch, FieldMatch, [])}.
+%%		Applies match specifications against the common header
+%% 	and fault fields. Returns matching events.
+%%
+%% 	Returned events have common header and fault fields
+%% 	as defined in the match body of the match specifications.
+%%
+%% @private
+fault_filter(Chunk, '_' = _HeaderMatch, '_' = _FieldsMatch) ->
+	Chunk;
+fault_filter({Cont, Events} = _Chunk, HeaderMatch, FieldsMatch) ->
+	{Cont, fault_filter1(Events, HeaderMatch, FieldsMatch, [])}.
 %% @hidden
-fault_query1(Events, '_',  FieldMatch, Acc) ->
-	fault_query2(Events, '_', FieldMatch, Acc);
-fault_query1([H | T] = Events, HeaderMatch, FieldMatch, Acc) ->
+fault_filter1([H | T], '_' = HeaderMatch, FieldsMatch, Acc) ->
+	fault_filter2(H, T, HeaderMatch, FieldsMatch, Acc);
+fault_filter1([H | T], HeaderMatch, FieldsMatch, Acc) ->
 	CommonHeader = element(4, H),
-	case fault_query3(CommonHeader, HeaderMatch) of
-		true ->
-			fault_query2(Events, HeaderMatch, FieldMatch, Acc);
-		false ->
-			fault_query1(T, HeaderMatch, FieldMatch, Acc)
+	case ets:test_ms(CommonHeader, HeaderMatch) of
+		{ok, false} ->
+			fault_filter1(T, HeaderMatch, FieldsMatch, Acc);
+		{ok, CommonHeader} ->
+			fault_filter2(H, T, HeaderMatch, FieldsMatch, Acc);
+		{ok, NewCommonHeader} ->
+			NewEvent = setelement(4, H, NewCommonHeader),
+			fault_filter2(NewEvent, T, HeaderMatch, FieldsMatch, Acc);
+		{error, Reason} ->
+			{error, Reason}
 	end;
-fault_query1([], _HeaderMatch,  _FieldMatch, Acc) ->
+fault_filter1([], _, _, Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-fault_query2(Events, '_', '_', _Acc) ->
-	Events;
-fault_query2([H | T], HeaderMatch, '_', Acc) ->
-	fault_query1(T, HeaderMatch, '_', [H | Acc]);
-fault_query2([H | T], HeaderMatch, FieldMatch, Acc) ->
-	Fields = element(5, H),
-	case fault_query3(Fields, FieldMatch) of
-		true ->
-			fault_query1(T, HeaderMatch, FieldMatch, [H | Acc]);
-		false ->
-			fault_query1(T, HeaderMatch, FieldMatch, Acc)
-	end;
-fault_query2([], _HeaderMatch, _FieldMatch, Acc) ->
-	lists:reverse(Acc).
-%% @hidden
-fault_query3(Map, [{"lastEpochMicrosec", {like, Like}} | T]) ->
-	case maps:find("lastEpochMicrosec", Map) of
-		{ok, Value} ->
-			case fault_query4(snmp_collector_utils:iso8601(Value), Like) of
-				true ->
-					fault_query3(Map, T);
-				false ->
-					false
-			end;
-		error ->
-			false
-	end;
-fault_query3(Map, [{Name, {like, Like}} | T]) ->
-	case maps:find(Name, Map) of
-		{ok, Value} ->
-			case fault_query4(Value, Like) of
-				true ->
-					fault_query3(Map, T);
-				false ->
-					false
-			end;
-		error ->
-			false
-	end;
-fault_query3(_, []) ->
-	true.
-%% @hidden
-fault_query4(Value, [H | T]) ->
-	case lists:prefix(H, Value) of
-		true ->
-			true;
-		false ->
-			fault_query4(Value, T)
-	end;
-fault_query4(_Value, []) ->
-	false.
+fault_filter2(H, T, HeaderMatch, '_' = FieldsMatch, Acc) ->
+	fault_filter1(T, HeaderMatch, FieldsMatch, [H | Acc]);
+fault_filter2(H, T, HeaderMatch, FieldsMatch, Acc) ->
+	FaultFields = element(5, H),
+	case ets:test_ms(FaultFields, FieldsMatch) of
+		{ok, false} ->
+			fault_filter1(T, HeaderMatch, FieldsMatch, Acc);
+		{ok, FaultFields} ->
+			fault_filter1(T, HeaderMatch, FieldsMatch, [H | Acc]);
+		{ok, NewFaultFields} ->
+			NewEvent = setelement(5, H, NewFaultFields),
+			fault_filter1(T, HeaderMatch, FieldsMatch, [NewEvent | Acc]);
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec btree_search(Log, Start) -> Result
 	when
