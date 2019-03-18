@@ -122,11 +122,11 @@ do_get(_, #mod{data = Data} = ModData, _, _) ->
 	{proceed, [{response, {404, Response}} | Data]}.
 
 %% @hidden
-do_response(ModData, {ok, Headers, ResponseBody}) ->
+do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 200, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent, 200, Size}}]};
+	{proceed,[{response,{already_sent, 200, Size}} | Data]};
 do_response(#mod{data = Data} = ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	{proceed, [{response, {400, Response}} | Data]};
@@ -141,7 +141,7 @@ do_response(#mod{data = Data} = ModData, {error, 416}) ->
 	{proceed, [{response, {416, Response}} | Data]};
 do_response(#mod{data = Data} = ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{proceed, [{response, {500, Response}}]}.
+	{proceed, [{response, {500, Response}} | Data]}.
 
 
 %% @hidden
