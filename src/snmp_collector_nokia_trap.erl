@@ -99,10 +99,9 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 		true ->
 			ignore;
 		false ->
-			case snmp_collector_utils:create_pairs(Varbinds) of
+			case snmp_collector_utils:arrange_list(Varbinds) of
 				{ok, Pairs} ->
-					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 					AlarmDetails = event(NamesValues),
 					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -120,10 +119,9 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		true ->
 			ignore;
 		false ->
-			case snmp_collector_utils:create_pairs(Varbinds) of
+			case snmp_collector_utils:arrange_list(Varbinds) of
 				{ok, Pairs} ->
-					{ok, OIDsValues} = snmp_collector_utils:arrange_list(Pairs, []),
-					{ok, NamesValues} = snmp_collector_utils:oids_to_names(OIDsValues, []),
+					{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 					AlarmDetails = event(NamesValues),
 					{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 					case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of

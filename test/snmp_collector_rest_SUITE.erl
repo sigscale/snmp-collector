@@ -45,8 +45,9 @@ suite() ->
 init_per_suite(Config) ->
 	PrivDir = ?config(priv_dir, Config),
 	application:load(mnesia),
+	application:start(snmp_collector),
 	ok = application:set_env(mnesia, dir, PrivDir),
-	{ok, []} = snmp_collector_app:install(),
+	{ok, _} = snmp_collector_app:install(),
 	ok = application:start(snmp_collector),
 	Config.
 
