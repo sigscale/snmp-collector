@@ -20,8 +20,8 @@
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
-		entity_name/1, entity_id/1, event_id/0, timestamp/0, create_pairs/1,
-		arrange_list/2, map_names_values/2, log_events/2, security_params/7,
+		entity_name/1, entity_id/1, event_id/0, timestamp/0, arrange_list/1,
+		map_names_values/2, log_events/2, security_params/7,
 		agent_name/1, destringify/1, oids_to_names/2, generate_maps/2,
 		common_event_header/2, fault_fields/1]).
 
@@ -427,7 +427,7 @@ security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPas
 	case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, SecName}) of
 		[{_, {usm_user, _, _, _, AuthProtocol, _, PrivProtocol, _}}] ->
 			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
-			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
+			case authenticate(AuthProtocol, AuthKey, AuthParms, Packet) of
 				true ->
 					{ok, AuthProtocol, PrivProtocol};
 				false ->
@@ -557,7 +557,7 @@ post_event(CommonEventHeader, FaultFields, Url) ->
 				ok
 	end.
 
--spec create_pairs(Varbinds) -> Result
+-spec arrange_list(Varbinds) -> Result
 	when
 		Varbinds :: [Varbind],
 		Varbind :: {varbind, OID, Type, Value, Seqnum},
@@ -565,35 +565,16 @@ post_event(CommonEventHeader, FaultFields, Url) ->
 		Type :: 'OCTET STRING' | 'OBJECT IDENTIFIER' | 'INTEGER',
 		Value :: string() | atom() | integer(),
 		Seqnum :: integer(),
-		Result :: {ok, Pairs} | {error, no_sysuptime},
-		Pairs :: list().
-%% @doc Create a list of the OIDS ,Types and Values.
-%% @private
-create_pairs(Varbinds) ->
-	case snmpm:name_to_oid(sysUpTime) of
-		{ok, SysUpTime} ->
-			NewSysUpTime = lists:flatten(SysUpTime ++ [0]),
-				case lists:keytake(NewSysUpTime, 2, Varbinds) of
-					{value, {varbind, _, 'TimeTicks', _, _}, Varbind1} ->
-						Pairs = [{OID, Type, Value} || {varbind, OID, Type, Value, _} <- Varbind1],
-						{ok, Pairs};
-					false ->
-						{error, no_sysuptime}
-				end;
-		{error, _Reason} ->
-			Pairs = [{OID, Type, Value} || {varbind ,OID, Type, Value, _} <- Varbinds],
-			{ok, Pairs}
-	end.
-
--spec arrange_list(Pairs, Acc) -> Result
-	when
-		Pairs :: [tuple()],
-		Result :: {ok ,NewAcc},
-		NewAcc :: [tuple()],
-		Acc :: list().
+		Result :: {ok ,Acc},
+		Acc :: [tuple()].
 %% @doc Filter and map the OIDs to names and appropriate values.
 %% @private
-arrange_list([{OID, Type, Value} | T], Acc)
+arrange_list(Varbinds) ->
+	arrange_list(Varbinds, []).
+%% @hidden
+arrange_list([{vabind, [1,3,6,1,2,1,1,3,0], 'TimeTicks', _Value, _Seqnum} | T], Acc) ->
+	arrange_list(T, Acc);
+arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(Value, utf8) of
 		Value2 when is_list(Value2) ->
@@ -612,10 +593,10 @@ arrange_list([{OID, Type, Value} | T], Acc)
 					{bad, Bad}]),
 			arrange_list(T, Acc)
 	end;
-arrange_list([{OID, Type, Value} | T], Acc)
+arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OBJECT IDENTIFIER', is_list(Value) ->
 	arrange_list(T, [{OID, oid_to_name(Value)} | Acc]);
-arrange_list([{OID, Type, Value} | T], Acc)
+arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type =='INTEGER', is_integer(Value) ->
 	Value2 = integer_to_list(Value),
 	arrange_list(T, [{OID, Value2} | Acc]);
