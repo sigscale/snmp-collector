@@ -234,7 +234,7 @@ update_user(Username, Password, Language) ->
 -spec get_mibs() -> Result
 	when
 		Result :: [MibName] | ok,
-		MibName :: list().
+		MibName :: atom().
 %% @doc Retrieve a list of all mibs loaded from the bin directory.
 get_mibs() ->
 	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
