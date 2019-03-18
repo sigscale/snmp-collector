@@ -37,25 +37,33 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	[{timetrap, {minutes, 1}}].
+	[{userdata, [{doc, "Test suite for REST API"}]},
+	{require, snmp_mgr, snmp},
+	{default_config, snmp,
+			[{mgr_port, rand:uniform(64511) + 1024}]},
+	{require, snmp_app},
+	{default_config, snmp_app,
+			[{manager,
+					[{config, [{verbosity, silence}]},
+					{server, [{verbosity, silence}]},
+					{notestore, [{verbosity, silence}]},
+					{net_if, [{verbosity, silence}]}]}]},
+	{timetrap, {minutes, 2}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
-	PrivDir = ?config(priv_dir, Config),
-	application:load(mnesia),
-	application:start(snmp_collector),
-	ok = application:set_env(mnesia, dir, PrivDir),
-	{ok, _} = snmp_collector_app:install(),
-	ok = application:start(snmp_collector),
+	ok = snmp_collector_test_lib:initialize_db(Config),
+	ok = ct_snmp:start(Config, snmp_mgr, snmp_app),
+	ok = snmp_collector_test_lib:start(Config),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(_Config) ->
-	ok = application:stop(snmp_collector).
+	ok = snmp_collector_test_lib:stop().
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before each test case.

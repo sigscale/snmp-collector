@@ -51,23 +51,6 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
-	application:load(snmp_collector),
-	Port = rand:uniform(64511) + 1024,
-	ok = application:set_env(snmp_collector, manager_ports, [Port]),
-	PrivDir = ?config(priv_dir, Config),
-	DbDir = PrivDir ++ "/db",
-	ok = file:make_dir(DbDir),
-	ok = application:set_env(mnesia, dir, DbDir),
-	LogDir = PrivDir ++ "/log",
-	ok = file:make_dir(LogDir),
-	ok = application:set_env(snmp_collector, queue_dir, LogDir),
-	MibDir = PrivDir ++ "/mib",
-	ok = file:make_dir(MibDir),
-	ok = application:set_env(snmp_collector, mib_dir, MibDir),
-	MibBinDir = MibDir ++ "/bin",
-	ok = file:make_dir(MibBinDir),
-	ok = application:set_env(snmp_collector, bin_dir, MibBinDir),
-	ok = snmp_collector_test_lib:initialize_db(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -80,13 +63,9 @@ end_per_suite(_Config) ->
 %% Initialization before each test case.
 %%
 init_per_testcase(send_trap_noauth_nopriv, Config) ->
-	DataDir = ?config(data_dir, Config),
-	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = snmpa:load_mib(TrapMib),
-	ok = application:start(snmp_collector),
-	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
-	AgentConf = [{engine_id, "noAuthNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
+	ok = init_snmp(Config),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
+	AgentConf = [{engine_id, "noAuthNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, noAuthNoPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
@@ -95,13 +74,8 @@ init_per_testcase(send_trap_noauth_nopriv, Config) ->
 	Config;
 %% @hidden
 init_per_testcase(send_trap_md5_nopriv, Config) ->
-	DataDir = ?config(data_dir, Config),
-	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = snmpa:load_mib(TrapMib),
-	ok = application:start(snmp_collector),
+	ok = init_snmp(Config),
 	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "md5NoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
@@ -113,13 +87,8 @@ init_per_testcase(send_trap_md5_nopriv, Config) ->
 	Config;
 %% @hidden
 init_per_testcase(send_trap_md5_des, Config) ->
-	DataDir = ?config(data_dir, Config),
-	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = snmpa:load_mib(TrapMib),
-	ok = application:start(snmp_collector),
+	ok = init_snmp(Config),
 	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "md5DesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -132,13 +101,8 @@ init_per_testcase(send_trap_md5_des, Config) ->
 	Config;
 %% @hidden
 init_per_testcase(send_trap_md5_aes, Config) ->
-	DataDir = ?config(data_dir, Config),
-	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = snmpa:load_mib(TrapMib),
-	ok = application:start(snmp_collector),
+	ok = init_snmp(Config),
 	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "md5AesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -151,13 +115,8 @@ init_per_testcase(send_trap_md5_aes, Config) ->
 	Config;
 %% @hidden
 init_per_testcase(send_trap_sha_nopriv, Config) ->
-	DataDir = ?config(data_dir, Config),
-	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = snmpa:load_mib(TrapMib),
-	ok = application:start(snmp_collector),
+	ok = init_snmp(Config),
 	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "shaNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
@@ -169,13 +128,8 @@ init_per_testcase(send_trap_sha_nopriv, Config) ->
 	Config;
 %% @hidden
 init_per_testcase(send_trap_sha_aes, Config) ->
-	DataDir = ?config(data_dir, Config),
-	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = snmpa:load_mib(TrapMib),
-	ok = application:start(snmp_collector),
+	ok = init_snmp(Config),
 	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "shaAesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -188,13 +142,8 @@ init_per_testcase(send_trap_sha_aes, Config) ->
 	Config;
 %% @hidden
 init_per_testcase(send_trap_sha_des, Config) ->
-	DataDir = ?config(data_dir, Config),
-	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = snmpa:load_mib(TrapMib),
-	ok = application:start(snmp_collector),
+	ok = init_snmp(Config),
 	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
 	AgentConf = [{engine_id, "shaDesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
@@ -214,7 +163,7 @@ init_per_testcase(_, Config) ->
 %%
 end_per_testcase(_TestCase, Config) ->
 	{ok, snmp_user_removed} = snmp_collector:remove_snmp_user("ct"),
-	ok = application:stop(snmp_collector),
+	ok = snmp_collector_test_lib:stop(),
 	ok = ct_snmp:stop(Config).
 
 -spec sequences() -> Sequences :: [{SeqName :: atom(), Testcases :: [atom()]}].
@@ -235,6 +184,7 @@ all() ->
 %%---------------------------------------------------------------------
 
 send_trap_noauth_nopriv() ->
+	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
@@ -252,7 +202,7 @@ send_trap_noauth_nopriv() ->
 					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
 					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
 			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
-			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], 4701},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
 					1500, 3, "ct_tag", "ct_params", "noAuthNoPrivAgent", [], 2048}]},
 			{agent_target_param_def, [{"ct_params", v3, usm, "ct", noAuthNoPriv}]},
 			{agent_usm, [{"noAuthNoPrivAgent","ct","ct",
@@ -286,6 +236,7 @@ send_trap_noauth_nopriv(_Config) ->
 	end.
 
 send_trap_md5_nopriv() ->
+	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
@@ -303,7 +254,7 @@ send_trap_md5_nopriv() ->
 					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
 					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
 			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
-			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], 4701},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
 					1500, 3, "ct_tag", "ct_params", "md5NoPrivAgent", [], 2048}]},
 			{agent_target_param_def, [{"ct_params", v3, usm, "ct", authNoPriv}]},
 			{agent_usm, [{"md5NoPrivAgent","ct","ct",
@@ -338,6 +289,7 @@ send_trap_md5_nopriv(_Config) ->
 	end.
 
 send_trap_md5_des() ->
+	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
@@ -355,7 +307,7 @@ send_trap_md5_des() ->
 					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
 					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
 			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
-			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], 4701},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
 					1500, 3, "ct_tag", "ct_params", "md5DesAgent", [], 2048}]},
 			{agent_target_param_def, [{"ct_params", v3, usm, "ct", authPriv}]},
 			{agent_usm, [{"md5DesAgent","ct","ct",
@@ -391,6 +343,7 @@ send_trap_md5_des(_Config) ->
 	end.
 
 send_trap_md5_aes() ->
+	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
@@ -408,7 +361,7 @@ send_trap_md5_aes() ->
 					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
 					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
 			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
-			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], 4701},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
 					1500, 3, "ct_tag", "ct_params", "md5AesAgent", [], 2048}]},
 			{agent_target_param_def, [{"ct_params", v3, usm, "ct", authPriv}]},
 			{agent_usm, [{"md5AesAgent","ct","ct",
@@ -444,6 +397,7 @@ send_trap_md5_aes(_Config) ->
 	end.
 
 send_trap_sha_nopriv() ->
+	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
@@ -461,7 +415,7 @@ send_trap_sha_nopriv() ->
 					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
 					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
 			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
-			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], 4701},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
 					1500, 3, "ct_tag", "ct_params", "shaNoPrivAgent", [], 2048}]},
 			{agent_target_param_def, [{"ct_params", v3, usm, "ct", authNoPriv}]},
 			{agent_usm, [{"shaNoPrivAgent","ct","ct",
@@ -496,6 +450,7 @@ send_trap_sha_nopriv(_Config) ->
 	end.
 
 send_trap_sha_aes() ->
+	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
@@ -513,7 +468,7 @@ send_trap_sha_aes() ->
 					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
 					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
 			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
-			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], 4701},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
 					1500, 3, "ct_tag", "ct_params", "shaAesAgent", [], 2048}]},
 			{agent_target_param_def, [{"ct_params", v3, usm, "ct", authPriv}]},
 			{agent_usm, [{"shaAesAgent","ct","ct",
@@ -549,6 +504,7 @@ send_trap_sha_aes(_Config) ->
 	end.
 
 send_trap_sha_des() ->
+	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
 	{require, snmp_mgr_agent, snmp},
 	{default_config, snmp,
@@ -566,7 +522,7 @@ send_trap_sha_des() ->
 					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
 					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
 			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
-			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], 4701},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
 					1500, 3, "ct_tag", "ct_params", "shaDesAgent", [], 2048}]},
 			{agent_target_param_def, [{"ct_params", v3, usm, "ct", authPriv}]},
 			{agent_usm, [{"shaDesAgent","ct","ct",
@@ -605,14 +561,35 @@ send_trap_sha_des(_Config) ->
 %%  Internal functions
 %%---------------------------------------------------------------------
 
-%% @doc Create a unique SNMP EngineID for SigScale Enterprise.
-%% @hidden
+%% Create a unique SNMP EngineID for SigScale Enterprise.
 engine_id() ->
    PEN = binary_to_list(<<1:1, ?sigscalePEN:31>>),
 	engine_id(PEN, []).
-%% @hidden
 engine_id(PEN, Acc) when length(Acc) == 27 ->
 	PEN ++ [5 | Acc];
 engine_id(PEN, Acc) ->
    engine_id(PEN, [rand:uniform(255) | Acc]).
+
+init_snmp(Config) ->
+	PrivDir = ?config(priv_dir, Config),
+	DbDir = PrivDir ++ "db",
+	case file:make_dir(DbDir) of
+		ok ->
+			ok = application:set_env(mnesia, dir, DbDir),
+			init_snmp1(Config);
+		{error, eexist} ->
+			ok = application:set_env(mnesia, dir, DbDir),
+			init_snmp1(Config);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+init_snmp1(Config) ->
+	DataDir = ?config(data_dir, Config),
+	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
+	ok = snmp_collector_test_lib:initialize_db(Config),
+	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
+	ok = snmpa:load_mib(TrapMib),
+	ok = snmp_collector_test_lib:start(Config),
+	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
+	ok.
 
