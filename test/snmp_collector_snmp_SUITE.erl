@@ -54,7 +54,7 @@ init_per_suite(Config) ->
 	PrivDir = ?config(priv_dir, Config),
 	ok = application:set_env(mnesia, dir, PrivDir),
 	ok = application:start(crypto),
-	{ok, _Tables} = snmp_collector_app:install(),
+	{ok, _} = snmp_collector_app:install(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
