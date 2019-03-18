@@ -91,16 +91,21 @@ class SnmpCollector extends PolymerElement {
 								finished-loading="{{progress}}"
 								name="mibView">
 						</mib-list>
-						<log-list
-								id="logList"
-								loading="{{logLoading}}"
-								name="logView">
-						</log-list>
 						<user-list
 								id="userList"
 								finished-loading="{{progress}}"
 								name="userView">
 						</user-list>
+						<log-list
+								id="logList"
+								loading="{{logLoading}}"
+								name="logView">
+						</log-list>
+						<http-list
+								id="httpList"
+								loading="{{httpLoading}}"
+								name="httpView">
+						</http-list>
 					</iron-pages>
 					<paper-toast
 							id="restError"
@@ -177,6 +182,9 @@ class SnmpCollector extends PolymerElement {
 			case "userView":
 				this.shadowRoot.getElementById('userList').shadowRoot.getElementById('userGrid').clearCache();
 				break;
+			case "httpView":
+				this.shadowRoot.getElementById('httpList').shadowRoot.getElementById('httpGrid').clearCache();
+				break;
 		}
 	}
 
@@ -190,7 +198,10 @@ class SnmpCollector extends PolymerElement {
 			routeData: Object,
 			ubroute: Object,
 			logLoading: {
-				type: String
+				type: String,
+			},
+			httpLoading: {
+				type: String,
 			}
 		};
 	}
@@ -198,7 +209,7 @@ class SnmpCollector extends PolymerElement {
 	static get observers() {
 		return [
 			'_routePageChanged(routeData.page)',
-			'_loadingChanged(logLoading)'
+			'_loadingChanged(logLoading, httpLoading)'
 		];
 	}
 
@@ -209,7 +220,7 @@ class SnmpCollector extends PolymerElement {
 		// Show 'mibView' in that case. And if the page doesn't exist, show 'view404'.
 		if (!page) {
 			this.page = 'mibView';
-		} else if (['mibView', 'logView', 'userView'].indexOf(page) !== -1) {
+		} else if (['mibView', 'userView', 'logView', 'httpView'].indexOf(page) !== -1) {
 			this.page = page;
 		}
 		// Close a non-persistent drawer when the page & route are changed.
@@ -233,6 +244,9 @@ class SnmpCollector extends PolymerElement {
 			case 'userView':
 				import('./user-list.js');
 				break;
+			case 'httpView':
+				import('./http-list.js');
+				break
 			}
 		}
 
