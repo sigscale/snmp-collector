@@ -49,29 +49,15 @@ suite() ->
 					{server, [{verbosity, silence}]},
 					{notestore, [{verbosity, silence}]},
 					{net_if, [{verbosity, silence}]}]}]},
-	{timetrap, {minutes, 1}}].
+	{timetrap, {minutes, 2}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
-	ok = application:load(snmp_collector),
-	PrivDir = ?config(priv_dir, Config),
-	DbDir = PrivDir ++ "/db",
-	ok = file:make_dir(DbDir),
-	ok = application:set_env(mnesia, dir, DbDir),
-	LogDir = PrivDir ++ "/log",
-	ok = file:make_dir(LogDir),
-	ok = application:set_env(snmp_collector, queue_dir, LogDir),
-	MibDir = PrivDir ++ "/mib",
-	ok = file:make_dir(MibDir),
-	ok = application:set_env(snmp_collector, mib_dir, MibDir),
-	MibBinDir = MibDir ++ "/bin",
-	ok = file:make_dir(MibBinDir),
-	ok = application:set_env(snmp_collector, bin_dir, MibBinDir),
-	ok = snmp_collector_test_lib:initialize_db(),
-	ok =  ct_snmp:start(Config, snmp_mgr, snmp_app),
-	ok = snmp_collector_test_lib:start(),
+	ok = snmp_collector_test_lib:initialize_db(Config),
+	ok = ct_snmp:start(Config, snmp_mgr, snmp_app),
+	ok = snmp_collector_test_lib:start(Config),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -87,7 +73,7 @@ init_per_testcase(query_faults, Config) ->
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	LogInfo = disk_log:info(LogName),
 	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
-	TargetNames = [string(20) || lists:seq(1, 25)],
+	TargetNames = [string(20) || _ <- lists:seq(1, 25)],
 	Fdetails = fun Fdetails(0, Acc) ->
 				Acc;
 			Fdetails(N, Acc) ->
@@ -184,7 +170,7 @@ query_faults() ->
 	[{userdata, [{doc, "Query event log for faults"}]}].
 
 query_faults(_Config) ->
-	{skip, unimplemented}.
+	disk_log:info(faults).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -223,5 +209,5 @@ string(N) ->
 %% @hidden
 string(Charset, CharsetLen, N, Acc) ->
 	string(Charset, CharsetLen, N,
-			[lists:seq(rand:uniform(CharsetLen), Charset) | Acc]).
+			[lists:nth(rand:uniform(CharsetLen), Charset) | Acc]).
 

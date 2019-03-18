@@ -22,17 +22,31 @@
 -copyright('Copyright (c) 2019 SigScale Global Inc.').
 
 %% common_test required callbacks
--export([initialize_db/0, start/0, stop/0]).
+-export([initialize_db/1, start/1, stop/0]).
 
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
+-include_lib("common_test/include/ct.hrl").
 -include("snmp_collector.hrl").
 
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
 
+initialize_db(Config) ->
+	PrivDir = ?config(priv_dir, Config),
+	DbDir = PrivDir ++ "db",
+	case file:make_dir(DbDir) of
+		ok ->
+			ok = application:set_env(mnesia, dir, DbDir),
+			initialize_db();
+		{error, eexist} ->
+			ok = application:set_env(mnesia, dir, DbDir),
+			initialize_db();
+		{error, Reason} ->
+			{error, Reason}
+	end.
 initialize_db() ->
 	case mnesia:system_info(is_running) of
 		no ->
@@ -55,20 +69,76 @@ initialize_db() ->
 			end
 	end.
 
-start() ->
-	start([crypto, inets, asn1, public_key, ssl, snmp, snmp_collector]).
-%% @hidden
-start([H | T]) ->
+start(Config) ->
+	start(Config, [crypto, inets, asn1, public_key, ssl, mnesia, snmp]).
+start(Config, [H | T]) ->
 	case application:start(H) of
 		ok  ->
-			start(T);
+			start(Config, T);
 	{error, {already_started, H}} ->
-		start(T);
+		start(Config, T);
 	{error, Reason} ->
 		{error, Reason}
 	end;
-start([]) ->
-	ok.
+start(Config, []) ->
+	application:load(snmp_collector),
+	case ct:get_config({snmp_mgr_agent, agent_target_address_def}) of
+		[TargetAdressDef] ->
+			{_, Port} = element(3, TargetAdressDef),
+			ok = application:set_env(snmp_collector, manager_ports, [Port]);
+		undefined ->
+			ok
+	end,
+	PrivDir = ?config(priv_dir, Config),
+	DbDir = PrivDir ++ "db",
+	case file:make_dir(DbDir) of
+		ok ->
+			ok = application:set_env(mnesia, dir, DbDir),
+			start1(Config, PrivDir);
+		{error, eexist} ->
+			ok = application:set_env(mnesia, dir, DbDir),
+			start1(Config, PrivDir);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+start1(Config, PrivDir) ->
+	LogDir = PrivDir ++ "log",
+	case file:make_dir(LogDir) of
+		ok ->
+			ok = application:set_env(snmp_collector, queue_dir, LogDir),
+			start2(Config, PrivDir);
+		{error, eexist} ->
+			ok = application:set_env(snmp_collector, queue_dir, LogDir),
+			start2(Config, PrivDir);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+start2(Config, PrivDir) ->
+	MibDir = PrivDir ++ "mib",
+	case file:make_dir(MibDir) of
+		ok ->
+			ok = application:set_env(snmp_collector, mib_dir, MibDir),
+			start3(Config, PrivDir);
+		{error, eexist} ->
+			ok = application:set_env(snmp_collector, mib_dir, MibDir),
+			start3(Config, PrivDir);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+start3(Config, PrivDir) ->
+	MibBinDir = PrivDir ++ "mib/bin",
+	case file:make_dir(MibBinDir) of
+		ok ->
+			ok = application:set_env(snmp_collector, bin_dir, MibBinDir),
+			start4(Config);
+		{error, eexist} ->
+			ok = application:set_env(snmp_collector, bin_dir, MibBinDir),
+			start4(Config);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+start4(_Config) ->
+	application:start(snmp_collector).
 
 stop() ->
 	application:stop(snmp_collector).
