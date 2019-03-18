@@ -51,10 +51,23 @@ suite() ->
 %% Initialization before the whole suite.
 %%
 init_per_suite(Config) ->
+	application:load(snmp_collector),
+	Port = rand:uniform(64511) + 1024,
+	ok = application:set_env(snmp_collector, manager_ports, [Port]),
 	PrivDir = ?config(priv_dir, Config),
-	ok = application:set_env(mnesia, dir, PrivDir),
-	ok = application:start(crypto),
-	{ok, _Tables} = snmp_collector_app:install(),
+	DbDir = PrivDir ++ "/db",
+	ok = file:make_dir(DbDir),
+	ok = application:set_env(mnesia, dir, DbDir),
+	LogDir = PrivDir ++ "/log",
+	ok = file:make_dir(LogDir),
+	ok = application:set_env(snmp_collector, queue_dir, LogDir),
+	MibDir = PrivDir ++ "/mib",
+	ok = file:make_dir(MibDir),
+	ok = application:set_env(snmp_collector, mib_dir, MibDir),
+	MibBinDir = MibDir ++ "/bin",
+	ok = file:make_dir(MibBinDir),
+	ok = application:set_env(snmp_collector, bin_dir, MibBinDir),
+	ok = snmp_collector_test_lib:initialize_db(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
@@ -87,8 +100,9 @@ init_per_testcase(send_trap_md5_nopriv, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
 	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
-	AgentConf = [{engine_id, "md5NoPrivAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
+	AgentConf = [{engine_id, "md5NoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACMD5AuthProtocol},
@@ -104,8 +118,9 @@ init_per_testcase(send_trap_md5_des, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
 	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
-	AgentConf = [{engine_id, "md5DesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
+	AgentConf = [{engine_id, "md5DesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACMD5AuthProtocol},
@@ -122,8 +137,9 @@ init_per_testcase(send_trap_md5_aes, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
 	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
-	AgentConf = [{engine_id, "md5AesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
+	AgentConf = [{engine_id, "md5AesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACMD5AuthProtocol},
@@ -140,8 +156,9 @@ init_per_testcase(send_trap_sha_nopriv, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
 	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
-	AgentConf = [{engine_id, "shaNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
+	AgentConf = [{engine_id, "shaNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACSHAAuthProtocol},
@@ -157,8 +174,9 @@ init_per_testcase(send_trap_sha_aes, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
 	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
-	AgentConf = [{engine_id, "shaAesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
+	AgentConf = [{engine_id, "shaAesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACSHAAuthProtocol},
@@ -175,8 +193,9 @@ init_per_testcase(send_trap_sha_des, Config) ->
 	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
 	ok = snmpa:load_mib(TrapMib),
 	ok = application:start(snmp_collector),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
 	{ok, snmp_user_added} = snmp_collector:add_snmp_user("ct", "BigBrownFox#1", "BigBlackCat#1"),
-	AgentConf = [{engine_id, "shaDesAgent"}, {taddress, {127,0,0,1}}, {port, 4701},
+	AgentConf = [{engine_id, "shaDesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	Conf = [{sec_name, "ct"}, {auth, usmHMACSHAAuthProtocol},
@@ -261,6 +280,9 @@ send_trap_noauth_nopriv(_Config) ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
 	end.
 
 send_trap_md5_nopriv() ->
@@ -310,6 +332,9 @@ send_trap_md5_nopriv(_Config) ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
 	end.
 
 send_trap_md5_des() ->
@@ -360,6 +385,9 @@ send_trap_md5_des(_Config) ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
 	end.
 
 send_trap_md5_aes() ->
@@ -410,6 +438,9 @@ send_trap_md5_aes(_Config) ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
 	end.
 
 send_trap_sha_nopriv() ->
@@ -459,6 +490,9 @@ send_trap_sha_nopriv(_Config) ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
 	end.
 
 send_trap_sha_aes() ->
@@ -509,6 +543,9 @@ send_trap_sha_aes(_Config) ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
 	end.
 
 send_trap_sha_des() ->
@@ -559,6 +596,9 @@ send_trap_sha_des(_Config) ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
 	end.
 
 %%---------------------------------------------------------------------
