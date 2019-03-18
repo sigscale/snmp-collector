@@ -38,44 +38,47 @@
 %% Require variables and set default values for the suite.
 %%
 suite() ->
-	ManagerPort = rand:uniform(32767) + 32768,
-	[{userdata, [{doc, "Test suite for SNMP collector API"}]},
-	{require, snmp_mgr_agent, snmp},
+	[{userdata, [{doc, "Test suite for public API"}]},
+	{require, snmp_mgr, snmp},
 	{default_config, snmp,
-			[{start_manager, true},
-			{mgr_port, ManagerPort},
-			{users,
-					[{?MODULE, [snmp_collector_trap, undefined]}]},
-			{start_agent, false}]},
+			[{mgr_port, rand:uniform(64511) + 1024}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
 					[{config, [{verbosity, silence}]},
 					{server, [{verbosity, silence}]},
+					{notestore, [{verbosity, silence}]},
 					{net_if, [{verbosity, silence}]}]}]},
-	{timetrap, {minutes, 2}}].
+	{timetrap, {minutes, 1}}].
 
 -spec init_per_suite(Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before the whole suite.
 %%
 init_per_suite(Config) ->
+	ok = application:load(snmp_collector),
 	PrivDir = ?config(priv_dir, Config),
-	MnesiaDir = PrivDir ++ "db",
-	ok = file:make_dir(MnesiaDir),
-	ok = application:set_env(mnesia, dir, MnesiaDir),
-	ok = ct_snmp:start(Config, snmp_mgr_agent, snmp_app),
-	ok = application:start(crypto),
-	ok = application:start(snmp_collector),
-	snmp_collector_app:install(),
+	DbDir = PrivDir ++ "/db",
+	ok = file:make_dir(DbDir),
+	ok = application:set_env(mnesia, dir, DbDir),
+	LogDir = PrivDir ++ "/log",
+	ok = file:make_dir(LogDir),
+	ok = application:set_env(snmp_collector, queue_dir, LogDir),
+	MibDir = PrivDir ++ "/mib",
+	ok = file:make_dir(MibDir),
+	ok = application:set_env(snmp_collector, mib_dir, MibDir),
+	MibBinDir = MibDir ++ "/bin",
+	ok = file:make_dir(MibBinDir),
+	ok = application:set_env(snmp_collector, bin_dir, MibBinDir),
+	ok = snmp_collector_test_lib:initialize_db(),
+	ok =  ct_snmp:start(Config, snmp_mgr, snmp_app),
+	ok = snmp_collector_test_lib:start(),
 	Config.
 
 -spec end_per_suite(Config :: [tuple()]) -> any().
 %% Cleanup after the whole suite.
 %%
 end_per_suite(_Config) ->
-	ok = application:stop(snmp_collector),
-	ok = application:stop(snmp),
-	ok = application:stop(mnesia).
+	ok = snmp_collector_test_lib:stop().
 
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before each test case.
