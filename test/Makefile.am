@@ -3,8 +3,7 @@
 ##
 ## Process this file with automake to produce Makefile.in
 
-CERT_DIR = snmp_collector_snmp_SUITE_data \
-		snmp_collector_rest_SUITE_data
+CERT_DIR = snmp_collector_rest_SUITE_data
 
 testmods = snmp_collector_snmp_SUITE \
 		snmp_collector_api_SUITE \
