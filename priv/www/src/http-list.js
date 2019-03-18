@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+ * Copyright (c) 2018 The Polymer Project Authors. All rights reserved.
  * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
  * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
  * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
@@ -159,15 +159,15 @@ class httpList extends PolymerElement {
 				current = last;
 			} else {
 				current = item
-         }
-         function checkExist(log) {
+			}
+			function checkExist(log) {
 				return log.id == current.id;
-         }
+			}
 			if(grid.detailsOpenedItems && grid.detailsOpenedItems.some(checkExist)) {
 				grid.closeItemDetails(current);
 			} else {
 				grid.openItemDetails(current);
-         }
+			}
 		}
 	}
 
@@ -177,7 +177,7 @@ class httpList extends PolymerElement {
 		var ajaxGrid = this.shadowRoot.getElementById('getHttpList');
 		grid.dataProvider = this._getHttpResponse;
 	}
-	
+
 	_getHttpResponse(params, callback) {
 		var grid = this;
 		var httpList = document.body.querySelector('snmp-collector').shadowRoot.querySelector('http-list').shadowRoot.getElementById('getHttpList');
@@ -188,12 +188,12 @@ class httpList extends PolymerElement {
 				var range = request.xhr.getResponseHeader('Content-Range');
 				var range1 = range.split("/");
 				var range2 = range1[0].split("-");
-            if (range1[1] != "*") {
-               grid.size = Number(range1[1]);
-            } else {
-               grid.size = Number(range2[1]) + grid.pageSize * 2;
-            }
-            var vaadinItems = new Array();
+				if (range1[1] != "*") {
+					grid.size = Number(range1[1]);
+				} else {
+					grid.size = Number(range2[1]) + grid.pageSize * 2;
+				}
+				var vaadinItems = new Array();
 				for(var index in request.response) {
 					var newRecord = new Object();
 					newRecord.date = request.response[index].date;
@@ -203,46 +203,46 @@ class httpList extends PolymerElement {
 					newRecord.uri = request.response[index].uri;
 					newRecord.httpStatus = request.response[index].httpStatus;
 					vaadinItems[index] = newRecord;
-				}	
+				}
 				callback(vaadinItems);
-         } else {
-            grid.size = 0;
-            callback([]);
-         }
-      };
-      var handleAjaxError = function(error) {
-         httpList1.etag = null;
-         var toast;
-         toast.text = "error";
-         toast.open();
-         if(!grid.size) {
-            grid.size = 0;
-         }
-         callback([]);
-      }
+			} else {
+				grid.size = 0;
+				callback([]);
+			}
+		};
+		var handleAjaxError = function(error) {
+			httpList1.etag = null;
+			var toast;
+			toast.text = "error";
+			toast.open();
+			if(!grid.size) {
+				grid.size = 0;
+			}
+			callback([]);
+		}
 		if(httpList.loading) {
-         httpList.lastRequest.completes.then(function(request) {
-            var startRange = params.page * params.pageSize + 1;
-            httpList.headers['Range'] = "items=" + startRange + "-" + endRange;
-            if (httpList1.etag && params.page > 0) {
-               httpList.headers['If-Range'] = httpList1.etag;
-            } else {
-               delete httpList.headers['If-Range'];
-            }
-            return httpList.generateRequest().completes;
-            }, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
-         } else {
-            var startRange = params.page * params.pageSize + 1;
-            var endRange = startRange + params.pageSize - 1;
-            httpList.headers['Range'] = "items=" + startRange + "-" + endRange;
-            if (httpList1.etag && params.page > 0) {
-               httpList.headers['If-Range'] = httpList1.etag;
-            } else {
-               delete httpList.headers['If-Range'];
-            }
-            httpList.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
-         }
-      }
-}
+			httpList.lastRequest.completes.then(function(request) {
+				var startRange = params.page * params.pageSize + 1;
+				httpList.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (httpList1.etag && params.page > 0) {
+					httpList.headers['If-Range'] = httpList1.etag;
+				} else {
+					delete httpList.headers['If-Range'];
+				}
+				return httpList.generateRequest().completes;
+				}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+			} else {
+				var startRange = params.page * params.pageSize + 1;
+				var endRange = startRange + params.pageSize - 1;
+				httpList.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (httpList1.etag && params.page > 0) {
+					httpList.headers['If-Range'] = httpList1.etag;
+				} else {
+					delete httpList.headers['If-Range'];
+				}
+				httpList.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+			}
+		}
+	}
 
-	window.customElements.define('http-list', httpList);
+window.customElements.define('http-list', httpList);
