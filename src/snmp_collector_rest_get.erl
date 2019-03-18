@@ -73,7 +73,7 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 	end.
 
 %% @hidden
-content_type_available(Headers, Uri, Resource, ModData) ->
+content_type_available(Headers, Uri, Resource, #mod{data = Data} = ModData) ->
 	case lists:keyfind("accept", 1, Headers) of
 		{_, RequestingType} ->
 			AvailableTypes = Resource:content_types_provided(),
@@ -82,7 +82,7 @@ content_type_available(Headers, Uri, Resource, ModData) ->
 					parse_query(Resource, ModData, httpd_util:split_path(Uri));
 				false ->
 					Response = "<h2>HTTP Error 415 - Unsupported Media Type</h2>",
-					{break, [{response, {415, Response}}]}
+					{proceed, [{response, {415, Response}} | Data]}
 			end;
 		_ ->
 			parse_query(Resource, ModData, httpd_util:split_path(Uri))
@@ -94,9 +94,9 @@ parse_query(Resource, ModData, {Path, []}) ->
 parse_query(Resource, ModData, {Path, "?" ++ Query}) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
 		snmp_collector_rest:parse_query(Query));
-parse_query(_R, _P, _Q) ->
+parse_query(_R, #mod{data = Data} = ModData, _Q) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response, {404, Response}}]}.
+	{proceed, [{response, {404, Response}} | Data]}.
 
 %% @hidden
 do_get(Resource, #mod{parsed_header = _Headers} = ModData,
@@ -117,31 +117,31 @@ do_get(Resource, #mod{parsed_header = Headers} = ModData,
 	do_response(ModData, Resource:get_http());
 do_get(Resource, ModData, ["eventManagement", "v1", "event", Id], Query) ->
 	do_response(ModData, Resource:get_event(Id, Query));
-do_get(_, _, _, _) ->
+do_get(_, #mod{data = Data} = ModData, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response, {404, Response}}]}.
+	{proceed, [{response, {404, Response}} | Data]}.
 
 %% @hidden
-do_response(ModData, {ok, Headers, ResponseBody}) ->
+do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	Size = integer_to_list(iolist_size(ResponseBody)),
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 200, NewHeaders, ResponseBody),
-	{proceed,[{response,{already_sent, 200, Size}}]};
-do_response(_ModData, {error, 400}) ->
+	{proceed,[{response,{already_sent, 200, Size}} | Data]};
+do_response(#mod{data = Data} = ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
-	{break, [{response, {400, Response}}]};
-do_response(_ModData, {error, 404}) ->
+	{proceed, [{response, {400, Response}} | Data]};
+do_response(#mod{data = Data} = ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
-	{break, [{response, {404, Response}}]};
-do_response(_ModData, {error, 412}) ->
+	{proceed, [{response, {404, Response}} | Data]};
+do_response(#mod{data = Data} = ModData, {error, 412}) ->
 	Response = "<h2>HTTP Error 412 - Precondition Failed</h2>",
-	{break, [{response, {412, Response}}]};
-do_response(_ModData, {error, 416}) ->
+	{proceed, [{response, {412, Response}} | Data]};
+do_response(#mod{data = Data} = ModData, {error, 416}) ->
 	Response = "<h2>HTTP Error 416 - Range Not Satisfiable</h2>",
-	{break, [{response, {416, Response}}]};
-do_response(_ModData, {error, 500}) ->
+	{proceed, [{response, {416, Response}} | Data]};
+do_response(#mod{data = Data} = ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
-	{break, [{response, {500, Response}}]}.
+	{proceed, [{response, {500, Response}} | Data]}.
 
 
 %% @hidden
