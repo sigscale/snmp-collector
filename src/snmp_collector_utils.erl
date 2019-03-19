@@ -20,7 +20,7 @@
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, arrange_list/1,
-		log_events/2, security_params/7, agent_name/1, oids_to_names/2, generate_maps/2]).
+		stringify/1, log_events/2, security_params/7, agent_name/1, oids_to_names/2, generate_maps/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -615,6 +615,42 @@ oids_to_names([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
 
+-spec stringify(String) -> Result
+	when
+		String :: string(),
+		Result :: string().
+%% @doc JSON encode a string.
+%% @private
+stringify(String) ->
+	stringify1(String, []).
+%% @hidden
+stringify1([$\b | T], Acc) ->
+	stringify1(T, [$b, $\\ | Acc]);
+stringify1([$\d | T], Acc) ->
+	stringify1(T, [$d, $\\ | Acc]);
+stringify1([$\e | T], Acc) ->
+	stringify1(T, [$e, $\\ | Acc]);
+stringify1([$\f | T], Acc) ->
+	stringify1(T, [$f, $\\ | Acc]);
+stringify1([$\n | T], Acc) ->
+	stringify1(T, [$n, $\\ | Acc]);
+stringify1([$\r | T], Acc) ->
+	stringify1(T, [$r, $\\ | Acc]);
+stringify1([$\t | T], Acc) ->
+	stringify1(T, [$t, $\\ | Acc]);
+stringify1([$\v | T], Acc) ->
+	stringify1(T, [$v, $\\ | Acc]);
+stringify1([$\' | T], Acc) ->
+	stringify1(T, Acc);
+stringify1([$\" | T], Acc) ->
+	stringify1(T, Acc);
+stringify1([$\\ | T], Acc) ->
+	stringify1(T, [$\\, $\\ | Acc]);
+stringify1([H | T], Acc) ->
+	stringify1(T, [H | Acc]);
+stringify1([], Acc) ->
+	lists:reverse(Acc).
+
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
@@ -756,42 +792,6 @@ add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
 		{error, Reason} ->
 			{error, Reason}
 	end.
-
--spec stringify(String) -> Result
-	when
-		String :: string(),
-		Result :: string().
-%% @doc JSON encode a string.
-%% @private
-stringify(String) ->
-	stringify1(String, []).
-%% @hidden
-stringify1([$\b | T], Acc) ->
-	stringify1(T, [$b, $\\ | Acc]);
-stringify1([$\d | T], Acc) ->
-	stringify1(T, [$d, $\\ | Acc]);
-stringify1([$\e | T], Acc) ->
-	stringify1(T, [$e, $\\ | Acc]);
-stringify1([$\f | T], Acc) ->
-	stringify1(T, [$f, $\\ | Acc]);
-stringify1([$\n | T], Acc) ->
-	stringify1(T, [$n, $\\ | Acc]);
-stringify1([$\r | T], Acc) ->
-	stringify1(T, [$r, $\\ | Acc]);
-stringify1([$\t | T], Acc) ->
-	stringify1(T, [$t, $\\ | Acc]);
-stringify1([$\v | T], Acc) ->
-	stringify1(T, [$v, $\\ | Acc]);
-stringify1([$\' | T], Acc) ->
-	stringify1(T, Acc);
-stringify1([$\" | T], Acc) ->
-	stringify1(T, Acc);
-stringify1([$\\ | T], Acc) ->
-	stringify1(T, [$\\, $\\ | Acc]);
-stringify1([H | T], Acc) ->
-	stringify1(T, [H | Acc]);
-stringify1([], Acc) ->
-	lists:reverse(Acc).
 
 -spec auth_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
 	when
