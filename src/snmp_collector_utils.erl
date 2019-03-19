@@ -21,7 +21,7 @@
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
 		entity_name/1, entity_id/1, event_id/0, timestamp/0, arrange_list/1,
-		map_names_values/2, log_events/2, security_params/7,
+		log_events/2, security_params/7,
 		agent_name/1, destringify/1, oids_to_names/2, generate_maps/2,
 		common_event_header/2, fault_fields/1]).
 
@@ -343,18 +343,8 @@ generate_maps(TargetName, AlarmDetails) ->
 		Value :: list(),
 		Result :: {map(), AlarmDetails}.
 %% @doc Create the VES common event header map.
-common_event_header(TargetName, AlarmDetails) ->
-	common_event_header(AlarmDetails, TargetName, #{}).
-%% @hidden
-common_event_header([{"eventName", Value}| T], TargetName, Acc) ->
-	common_event_header(T, TargetName, maps:put("eventName", Value, Acc));
-common_event_header([{"sourceId", Value}| T], TargetName, Acc) ->
-	common_event_header(T, TargetName, maps:put("sourceId", Value, Acc));
-common_event_header([{"sourceName", Value}| T], TargetName, Acc) ->
-	common_event_header(T, TargetName, maps:put("sourceName", Value, Acc));
-common_event_header([{"raisedTime", Value}| T], TargetName, Acc) ->
-	common_event_header(T, TargetName, maps:put("startEpochMicrosec", iso8601(Value), Acc));
-common_event_header(T, TargetName, Acc) ->
+common_event_header(TargetName, AlarmDetails)
+		when is_list(TargetName), is_list(AlarmDetails) ->
 	DefaultMap = #{"domain" => "fault",
 			"eventId" => event_id(),
 			"lastEpochMicrosec" => timestamp(),
@@ -363,8 +353,26 @@ common_event_header(T, TargetName, Acc) ->
 			"reportingEntityID" => stringify(entity_id(TargetName)),
 			"sequence" => 0,
 			"version" => 1},
-	FinalMap = maps:merge(DefaultMap, Acc),
-	{FinalMap, T}.
+	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
+%% @hidden
+common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("eventName", Value, CH), AD);
+common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("sourceId", Value, CH), AD);
+common_event_header([{"sourceName", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("sourceName", Value, CH), AD);
+common_event_header([{"priority", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("priority", Value, CH), AD);
+common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("sequence", Value, CH), AD);
+common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("version", Value, CH), AD);
+common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("startEpochMicrosec", iso8601(Value), CH), AD);
+common_event_header([H | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH, [H | AD]);
+common_event_header([], _TargetName, CH, AD) ->
+	{CH, AD}.
 
 -spec fault_fields(AlarmDetails) -> Result
 	when
@@ -373,8 +381,10 @@ common_event_header(T, TargetName, Acc) ->
 		Value :: list(),
 		Result :: map().
 %% @doc Create the fault fields map.
-fault_fields(AlarmDetails) ->
-	fault_fields(AlarmDetails, #{}).
+fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"faultFieldsVersion" => 1},
+	fault_fields(AlarmDetails, DefaultMap).
 %% @hidden
 fault_fields([{"alarmCondition", Value} | T], Acc) ->
 	fault_fields(T, maps:put("alarmCondition", Value, Acc));
@@ -386,25 +396,12 @@ fault_fields([{"eventSourceType", Value} | T], Acc) ->
 	fault_fields(T, maps:put("eventSourceType", Value, Acc));
 fault_fields([{"specificProblem", Value} | T], Acc) ->
 	fault_fields(T, maps:put("specificProblem", Value, Acc));
-fault_fields(T, Acc) ->
-	AdditionalInfo = map_names_values(T, []),
-	DefaultMap = #{"alarmAdditionalInformation" => AdditionalInfo,
-			"faultFieldsVersion" => 1},
-	maps:merge(DefaultMap, Acc).
-
--spec map_names_values(Objects, Acc) -> Result
-	when
-		Objects :: [{Name, Value}],
-		Acc :: list(),
-		Name :: string(),
-		Value :: term(),
-		Result :: [map()].
-%% @doc Turn the list of names and values into a map format.
-%% @private
-map_names_values([{Name, Value} | T], Acc) ->
-	map_names_values(T, [#{"name" => Name, "value" => Value} | Acc]);
-map_names_values([], Acc) ->
-	lists:reverse(Acc).
+fault_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	fault_fields(T, maps:put("alarmAdditionalInformation", NewAI, Acc));
+fault_fields([], Acc) ->
+	Acc.
 
 -spec security_params(EngineID, Address, SecName,
 		AuthParams, Packet, AuthPass, PrivPass) -> Result
