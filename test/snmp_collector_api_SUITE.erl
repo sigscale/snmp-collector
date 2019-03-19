@@ -73,8 +73,10 @@ end_per_suite(_Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before each test case.
 %%
-init_per_testcase(query_faults, Config) ->
-	TargetNames = [string(20) || _ <- lists:seq(1, 25)],
+init_per_testcase(TestCase, Config)
+		when TestCase == get_faults;
+		TestCase == log_agent->
+	AgentNames = [string(20) || _ <- lists:seq(1, 25)],
 	Fdetails = fun F(0, Acc) ->
 				Acc;
 			F(N, Acc) ->
@@ -83,7 +85,7 @@ init_per_testcase(query_faults, Config) ->
 	Fill = fun F(0) ->
 				ok;
 			F(N) ->
-				TN = lists:nth(rand:uniform(length(TargetNames)), TargetNames),
+				TN = lists:nth(rand:uniform(length(AgentNames)), AgentNames),
 				AlarmDetails = Fdetails(rand:uniform(12), []),
 				{CH, FF} = snmp_collector_utils:generate_maps(TN, AlarmDetails),
 				ok = snmp_collector_utils:log_events(CH, FF),
@@ -118,7 +120,9 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[add_user, get_user, delete_user, get_mib, query_faults].
+	[add_user, get_user, delete_user,
+			get_mib,
+			get_faults, log_agent].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -173,10 +177,10 @@ get_mib(_Config) ->
 	{ok, Data} = file:read_file(TestMib),
 	{ok, _} = snmp_collector:add_mib(Data).
 	
-query_faults() ->
-	[{userdata, [{doc, "Query event log for faults (all)"}]}].
+get_faults() ->
+	[{userdata, [{doc, "Query event log for (all) faults"}]}].
 
-query_faults(_Config) ->
+get_faults(_Config) ->
 	Start = 1,
 	End = erlang:system_time(?MILLISECOND),
 	{_Cont, Events} = snmp_collector_log:fault_query(start,
@@ -192,6 +196,33 @@ query_faults(_Config) ->
 				false
 	end,
 	true = lists:all(Fall, Events).
+
+log_agent() ->
+	[{userdata, [{doc, "Query event log for faults from an agent"}]}].
+
+log_agent(_Config) ->
+	case list_to_integer(erlang:system_info(otp_release)) of
+		OtpRelease when OtpRelease >= 21 ->
+			{ok, LogName} = application:get_env(snmp_collector, queue_name),
+			{_Cont, Chunk} = disk_log:chunk(LogName, start),
+			#{"reportingEntityName" := Agent} = element(4, lists:last(Chunk)),
+			MatchHead = [{'$1', [{'==',
+					{map_get, "reportingEntityName", '$1'}, Agent}], ['$_']}],
+			{_Cont, Events} = snmp_collector_log:fault_query(start,
+					50, 1, erlang:system_time(?MILLISECOND), MatchHead, '_'),
+			Fall = fun (Event) ->
+					case element(4, Event) of
+						#{"reportingEntityName" := Agent} ->
+							true;
+						_ ->
+							false
+					end
+			end,
+			true = length(Events) > 0,
+			true = lists:all(Fall, Events);
+		_OtpRelease ->
+			{skip, "requires OTP 21 or later"}
+	end.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
