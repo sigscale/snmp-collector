@@ -30,6 +30,10 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -70,27 +74,30 @@ end_per_suite(_Config) ->
 %% Initiation before each test case.
 %%
 init_per_testcase(query_faults, Config) ->
-	{ok, LogName} = application:get_env(snmp_collector, queue_name),
-	LogInfo = disk_log:info(LogName),
-	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
 	TargetNames = [string(20) || _ <- lists:seq(1, 25)],
-	Fdetails = fun Fdetails(0, Acc) ->
+	Fdetails = fun F(0, Acc) ->
 				Acc;
-			Fdetails(N, Acc) ->
-				Fdetails(N - 1, [{string(15), string(50)} | Acc])
+			F(N, Acc) ->
+				F(N - 1, [{string(15), string(50)} | Acc])
 	end,
-	Fill = fun Fill(0) ->
+	Fill = fun F(0) ->
 				ok;
-			Fill(N) ->
+			F(N) ->
 				TN = lists:nth(rand:uniform(length(TargetNames)), TargetNames),
-				AlarmDetails = Fdetails(rand:uniform(12)),
+				AlarmDetails = Fdetails(rand:uniform(12), []),
 				{CH, FF} = snmp_collector_utils:generate_maps(TN, AlarmDetails),
 				ok = snmp_collector_utils:log_events(CH, FF),
-				Fill(N - 1)
+				F(N - 1)
 	end,
-	EventSize = erlang:external_size(Fill(1)),
-	NumItems = (FileSize div EventSize) * 5,
-	ok = Fill(NumItems),
+	ok = Fill(10),
+	{ok, LogName} = application:get_env(snmp_collector, queue_name),
+	LogInfo = disk_log:info(LogName),
+	{_, CurrentItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurrentSize} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = (CurrentSize div CurrentItems) + 1,
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	NumEvents = (FileSize div EventSize) * 5,
+	ok = Fill(NumEvents),
 	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
@@ -167,10 +174,24 @@ get_mib(_Config) ->
 	{ok, _} = snmp_collector:add_mib(Data).
 	
 query_faults() ->
-	[{userdata, [{doc, "Query event log for faults"}]}].
+	[{userdata, [{doc, "Query event log for faults (all)"}]}].
 
 query_faults(_Config) ->
-	disk_log:info(faults).
+	Start = 1,
+	End = erlang:system_time(?MILLISECOND),
+	{_Cont, Events} = snmp_collector_log:fault_query(start,
+			50, Start, End, '_', '_'),
+	Fall = fun (Event) when element(1, Event) >= Start,
+					element(1, Event) =< End,
+					is_integer(element(2, Event)),
+					is_atom(element(3, Event)),
+					is_map(element(4, Event)),
+					is_map(element(5, Event)) ->
+				true;
+			(_) ->
+				false
+	end,
+	true = lists:all(Fall, Events).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -207,7 +228,9 @@ string(N) ->
 	CharsetLen = length(Charset),
 	string(Charset, CharsetLen, N, []).
 %% @hidden
+string(_Charset, _CharsetLen, 0, Acc) ->
+	Acc;
 string(Charset, CharsetLen, N, Acc) ->
-	string(Charset, CharsetLen, N,
+	string(Charset, CharsetLen, N - 1,
 			[lists:nth(rand:uniform(CharsetLen), Charset) | Acc]).
 
