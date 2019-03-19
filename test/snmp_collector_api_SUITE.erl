@@ -30,6 +30,10 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
+
 %%---------------------------------------------------------------------
 %%  Test server callback functions
 %%---------------------------------------------------------------------
@@ -69,28 +73,33 @@ end_per_suite(_Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initiation before each test case.
 %%
-init_per_testcase(query_faults, Config) ->
-	{ok, LogName} = application:get_env(snmp_collector, queue_name),
-	LogInfo = disk_log:info(LogName),
-	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
-	TargetNames = [string(20) || _ <- lists:seq(1, 25)],
-	Fdetails = fun Fdetails(0, Acc) ->
+init_per_testcase(TestCase, Config)
+		when TestCase == get_faults;
+		TestCase == log_agent->
+	AgentNames = [string(20) || _ <- lists:seq(1, 25)],
+	Fdetails = fun F(0, Acc) ->
 				Acc;
-			Fdetails(N, Acc) ->
-				Fdetails(N - 1, [{string(15), string(50)} | Acc])
+			F(N, Acc) ->
+				F(N - 1, [{string(15), string(50)} | Acc])
 	end,
-	Fill = fun Fill(0) ->
+	Fill = fun F(0) ->
 				ok;
-			Fill(N) ->
-				TN = lists:nth(rand:uniform(length(TargetNames)), TargetNames),
-				AlarmDetails = Fdetails(rand:uniform(12)),
+			F(N) ->
+				TN = lists:nth(rand:uniform(length(AgentNames)), AgentNames),
+				AlarmDetails = Fdetails(rand:uniform(12), []),
 				{CH, FF} = snmp_collector_utils:generate_maps(TN, AlarmDetails),
 				ok = snmp_collector_utils:log_events(CH, FF),
-				Fill(N - 1)
+				F(N - 1)
 	end,
-	EventSize = erlang:external_size(Fill(1)),
-	NumItems = (FileSize div EventSize) * 5,
-	ok = Fill(NumItems),
+	ok = Fill(10),
+	{ok, LogName} = application:get_env(snmp_collector, queue_name),
+	LogInfo = disk_log:info(LogName),
+	{_, CurrentItems} = lists:keyfind(no_current_items, 1, LogInfo),
+	{_, CurrentSize} = lists:keyfind(no_current_bytes, 1, LogInfo),
+	EventSize = (CurrentSize div CurrentItems) + 1,
+	{_, {FileSize, _NumFiles}} = lists:keyfind(size, 1, LogInfo),
+	NumEvents = (FileSize div EventSize) * 5,
+	ok = Fill(NumEvents),
 	Config;
 init_per_testcase(_TestCase, Config) ->
 	Config.
@@ -111,7 +120,9 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[add_user, get_user, delete_user, get_mib, query_faults].
+	[add_user, get_user, delete_user,
+			get_mib,
+			get_faults, log_agent].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -166,11 +177,52 @@ get_mib(_Config) ->
 	{ok, Data} = file:read_file(TestMib),
 	{ok, _} = snmp_collector:add_mib(Data).
 	
-query_faults() ->
-	[{userdata, [{doc, "Query event log for faults"}]}].
+get_faults() ->
+	[{userdata, [{doc, "Query event log for (all) faults"}]}].
 
-query_faults(_Config) ->
-	disk_log:info(faults).
+get_faults(_Config) ->
+	Start = 1,
+	End = erlang:system_time(?MILLISECOND),
+	{_Cont, Events} = snmp_collector_log:fault_query(start,
+			50, Start, End, '_', '_'),
+	Fall = fun (Event) when element(1, Event) >= Start,
+					element(1, Event) =< End,
+					is_integer(element(2, Event)),
+					is_atom(element(3, Event)),
+					is_map(element(4, Event)),
+					is_map(element(5, Event)) ->
+				true;
+			(_) ->
+				false
+	end,
+	true = lists:all(Fall, Events).
+
+log_agent() ->
+	[{userdata, [{doc, "Query event log for faults from an agent"}]}].
+
+log_agent(_Config) ->
+	case list_to_integer(erlang:system_info(otp_release)) of
+		OtpRelease when OtpRelease >= 21 ->
+			{ok, LogName} = application:get_env(snmp_collector, queue_name),
+			{_Cont, Chunk} = disk_log:chunk(LogName, start),
+			#{"reportingEntityName" := Agent} = element(4, lists:last(Chunk)),
+			MatchHead = [{'$1', [{'==',
+					{map_get, "reportingEntityName", '$1'}, Agent}], ['$_']}],
+			{_Cont, Events} = snmp_collector_log:fault_query(start,
+					50, 1, erlang:system_time(?MILLISECOND), MatchHead, '_'),
+			Fall = fun (Event) ->
+					case element(4, Event) of
+						#{"reportingEntityName" := Agent} ->
+							true;
+						_ ->
+							false
+					end
+			end,
+			true = length(Events) > 0,
+			true = lists:all(Fall, Events);
+		_OtpRelease ->
+			{skip, "requires OTP 21 or later"}
+	end.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
@@ -207,7 +259,9 @@ string(N) ->
 	CharsetLen = length(Charset),
 	string(Charset, CharsetLen, N, []).
 %% @hidden
+string(_Charset, _CharsetLen, 0, Acc) ->
+	Acc;
 string(Charset, CharsetLen, N, Acc) ->
-	string(Charset, CharsetLen, N,
+	string(Charset, CharsetLen, N - 1,
 			[lists:nth(rand:uniform(CharsetLen), Charset) | Acc]).
 

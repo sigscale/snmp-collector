@@ -353,7 +353,7 @@ open_log2(_Log, OkNodes, [], Reason) ->
 		End :: calendar:datetime() | pos_integer(),
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [],
+		Events :: [fault_event()],
 		Reason :: term().
 %% @doc Query fault log events with filters.
 %%
@@ -590,7 +590,7 @@ close_log(Log) ->
 		Arg :: term(),
 		Result :: {Continuation2, Events} | {error, Reason},
 		Continuation2 :: eof | disk_log:continuation(),
-		Events :: [term()],
+		Events :: [fault_event()],
 		Reason :: term().
 %% @doc
 query_log(Continuation, {{_, _, _}, {_, _, _}} = Start, End, Log, MFA) ->
