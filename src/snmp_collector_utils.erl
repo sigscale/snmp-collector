@@ -19,11 +19,8 @@
 -module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
--export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, stringify/1,
-		entity_name/1, entity_id/1, event_id/0, timestamp/0, arrange_list/1,
-		log_events/2, security_params/7,
-		agent_name/1, destringify/1, oids_to_names/2, generate_maps/2,
-		common_event_header/2, fault_fields/1]).
+-export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1, arrange_list/1,
+		log_events/2, security_params/7, agent_name/1, oids_to_names/2, generate_maps/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -237,7 +234,8 @@ iso8601millisecond(EpocMilliseconds, _) ->
 		OID :: snmp:oid(),
 		Name :: string().
 %% @doc Get a name for an OID.
-oid_to_name(OID) ->
+oid_to_name(OID)
+		when is_list(OID) ->
 	oid_to_name(OID, lists:reverse(OID), snmpm:oid_to_name(OID)).
 %% @hidden
 oid_to_name(_OID, [0], {ok, Name}) ->
@@ -286,7 +284,7 @@ get_name1([$- | T], Acc) ->
 	get_name1(T, [$- | Acc]);
 get_name1([$  | T], Acc) ->
 	get_name2(T, lists:reverse(Acc)).
-
+%% @hidden
 get_name2([$  | T], Name) ->
 	get_name2(T, Name);
 get_name2([$\t | T], Name) ->
@@ -350,7 +348,6 @@ common_event_header(TargetName, AlarmDetails)
 			"lastEpochMicrosec" => timestamp(),
 			"priority" => "Normal",
 			"reportingEntityName" => TargetName,
-			"reportingEntityID" => stringify(entity_id(TargetName)),
 			"sequence" => 0,
 			"version" => 1},
 	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
@@ -507,7 +504,8 @@ agent_name(Address) ->
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_events(CommonEventHeader, FaultFields) ->
+log_events(CommonEventHeader, FaultFields)
+		when is_map(CommonEventHeader), is_map(FaultFields) ->
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	{ok, Url} = application:get_env(snmp_collector, ves_url),
 	TimeStamp = erlang:system_time(milli_seconds),
@@ -535,7 +533,8 @@ log_events(CommonEventHeader, FaultFields) ->
 %% @doc Log the event to disk.
 post_event(_CommonEventHeader, _FaultFields, []) ->
 	ok;
-post_event(CommonEventHeader, FaultFields, Url) ->
+post_event(CommonEventHeader, FaultFields, Url)
+		when is_map(CommonEventHeader), is_map(FaultFields), is_list(Url) ->
 	{ok, UserName } = application:get_env(snmp_collector, ves_username),
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
 	ContentType = "application/json",
@@ -543,7 +542,7 @@ post_event(CommonEventHeader, FaultFields, Url) ->
 	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
 	Authentication = {"authorization", EncodeKey},
 	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields}},
-	RequestBody = destringify(zj:encode(Event)),
+	RequestBody = zj:encode(Event),
 	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
 	case httpc:request(post, Request, [],
 		[{sync, false}, {receiver, fun check_response/1}]) of
@@ -566,7 +565,8 @@ post_event(CommonEventHeader, FaultFields, Url) ->
 		Acc :: [tuple()].
 %% @doc Filter and map the OIDs to names and appropriate values.
 %% @private
-arrange_list(Varbinds) ->
+arrange_list(Varbinds)
+		when is_list(Varbinds) ->
 	arrange_list(Varbinds, []).
 %% @hidden
 arrange_list([{vabind, [1,3,6,1,2,1,1,3,0], 'TimeTicks', _Value, _Seqnum} | T], Acc) ->
@@ -612,7 +612,8 @@ arrange_list([], Acc) ->
 		Result :: {ok, [{Name, Value}]},
 		Name :: string().
 %% @doc Convert OIDs to valid names.
-oids_to_names([{OID, Value} | T], Acc) ->
+oids_to_names([{OID, Value} | T], Acc)
+		when is_list(OID) ->
 	Name = oid_to_name(OID),
 	oids_to_names(T, [{strip_name(Name), Value} | Acc]);
 oids_to_names([], Acc) ->
@@ -622,7 +623,6 @@ oids_to_names([], Acc) ->
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
-
 
 -spec check_response(ReplyInfo) -> any()
 	when
@@ -648,25 +648,6 @@ strip_name(Name) ->
 		[Name] ->
 			Name
 	end.
--spec entity_name(TargetName) -> EntityName
-	when
-	TargetName :: string(),
-	EntityName :: string().
-%% @doc Generate the agents name.
-%% @private
-entity_name(TargetName) ->
-	[{{EntityName, engine_id}, _}] = ets:lookup(snmpm_agent_table, {TargetName, engine_id}),
-	EntityName.
-
--spec entity_id(TargetName) -> EntityID
-	when
-	TargetName :: string(),
-	EntityID :: string().
-%% @doc Generate the agents engine ID.
-%% @private
-entity_id(TargetName) ->
-	[{_ , EntityID}] = ets:lookup(snmpm_agent_table, {TargetName, engine_id}),
-	lists:flatten(io_lib:fwrite("~p", [EntityID])).
 
 -spec event_id() -> EventId
 	when
@@ -815,36 +796,6 @@ stringify1([$\\ | T], Acc) ->
 stringify1([H | T], Acc) ->
 	stringify1(T, [H | Acc]);
 stringify1([], Acc) ->
-	lists:reverse(Acc).
-
--spec destringify(String) -> Result
-	when
-		String :: string(),
-		Result :: string().
-%% @doc JSON encode a string.
-%% @private
-destringify(String) ->
-	destringify1(String, []).
-%% @hidden
-destringify1([$\\, $b| T], Acc) ->
-	destringify1(T, [$\b | Acc]);
-destringify1([$\\, $d | T], Acc) ->
-	destringify1(T, [$\d | Acc]);
-destringify1([$\\, $e | T], Acc) ->
-	destringify1(T, [$\e | Acc]);
-destringify1([$\\, $f | T], Acc) ->
-	destringify1(T, [$\f | Acc]);
-destringify1([$\n | T], Acc) ->
-	destringify1(T, Acc);
-destringify1([$\\, $r | T], Acc) ->
-	destringify1(T, [$\r | Acc]);
-destringify1([$\\, $t | T], Acc) ->
-	destringify1(T, [$\t | Acc]);
-destringify1([$\\, $v | T], Acc) ->
-	destringify1(T, [$\v | Acc]);
-destringify1([H | T], Acc) ->
-	destringify1(T, [H | Acc]);
-destringify1([], Acc) ->
 	lists:reverse(Acc).
 
 -spec auth_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
