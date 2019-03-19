@@ -21,7 +21,7 @@
 
 %% export the snmp_collector public API
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
-		update_user/3, query_users/4, add_mib/1, add_snmp_user/3,
+		update_user/3, query_users/4, add_mib/1, get_mibs/0, add_snmp_user/3,
 		remove_snmp_user/1]).
 
 -include_lib("inets/include/httpd.hrl").
@@ -231,6 +231,33 @@ update_user(Username, Password, Language) ->
 			end
 	end.
 
+-spec get_mibs() -> Result
+	when
+		Result :: [MibName] | ok,
+		MibName :: atom().
+%% @doc Retrieve a list of all mibs loaded from the bin directory.
+get_mibs() ->
+	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
+	case snmpm:which_mibs() of
+		[] ->
+			error_logger:info_report(["SNMP Collector",
+					{error, bin_directory_empty}]);
+		MibList ->
+			get_mibs(MibList, BinDir, [])
+	end.
+get_mibs([{MibName, _} |  T] = MibList, BinDir, Acc) ->
+	case lists:keyfind(BinDir ++ "/" ++  atom_to_list(MibName)
+			++ ".bin", 2, MibList) of
+		{MibName, _} ->
+			get_mibs(T, BinDir, [MibName | Acc]);
+		false ->
+			get_mibs(T, BinDir, [MibName | Acc])
+	end;
+get_mibs([_H | T], BinDir, Acc) ->
+   get_mibs(T, BinDir, Acc);
+get_mibs([], _, Acc) ->
+   Acc.
+	
 -spec add_mib(Body) -> Result
 	when
 		Body :: list() | binary(),
