@@ -78,12 +78,10 @@ get_mib(ID, _Query) ->
 %% @doc Body producing function for `GET snmp/v1/mibs/'
 %% requests.
 get_mibs(_Query) ->
-erlang:display({?MODULE, ?LINE}),
 	{ok, Dir} = application:get_env(snmp_collector, bin_dir),
 	{ok, Files} = file:list_dir(Dir),
 	case read_mibs(Dir, Files, []) of
 		{ok, MibRecords} ->
-erlang:display({?MODULE, ?LINE}),
 			Maps = create_maps(MibRecords, []),
 			Href = "snmp/v1/mibs",
 			Headers = [{location, Href},
@@ -360,7 +358,6 @@ read_mib(Dir, ID) ->
 %% @private
 read_mibs(Dir, [H | T], Acc) ->
 	Read = Dir ++ "/" ++ H,
-erlang:display({?MODULE, ?LINE, Read}),
 	case snmp:read_mib(Read) of
 		{ok, #mib{name = Name, module_identity = #module_identity{organization = Organization,
 				last_updated = LastUpdated, description = Description},
