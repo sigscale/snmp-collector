@@ -296,11 +296,6 @@ get_name2([$\n | T], Name) ->
 get_name2("DEFINITIONS " ++ _,  Name) ->
 	Name.
 
-skip_to_eol([$\n | T]) ->
-	T;
-skip_to_eol([_ | T]) ->
-	skip_to_eol(T).
-
 -spec generate_identity(Length) -> string()
 	when
 		Length :: pos_integer().
@@ -718,7 +713,7 @@ add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProt
 		when is_list(EngineID), is_list(UserName) ->
 	AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
 	PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {auth_key, AuthKey},
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
 %% @hidden
@@ -815,3 +810,7 @@ auth_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
 	snmp:passwd2localized_key(sha, AuthPass, EngineID).
 
+skip_to_eol([$\n | T]) ->
+	T;
+skip_to_eol([_ | T]) ->
+	skip_to_eol(T).
