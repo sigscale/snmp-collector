@@ -75,18 +75,24 @@ end_per_suite(_Config) ->
 %%
 init_per_testcase(TestCase, Config)
 		when TestCase == get_faults;
-		TestCase == log_agent->
+		TestCase == log_agent;
+		TestCase == log_severity ->
 	AgentNames = [string(20) || _ <- lists:seq(1, 25)],
-	Fdetails = fun F(0, Acc) ->
+	Severities = ["CRITICAL", "MAJOR", "MINOR", "WARNING"],
+	Fdetails = fun F(0, _SeverityFieldNum, Acc) ->
 				Acc;
-			F(N, Acc) ->
-				F(N - 1, [{string(15), string(50)} | Acc])
+			F(N, N, Acc) ->
+				Severity = lists:nth(rand:uniform(length(Severities)), Severities),
+				F(N - 1, N, [{"eventSeverity", Severity} | Acc]);
+			F(N, SeverityFieldNum, Acc) ->
+				F(N - 1, SeverityFieldNum, [{string(15), string(50)} | Acc])
 	end,
 	Fill = fun F(0) ->
 				ok;
 			F(N) ->
 				TN = lists:nth(rand:uniform(length(AgentNames)), AgentNames),
-				AlarmDetails = Fdetails(rand:uniform(12), []),
+				NumDetails = rand:uniform(12),
+				AlarmDetails = Fdetails(NumDetails, rand:uniform(NumDetails), []),
 				{CH, FF} = snmp_collector_utils:generate_maps(TN, AlarmDetails),
 				ok = snmp_collector_utils:log_events(CH, FF),
 				F(N - 1)
@@ -122,7 +128,7 @@ sequences() ->
 all() ->
 	[add_user, get_user, delete_user,
 			get_mib,
-			get_faults, log_agent].
+			get_faults, log_agent, log_severity].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -211,6 +217,9 @@ log_agent() ->
 	[{userdata, [{doc, "Query event log for faults from an agent"}]}].
 
 log_agent(_Config) ->
+	PageSize = 50,
+	Start = 1,
+	End = erlang:system_time(?MILLISECOND),
 	case list_to_integer(erlang:system_info(otp_release)) of
 		OtpRelease when OtpRelease >= 21 ->
 			{ok, LogName} = application:get_env(snmp_collector, queue_name),
@@ -219,7 +228,8 @@ log_agent(_Config) ->
 			MatchHead = [{'$1', [{'==',
 					{map_get, "reportingEntityName", '$1'}, Agent}], ['$_']}],
 			{_Cont, Events} = snmp_collector_log:fault_query(start,
-					50, 1, erlang:system_time(?MILLISECOND), MatchHead, '_'),
+					PageSize, Start, End, MatchHead, '_'),
+			true = length(Events) > 0,
 			Fall = fun (Event) ->
 					case element(4, Event) of
 						#{"reportingEntityName" := Agent} ->
@@ -228,8 +238,37 @@ log_agent(_Config) ->
 							false
 					end
 			end,
+			true = lists:all(Fall, Events),
+			length(Events);
+		_OtpRelease ->
+			{skip, "requires OTP 21 or later"}
+	end.
+
+log_severity() ->
+	[{userdata, [{doc, "Query event log for faults with matching severity"}]}].
+
+log_severity(_Config) ->
+	case list_to_integer(erlang:system_info(otp_release)) of
+		OtpRelease when OtpRelease >= 21 ->
+			MatchCondition1 = {'==', {map_get, "eventSeverity", '$1'}, "CRITICAL"},
+			MatchCondition2 = {'==', {map_get, "eventSeverity", '$1'}, "MAJOR"},
+			MatchConditions = [{'or', MatchCondition1, MatchCondition2}],
+			MatchFields = [{'$1', MatchConditions, ['$_']}],
+			{_Cont, Events} = snmp_collector_log:fault_query(start,
+					50, 1, erlang:system_time(?MILLISECOND), '_', MatchFields),
+			Fall = fun (Event) ->
+					case element(5, Event) of
+						#{"eventSeverity" := "CRITICAL"} ->
+							true;
+						#{"eventSeverity" := "MAJOR"} ->
+							true;
+						#{} ->
+							false
+					end
+			end,
 			true = length(Events) > 0,
-			true = lists:all(Fall, Events);
+			true = lists:all(Fall, Events),
+			length(Events);
 		_OtpRelease ->
 			{skip, "requires OTP 21 or later"}
 	end.
