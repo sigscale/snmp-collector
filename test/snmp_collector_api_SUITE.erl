@@ -128,7 +128,7 @@ sequences() ->
 all() ->
 	[add_user, get_user, delete_user,
 			get_mib,
-			get_faults, log_agent, log_severity].
+			get_faults, log_agent, log_severity, log_filter].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -272,6 +272,41 @@ log_severity(_Config) ->
 		_OtpRelease ->
 			{skip, "requires OTP 21 or later"}
 	end.
+
+log_filter() ->
+	[{userdata, [{doc, "Query event log for faults with filtered result fields"}]}].
+
+log_filter(_Config) ->
+	case list_to_integer(erlang:system_info(otp_release)) of
+		OtpRelease when OtpRelease >= 21 ->
+			MatchHead = [{'$1', [], [#{"eventId" => {map_get, "eventId", '$1'}}]}],
+			MatchConditions = [{'==', {map_get, "eventSeverity", '$1'}, "MINOR"}],
+			MatchBody = [#{"eventSeverity" => "MINOR"}],
+			MatchFields = [{'$1', MatchConditions, MatchBody}],
+			{_Cont, Events} = snmp_collector_log:fault_query(start,
+					50, 1, erlang:system_time(?MILLISECOND), MatchHead, MatchFields),
+			Fall = fun (Event) ->
+					case element(4, Event) of
+						#{"eventId" := _} = FilteredHead
+								when map_size(FilteredHead) == 1 ->
+							case element(5, Event) of
+								#{"eventSeverity" := "MINOR"} = FilteredFields
+										when map_size(FilteredFields) == 1 ->
+									true;
+								#{} ->
+									false
+							end;
+						#{} ->
+							false
+					end
+			end,
+			true = length(Events) > 0,
+			true = lists:all(Fall, Events),
+			length(Events);
+		_OtpRelease ->
+			{skip, "requires OTP 21 or later"}
+	end.
+
 
 %%---------------------------------------------------------------------
 %%  Internal functions
