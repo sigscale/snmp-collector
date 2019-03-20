@@ -181,10 +181,11 @@ get_faults() ->
 	[{userdata, [{doc, "Query event log for (all) faults"}]}].
 
 get_faults(_Config) ->
+	PageSize = undefined,
 	Start = 1,
 	End = erlang:system_time(?MILLISECOND),
-	{_Cont, Events} = snmp_collector_log:fault_query(start,
-			50, Start, End, '_', '_'),
+	get_faults(PageSize, Start, End, {start, []}, 0).
+get_faults(PageSize, Start, End, {Cont, Events}, Acc) ->
 	Fall = fun (Event) when element(1, Event) >= Start,
 					element(1, Event) =< End,
 					is_integer(element(2, Event)),
@@ -195,7 +196,16 @@ get_faults(_Config) ->
 			(_) ->
 				false
 	end,
-	true = lists:all(Fall, Events).
+	true = lists:all(Fall, Events),
+	NewAcc = Acc + length(Events),
+	case Cont of
+		eof ->
+			{ok, LogName} = application:get_env(snmp_collector, queue_name),
+			{_, NewAcc} = lists:keyfind(no_items, 1, disk_log:info(LogName));
+		Cont ->
+			get_faults(PageSize, Start, End, snmp_collector_log:fault_query(Cont,
+					PageSize, Start, End, '_', '_'), NewAcc)
+	end.
 
 log_agent() ->
 	[{userdata, [{doc, "Query event log for faults from an agent"}]}].
