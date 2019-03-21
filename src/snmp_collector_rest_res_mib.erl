@@ -78,12 +78,10 @@ get_mib(ID, _Query) ->
 %% @doc Body producing function for `GET snmp/v1/mibs/'
 %% requests.
 get_mibs(_Query) ->
-erlang:display({?MODULE, ?LINE}),
 	{ok, Dir} = application:get_env(snmp_collector, bin_dir),
 	{ok, Files} = file:list_dir(Dir),
 	case read_mibs(Dir, Files, []) of
 		{ok, MibRecords} ->
-erlang:display({?MODULE, ?LINE}),
 			Maps = create_maps(MibRecords, []),
 			Href = "snmp/v1/mibs",
 			Headers = [{location, Href},
@@ -175,24 +173,6 @@ delete_mib(ID) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec records_to_maps(Records, Acc) -> Result
-	when
-		Records :: [#me{}] | [#notification{}] | [#trap{}],
-		Acc :: [],
-		Result :: [map()].
-%% @doc Covert a records to maps using the relevent CODEC.
-records_to_maps([#me{} = H | T], Acc) ->
-	Me = me(H),
-	records_to_maps(T, [Me | Acc]);
-records_to_maps([#notification{} = H | T], Acc) ->
-	Notification = notification(H),
-	records_to_maps(T, [Notification | Acc]);
-records_to_maps([#trap{} = H | T], Acc) ->
-	Trap = trap(H),
-	records_to_maps(T, [Trap | Acc]);
-records_to_maps([], Acc) ->
-	Acc.
-
 -spec oidobjects(OidObjects, Acc) -> Result
 	when
 		OidObjects:: [{OID, Asn1Type}],
@@ -210,11 +190,15 @@ oidobjects([], Acc) ->
 
 -spec me(Me) -> Me
 	when
-		Me :: #me{} | map().
+		Me :: [#me{}] | [map()] | #me{} | map().
 %% @doc CODEC for me record from MIB.
 %% @private
 me(#me{} = Me) ->
-	me(record_info(fields, me), Me, #{}).
+	Fields = record_info(fields, me),
+	me(Fields, Me, #{});
+me([#me{} | _] = MeList) ->
+	Fields = record_info(fields, me),
+	[me(Fields, Me, #{}) || Me <- MeList].
 %% @hidden
 me([oid | T], #me{oid = OID} = M, Acc) when is_list(OID) ->
 	me(T, M, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
@@ -241,39 +225,40 @@ me([_H | T], M, Acc) ->
 me([], _M, Acc) ->
 	Acc.
 
--spec notification(Notification) -> Notification
+-spec trap(TrapNotification) -> TrapNotification
 	when
-		Notification :: #notification{} | map().
-%% @doc CODEC for notificaiton record from MIB.
-notification(#notification{} = Notification) ->
-	notification(record_info(fields, notification), Notification, #{}).
-%% @hidden
-notification([oid | T], #notification{oid = OID} = N, Acc) when is_list(OID) ->
-	notification(T, N, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
-notification([trapname | T], #notification{trapname = TrapName} = N, Acc)
-		when is_atom(trapname) ->
-	notification(T, N, maps:put("trapname", TrapName, Acc));
-notification([oidobjects | T], #notification{oidobjects = OidObjects} = N, Acc)
-		when is_list(OidObjects) ->
-	notification(T, N, maps:put("objects", oidobjects(OidObjects, []), Acc));
-notification([_H | T], N, Acc) ->
-	notification(T, N, Acc);
-notification([], _N, Acc) ->
-	Acc.
-
--spec trap(Notification) -> Notification
-	when
+		TrapNotification :: [Trap] | [Notification] | Trap | Notification,
+		Trap :: #trap{} | map(),
 		Notification :: #trap{} | map().
-%% @doc CODEC for trap record from MIB.
-trap(#trap{} = Notification) ->
-	trap(record_info(fields, trap), Notification, #{}).
+%% @doc CODEC for trap and notification records from MIB.
+trap(TrapNotification) when is_record(TrapNotification, trap) ->
+	Fields = record_info(fields, trap),
+	trap(Fields, TrapNotification, #{});
+trap(TrapNotification) when is_record(TrapNotification, notification)  ->
+	Fields = record_info(fields, notification),
+	trap(Fields, TrapNotification, #{});
+trap(TrapNotification) when is_list(TrapNotification) ->
+	trap(TrapNotification, []).
+%% @hidden
+trap([H | T], Acc) ->
+	trap(T, [trap(H) | Acc]);
+trap([], Acc) ->
+	lists:reverse(Acc).
 %% @hidden
 trap([enterpriseoid| T], #trap{enterpriseoid = OID} = N, Acc) when is_list(OID) ->
 	trap(T, N, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
 trap([trapname | T], #trap{trapname = TrapName} = N, Acc)
 		when is_atom(trapname) ->
 	trap(T, N, maps:put("trapname", TrapName, Acc));
+trap([trapname | T], #notification{trapname = TrapName} = N, Acc)
+		when is_atom(trapname) ->
+	trap(T, N, maps:put("trapname", TrapName, Acc));
 trap([oidobjects | T], #trap{oidobjects = OidObjects} = N, Acc)
+		when is_list(OidObjects) ->
+	trap(T, N, maps:put("objects", oidobjects(OidObjects, []), Acc));
+trap([oid | T], #notification{oid = OID} = N, Acc) when is_list(OID) ->
+	trap(T, N, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
+trap([oidobjects | T], #notification{oidobjects = OidObjects} = N, Acc)
 		when is_list(OidObjects) ->
 	trap(T, N, maps:put("objects", oidobjects(OidObjects, []), Acc));
 trap([_H | T], N, Acc) ->
@@ -285,7 +270,7 @@ trap([], _N, Acc) ->
 	when
 		Name :: string(),
 		Mes :: [#me{}],
-		Traps :: [#notification{}],
+		Traps :: [#trap{} | #notification{}],
 		Result :: map().
 %% @doc Create a map with the MIB Name and Mes.
 %% @private
@@ -293,8 +278,8 @@ create_map(Name, Mes, Traps) ->
 	#{"id" => Name,
 		"href" => "snmp/v1/mibs/" ++ Name,
 		"name" => Name,
-		"mes" => records_to_maps(Mes, []),
-		"traps" => records_to_maps(Traps, [])}.
+		"mes" => me(Mes),
+		"traps" => trap(Traps)}.
 
 -spec create_maps(MibRecords, Acc) -> Result
 	when
@@ -334,7 +319,8 @@ create_maps([], Acc) ->
 		Result :: {ok, Name, Mes, Traps} | {error | Reason},
 		Name :: string(),
 		Mes :: [#me{}],
-		Traps :: [#notification{}],
+		Traps :: [Trap],
+		Trap :: #trap{} | #notification{},
 		Reason :: term().
 %% @doc Read a mib.
 %% @private
@@ -342,7 +328,7 @@ read_mib(Dir, ID) ->
 	Read = Dir ++ "/" ++ ID ++ ".bin",
 	case snmp:read_mib(Read) of
 		{ok, #mib{name = Name ,mes = Mes,
-				traps = #notification{} = Traps}} ->
+				traps = Traps}} ->
 			{ok, Name, Mes, Traps};
 		{error, Reason} ->
 			{error, Reason}
@@ -360,15 +346,14 @@ read_mib(Dir, ID) ->
 %% @private
 read_mibs(Dir, [H | T], Acc) ->
 	Read = Dir ++ "/" ++ H,
-erlang:display({?MODULE, ?LINE, Read}),
 	case snmp:read_mib(Read) of
 		{ok, #mib{name = Name, module_identity = #module_identity{organization = Organization,
 				last_updated = LastUpdated, description = Description},
 				mes = Mes, traps = Traps}} ->
 			Info = {Name, Organization, LastUpdated, Description},
-			read_mibs(Dir, T, [{Info, records_to_maps(Mes, []), records_to_maps(Traps, [])} | Acc]);
+			read_mibs(Dir, T, [{Info, me(Mes), trap(Traps)} | Acc]);
 		{ok, #mib{name = Name, module_identity = undefined, mes = Mes, traps = Traps} = MibRecord} ->
-			read_mibs(Dir, T, [{Name, records_to_maps(Mes, []), records_to_maps(Traps, [])} | Acc]);
+			read_mibs(Dir, T, [{Name, me(Mes), trap(Traps)} | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end;
