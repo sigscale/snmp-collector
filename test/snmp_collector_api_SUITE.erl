@@ -225,8 +225,7 @@ log_agent(_Config) ->
 			{ok, LogName} = application:get_env(snmp_collector, queue_name),
 			{_Cont, Chunk} = disk_log:chunk(LogName, start),
 			#{"reportingEntityName" := Agent} = element(4, lists:last(Chunk)),
-			MatchHead = [{'$1', [{'==',
-					{map_get, "reportingEntityName", '$1'}, Agent}], ['$_']}],
+			MatchHead = [{#{"reportingEntityName" => Agent}, [], ['$_']}],
 			{_Cont, Events} = snmp_collector_log:fault_query(start,
 					PageSize, Start, End, MatchHead, '_'),
 			true = length(Events) > 0,
@@ -250,10 +249,10 @@ log_severity() ->
 log_severity(_Config) ->
 	case list_to_integer(erlang:system_info(otp_release)) of
 		OtpRelease when OtpRelease >= 21 ->
-			MatchCondition1 = {'==', {map_get, "eventSeverity", '$1'}, "CRITICAL"},
-			MatchCondition2 = {'==', {map_get, "eventSeverity", '$1'}, "MAJOR"},
+			MatchCondition1 = {'==', "CRITICAL", '$1'},
+			MatchCondition2 = {'==', "MAJOR", '$1'},
 			MatchConditions = [{'or', MatchCondition1, MatchCondition2}],
-			MatchFields = [{'$1', MatchConditions, ['$_']}],
+			MatchFields = [{#{"eventSeverity" => '$1'}, MatchConditions, ['$_']}],
 			{_Cont, Events} = snmp_collector_log:fault_query(start,
 					50, 1, erlang:system_time(?MILLISECOND), '_', MatchFields),
 			Fall = fun (Event) ->
@@ -279,10 +278,10 @@ log_filter() ->
 log_filter(_Config) ->
 	case list_to_integer(erlang:system_info(otp_release)) of
 		OtpRelease when OtpRelease >= 21 ->
-			MatchHead = [{'$1', [], [#{"eventId" => {map_get, "eventId", '$1'}}]}],
-			MatchConditions = [{'==', {map_get, "eventSeverity", '$1'}, "MINOR"}],
-			MatchBody = [#{"eventSeverity" => "MINOR"}],
-			MatchFields = [{'$1', MatchConditions, MatchBody}],
+			MatchHead = [{#{"eventId" => '$1'}, [], [#{"eventId" => '$1'}]}],
+			MatchConditions = [{'==', '$1', "MINOR"}],
+			MatchBody = [#{"eventSeverity" => '$1'}],
+			MatchFields = [{#{"eventSeverity" => '$1'}, MatchConditions, MatchBody}],
 			{_Cont, Events} = snmp_collector_log:fault_query(start,
 					50, 1, erlang:system_time(?MILLISECOND), MatchHead, MatchFields),
 			Fall = fun (Event) ->
