@@ -21,11 +21,12 @@
 
 %% export the snmp_collector public API
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
-		update_user/3, query_users/4, add_mib/1, get_mibs/0, add_snmp_user/3,
-		remove_snmp_user/1]).
+		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
+		add_snmp_user/3, remove_snmp_user/1]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
+-include_lib("snmp/include/snmp_types.hrl").
 -include("snmp_collector.hrl").
 
 %% support deprecated_time_unit()
@@ -231,6 +232,21 @@ update_user(Username, Password, Language) ->
 			end
 	end.
 
+-spec get_mib(Name) -> Result
+	when
+		Name :: atom() | string(),
+		Result :: {ok, Mib} | {error | Reason},
+		Mib :: #mib{},
+		Reason :: term().
+%% @doc Get a mib.
+%% @private
+get_mib(Name) when is_list(Name) ->
+	get_mib(list_to_existing_atom(Name));
+get_mib(Name) when is_atom(Name) ->
+	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
+	Path = BinDir ++ "/" ++ Name ++ ".bin",
+	snmp:read_mib(Path).
+
 -spec get_mibs() -> Result
 	when
 		Result :: [MibName] | ok,
@@ -238,26 +254,17 @@ update_user(Username, Password, Language) ->
 %% @doc Retrieve a list of all mibs loaded from the bin directory.
 get_mibs() ->
 	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
-	case snmpm:which_mibs() of
-		[] ->
-			error_logger:info_report(["SNMP Collector",
-					{error, bin_directory_empty}]);
-		MibList ->
-			get_mibs(MibList, BinDir, [])
-	end.
+	get_mibs(snmpm:which_mibs(), BinDir, []).
 %% @hidden
-get_mibs([{MibName, _} |  T] = MibList, BinDir, Acc) ->
-	case lists:keyfind(BinDir ++ "/" ++  atom_to_list(MibName)
-			++ ".bin", 2, MibList) of
-		{MibName, _} ->
+get_mibs([{MibName, Path} |  T], BinDir, Acc) ->
+	case lists:prefix(BinDir, Path) of
+		true ->
 			get_mibs(T, BinDir, [MibName | Acc]);
 		false ->
-			get_mibs(T, BinDir, [MibName | Acc])
+			get_mibs(T, BinDir, Acc)
 	end;
-get_mibs([_H | T], BinDir, Acc) ->
-   get_mibs(T, BinDir, Acc);
 get_mibs([], _, Acc) ->
-   Acc.
+	lists:reverse(Acc).
 	
 -spec add_mib(Body) -> Result
 	when
