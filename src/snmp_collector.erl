@@ -212,7 +212,7 @@ delete_user3({error, Reason}) ->
 		Result :: {ok, LM} | {error, Reason},
 		LM :: {integer(), integer()},
 		Reason :: term().
-%% @hidden Update user password and language
+%% @doc Update user password and language
 update_user(Username, Password, Language) ->
 	case get_user(Username) of
 		{error, Reason} ->
@@ -245,6 +245,7 @@ get_mibs() ->
 		MibList ->
 			get_mibs(MibList, BinDir, [])
 	end.
+%% @hidden
 get_mibs([{MibName, _} |  T] = MibList, BinDir, Acc) ->
 	case lists:keyfind(BinDir ++ "/" ++  atom_to_list(MibName)
 			++ ".bin", 2, MibList) of
