@@ -133,7 +133,7 @@ get_mibs1(Method, Query, Filters, Headers) ->
 		{_, {"if-range", _}, false} ->
 			{error, 400};
 		{false, false, {"range", "items=1-" ++ _ = Range}} ->
-			case fm_rest:range(Range) of
+			case snmp_collector_rest:range(Range) of
 				{error, _} ->
 					{error, 400};
 				{ok, {Start, End}} ->
@@ -246,7 +246,7 @@ query_start(Method, Query, Filters, RangeStart, RangeEnd) ->
 				end
 			end,
 			MFA = [snmp_collector, query_mibs, [FilterArgs]],	
-			case supervisor:start_child(fm_rest_pagination_sup, [MFA]) of
+			case supervisor:start_child(snmp_collector_rest_pagination_sup, [MFA]) of
 				{ok, PageServer, Etag} ->
 					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
 				{error, _Reason} ->
