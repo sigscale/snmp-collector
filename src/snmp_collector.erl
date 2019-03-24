@@ -236,7 +236,7 @@ update_user(Username, Password, Language) ->
 -spec get_mib(Name) -> Result
 	when
 		Name :: atom() | string(),
-		Result :: {ok, Mib} | {error | Reason},
+		Result :: {ok, Mib} | {error, Reason},
 		Mib :: #mib{},
 		Reason :: term().
 %% @doc Get a mib.
