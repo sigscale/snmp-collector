@@ -316,13 +316,13 @@ mib([module_identity | T], #mib{module_identity = MID} = A, Acc)
 	mib(T, A, maps:put("module_identity", MID, Acc));
 mib([mes | T], #mib{mes = Mes} = A, Acc)
 		when is_list(Mes) ->
-	mib(T, A, maps:put("mes", Mes, Acc));
+	mib(T, A, maps:put("mes", me(Mes), Acc));
 mib([asn1_types | T], #mib{asn1_types = Asn} = A, Acc)
 		when is_list(Asn) ->
 	mib(T, A, maps:put("asn1_types", Asn, Acc));
 mib([traps | T], #mib{traps = Traps} = A, Acc)
 		when is_list(Traps) ->
-	mib(T, A, maps:put("traps", Traps, Acc));
+	mib(T, A, maps:put("traps", trap(Traps), Acc));
 mib([variable_infos | T], #mib{variable_infos = VarInfo} = A, Acc)
 		when is_list(VarInfo) ->
 	mib(T, A, maps:put("variable_infos", VarInfo, Acc));
@@ -414,76 +414,4 @@ trap([_H | T], N, Acc) ->
 	trap(T, N, Acc);
 trap([], _N, Acc) ->
 	Acc.
-
--spec create_map(Name, Mes, Traps) -> Result
-	when
-		Name :: string(),
-		Mes :: [#me{}],
-		Traps :: [#trap{} | #notification{}],
-		Result :: map().
-%% @doc Create a map with the MIB Name and Mes.
-%% @private
-create_map(Name, Mes, Traps) ->
-	#{"id" => Name,
-		"href" => "snmp/v1/mibs/" ++ Name,
-		"name" => Name,
-		"mes" => me(Mes),
-		"traps" => trap(Traps)}.
-
--spec create_maps(MibRecords, Acc) -> Result
-	when
-		MibRecords :: [{Name, Mes}],
-		Name :: string(),
-		Mes :: [map()],
-		Acc :: list(),
-		Result :: [map()].
-%% @doc Create maps with the MIB Names and Mes.
-%% @private
-create_maps([{{Name, Organization, LastUpdated, Description},
-		Mes, Traps} | T], Acc) ->
-	Map = #{"id" => Name,
-		"organization" => Organization,
-		"last_update" => LastUpdated,
-		"description" => snmp_collector_utils:stringify(Description),
-		"href" => "snmp/v1/mibs/" ++ Name,
-		"name" => Name,
-		"mes" => Mes,
-		"traps" => Traps},
-	create_maps(T, [Map | Acc]);
-create_maps([{Name, Mes, Traps} | T], Acc) ->
-	Map = #{"id" => Name,
-		"href" => "snmp/v1/mibs/" ++ Name,
-		"name" => Name,
-		"mes" => Mes,
-		"traps" => Traps},
-	create_maps(T, [Map | Acc]);
-create_maps([], Acc) ->
-	NewAcc = lists:reverse(Acc),
-	NewAcc.
-
--spec read_mibs(Directory, Files, Acc) -> Result
-	when
-		Directory :: file:filename(),
-		Files :: [string()],
-		Acc :: [],
-		Result :: [{Name, [map()], [map()]}] | {error, Reason},
-		Name :: string(),
-		Reason :: term().
-%% @doc Read all mib `Files' in the directory `Directory'.
-%% @private
-read_mibs(Dir, [H | T] = Files, Acc) when is_list(Dir), is_list(H) ->
-	Path = Dir ++ "/" ++ H,
-	case snmp:read_mib(Path) of
-		{ok, #mib{name = Name, module_identity = #module_identity{organization = Organization,
-				last_updated = LastUpdated, description = Description},
-				mes = Mes, traps = Traps}} ->
-			Info = {Name, Organization, LastUpdated, Description},
-			read_mibs(Dir, T, [{Info, me(Mes), trap(Traps)} | Acc]);
-		{ok, #mib{name = Name, module_identity = undefined, mes = Mes, traps = Traps} = MibRecord} ->
-			read_mibs(Dir, T, [{Name, me(Mes), trap(Traps)} | Acc]);
-		{error, Reason} ->
-			{error, Reason}
-	end;
-read_mibs(_Dir, [], Acc) ->
-	{ok, lists:reverse(Acc)}.
 
