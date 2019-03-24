@@ -20,7 +20,7 @@
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -export([content_types_accepted/0, content_types_provided/0,
-		get_mibs/1, get_mib/2, post_mib/1, delete_mib/1]).
+		get_mibs/3, get_mib/2, post_mib/1, delete_mib/1]).
 -export([mib/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
@@ -170,9 +170,9 @@ post_mib(RequestBody) ->
 								ok ->
 									ID = snmp_collector_utils:get_name(binary_to_list(File)),
 									case snmp_collector:get_mib(ID) of
-										{ok, Name, Mes, Traps} ->
-											Map = create_map(Name, Mes, Traps),
-											Href = "snmp/v1/mibs/{id}",
+										{ok, #mib{} = Mib} ->
+											Map = mib(Mib),
+											Href = "snmp/v1/mibs/" ++ ID,
 											Headers = [{location, Href},
 													{content_type, "application/json"}],
 											Body = zj:encode(Map),
@@ -225,27 +225,6 @@ delete_mib(ID) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
--spec get_mibs(Query) -> Result
-	when
-		Query :: string(),
-		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
-				| {error, ErrorCode :: integer()}.
-%% @doc Body producing function for `GET snmp/v1/mibs/'
-%% requests.
-get_mibs(_Query) ->
-	{ok, Dir} = application:get_env(snmp_collector, bin_dir),
-	{ok, Files} = file:list_dir(Dir),
-	case read_mibs(Dir, Files, []) of
-		{ok, MibRecords} ->
-			Maps = create_maps(MibRecords, []),
-			Href = "snmp/v1/mibs",
-			Headers = [{location, Href},
-					{content_type, "application/json"}],
-			Body = zj:encode(Maps),
-			{ok, Headers, Body};
-		{error, _Reason} ->
-			{error, 400}
-	end.
 
 %% @hidden
 query_start(Method, Query, Filters, RangeStart, RangeEnd) ->
@@ -482,19 +461,19 @@ create_maps([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	NewAcc.
 
--spec read_mibs(Dir, Files, Acc) -> Result
+-spec read_mibs(Directory, Files, Acc) -> Result
 	when
-		Dir :: string(),
+		Directory :: file:filename(),
 		Files :: [string()],
 		Acc :: [],
 		Result :: [{Name, [map()], [map()]}] | {error, Reason},
 		Name :: string(),
 		Reason :: term().
-%% @doc Read all mib files in the directory.
+%% @doc Read all mib `Files' in the directory `Directory'.
 %% @private
-read_mibs(Dir, [H | T], Acc) ->
-	Read = Dir ++ "/" ++ H,
-	case snmp:read_mib(Read) of
+read_mibs(Dir, [H | T] = Files, Acc) when is_list(Dir), is_list(H) ->
+	Path = Dir ++ "/" ++ H,
+	case snmp:read_mib(Path) of
 		{ok, #mib{name = Name, module_identity = #module_identity{organization = Organization,
 				last_updated = LastUpdated, description = Description},
 				mes = Mes, traps = Traps}} ->
