@@ -241,9 +241,9 @@ update_user(Username, Password, Language) ->
 		Reason :: term().
 %% @doc Get a mib.
 %% @private
-get_mib(Name) when is_list(Name) ->
-	get_mib(list_to_existing_atom(Name));
 get_mib(Name) when is_atom(Name) ->
+	get_mib(atom_to_list(Name));
+get_mib(Name) when is_list(Name) ->
 	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
 	Path = BinDir ++ "/" ++ Name ++ ".bin",
 	snmp:read_mib(Path).
