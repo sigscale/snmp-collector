@@ -300,38 +300,37 @@ mib(#mib{} = Mib) ->
 	Fields = record_info(fields, mib),
 	mib(Fields, Mib, #{});
 mib([#mib{} | _] = MibList) ->
-	Fields = record_info(fields, mib),
-	[mib(Fields, Mib, #{}) || Mib <- MibList].
+	[mib(Mib) || Mib <- MibList].
 %% @hidden
 mib([misc | T], #mib{misc = Misc} = A, Acc) when is_list(Misc) ->
-	mib(T, A, maps:put("misc", Misc , Acc));
+	mib(T, A, Acc#{"misc" => Misc});
 mib([mib_format_version | T], #mib{mib_format_version = MibFormat} = A, Acc)
 		when is_list(MibFormat) ->
-	mib(T, A, maps:put("mib_format_version", MibFormat, Acc));
+	mib(T, A, Acc#{"mib_format_version" => MibFormat});
 mib([name | T], #mib{name = Name} = A, Acc)
 		when is_list(Name) ->
-	mib(T, A, maps:put("name", Name, Acc));
+	mib(T, A, Acc#{"name" => Name});
 mib([module_identity | T], #mib{module_identity = MID} = A, Acc)
 		when is_list(MID) ->
-	mib(T, A, maps:put("module_identity", MID, Acc));
+	mib(T, A, Acc#{"module_identity" => MID});
 mib([mes | T], #mib{mes = Mes} = A, Acc)
-		when is_list(Mes) ->
-	mib(T, A, maps:put("mes", me(Mes), Acc));
+		when is_list(Mes), length(Mes) > 0 ->
+	mib(T, A, Acc#{"mes" => me(Mes)});
 mib([asn1_types | T], #mib{asn1_types = Asn} = A, Acc)
 		when is_list(Asn) ->
-	mib(T, A, maps:put("asn1_types", Asn, Acc));
+	mib(T, A, Acc#{"asn1_types" => Asn});
 mib([traps | T], #mib{traps = Traps} = A, Acc)
-		when is_list(Traps) ->
-	mib(T, A, maps:put("traps", trap(Traps), Acc));
+		when is_list(Traps), length(Traps) > 0 ->
+	mib(T, A, Acc#{"traps" => trap(Traps)});
 mib([variable_infos | T], #mib{variable_infos = VarInfo} = A, Acc)
 		when is_list(VarInfo) ->
-	mib(T, A, maps:put("variable_infos", VarInfo, Acc));
+	mib(T, A, Acc#{"variable_infos" => VarInfo});
 mib([table_infos | T], #mib{table_infos = TabInfo} = A, Acc)
 		when is_list(TabInfo) ->
-	mib(T, A, maps:put("table_infos", TabInfo, Acc));
+	mib(T, A, Acc#{"table_infos" => TabInfo});
 mib([imports | T], #mib{imports = Imports} = A, Acc)
 		when is_list(Imports) ->
-	mib(T, A, maps:put("imports", Imports, Acc));
+	mib(T, A, Acc#{"imports" => Imports});
 mib([_H | T], A, Acc) ->
 	mib(T, A, Acc);
 mib([], _A, Acc) ->
@@ -339,36 +338,36 @@ mib([], _A, Acc) ->
 
 -spec me(Me) -> Me
 	when
-		Me :: [#me{}] | [map()] | #me{} | map().
+		Me :: #me{} | map() | [#me{}] | [map()].
 %% @doc CODEC for me record from MIB.
 %% @private
 me(#me{} = Me) ->
 	Fields = record_info(fields, me),
 	me(Fields, Me, #{});
 me([#me{} | _] = MeList) ->
-	Fields = record_info(fields, me),
-	[me(Fields, Me, #{}) || Me <- MeList].
+	[me(Me) || Me <- MeList].
 %% @hidden
 me([oid | T], #me{oid = OID} = M, Acc) when is_list(OID) ->
-	me(T, M, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
+	me(T, M, Acc#{"oid" => lists:flatten(io_lib:write(OID))});
 me([aliasname | T], #me{aliasname = AliasName} = M, Acc)
 		when is_atom(AliasName) ->
-	me(T, M, maps:put("aliasname", AliasName ,Acc));
+	me(T, M, Acc#{"aliasname" => AliasName});
 me([entrytype | T], #me{entrytype = EntryType} = M, Acc)
 		when is_atom(EntryType) ->
-	me(T, M, maps:put("entrytype", EntryType, Acc));
-me([asn1_type | T], #me{asn1_type = {asn1_type, Value, _, _, _, _, _,
-		_, _}} = M, Acc) when is_atom(Value) ->
-	me(T, M, maps:put("asn1_type", Value, Acc));
+	me(T, M, Acc#{"entrytype" => EntryType});
+me([asn1_type | T],
+		#me{asn1_type = {asn1_type, Value, _, _, _, _, _, _, _}} = M,
+		Acc) when is_atom(Value) ->
+	me(T, M, Acc#{"asn1_type" => Value});
 me([imported | T], #me{imported = Imported} = M, Acc)
 		when is_boolean(Imported) ->
-	me(T, M, maps:put("imported", Imported, Acc));
+	me(T, M, Acc#{"imported" => Imported});
 me([access | T], #me{access = Access} = M, Acc)
 		when Access /= undefined ->
-	me(T, M, maps:put("access", Access, Acc));
+	me(T, M, Acc#{"access" => Access});
 me([description | T], #me{description = Description} = M, Acc)
 		when Description =/= undefined ->
-	me(T, M, maps:put("description", Description, Acc));
+	me(T, M, Acc#{"description" => Description});
 me([_H | T], M, Acc) ->
 	me(T, M, Acc);
 me([], _M, Acc) ->
