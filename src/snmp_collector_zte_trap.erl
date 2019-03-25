@@ -178,13 +178,13 @@ event([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
-	event(T, [{"eventSourceType", "CRITICAL"} | Acc]);
+	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
 event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
-	event(T, [{"eventSourceType", "MAJOR"} | Acc]);
+	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
 event([{"alarmPerceivedSeverity", "3"} | T], Acc) ->
-	event(T, [{"eventSourceType", "MINOR"} | Acc]);
+	event(T, [{"eventSeverity", "MINOR"} | Acc]);
 event([{"alarmPerceivedSeverity", "4"} | T], Acc) ->
-	event(T, [{"eventSourceType", "WARNING"} | Acc]);
+	event(T, [{"eventSeverity", "WARNING"} | Acc]);
 event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
 	event(T, [{"alarmCondition", "cleared"} | Acc]);
 event([{"snmpTrapOID", _Value} | T], Acc) ->
