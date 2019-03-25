@@ -22,13 +22,14 @@
 %% export the snmp_collector public API
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
-		add_snmp_user/3, remove_snmp_user/1]).
+		query_mibs/3, add_snmp_user/3, remove_snmp_user/1]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
 -include_lib("snmp/include/snmp_types.hrl").
 -include("snmp_collector.hrl").
 
+-define(CHUNKSIZE, 100).
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
@@ -235,21 +236,21 @@ update_user(Username, Password, Language) ->
 -spec get_mib(Name) -> Result
 	when
 		Name :: atom() | string(),
-		Result :: {ok, Mib} | {error | Reason},
+		Result :: {ok, Mib} | {error, Reason},
 		Mib :: #mib{},
 		Reason :: term().
 %% @doc Get a mib.
 %% @private
-get_mib(Name) when is_list(Name) ->
-	get_mib(list_to_existing_atom(Name));
 get_mib(Name) when is_atom(Name) ->
+	get_mib(atom_to_list(Name));
+get_mib(Name) when is_list(Name) ->
 	{ok, BinDir} = application:get_env(snmp_collector, bin_dir),
 	Path = BinDir ++ "/" ++ Name ++ ".bin",
 	snmp:read_mib(Path).
 
 -spec get_mibs() -> Result
 	when
-		Result :: [MibName] | ok,
+		Result :: [MibName],
 		MibName :: atom().
 %% @doc Retrieve a list of all mibs loaded from the bin directory.
 get_mibs() ->
@@ -301,6 +302,43 @@ add_mib(Body) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
+-spec query_mibs(Cont, Size, MatchSpec) -> Result
+	when
+		Cont :: start | [MibName],
+		MibName :: atom(),
+		Size :: pos_integer() | undefined,
+		MatchSpec :: '_' | ets:match_spec(),
+		Result :: {Cont2, [#mib{}]} | {error, Reason},
+		Cont2 :: eof | [MibName],
+		Reason :: term().
+%% @doc Query the mibs
+query_mibs(start, Size, MatchSpec) ->
+	query_mibs(get_mibs(), Size, MatchSpec, []);
+query_mibs(Cont, Size, MatchSpec) when is_list(Cont) ->
+	query_mibs(Cont, Size, MatchSpec, []).
+%% @hidden
+query_mibs([H | T], Size, MatchSpec, Acc)
+		when is_integer(Size), length(Acc) =:= Size->
+	lists:reverse(Acc);
+query_mibs([H | T], Size, MatchSpec, Acc) ->
+	case get_mib(H) of
+		{ok, Mib} when MatchSpec == '_' ->
+			query_mibs(T, Size, MatchSpec, [Mib | Acc]);
+		{ok, Mib} ->
+			case ets:test_ms(Mib, MatchSpec) of
+				{ok, false} ->
+					query_mibs(T, Size, MatchSpec, Acc);
+				{ok, FilteredMib} ->
+					query_mibs(T, Size, MatchSpec, [FilteredMib | Acc]);
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end;
+query_mibs([], Size, MatchSpec, Acc) ->
+	lists:reverse(Acc).
 
 -spec query_users(Cont, Size, MatchId, MatchLocale) -> Result
 	when

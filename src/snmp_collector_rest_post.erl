@@ -94,13 +94,13 @@ do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}, {content_type, Accept}],
 	send(ModData, 201, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent,201, Size}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 400}) ->
+do_response(#mod{data = Data} = _ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	{proceed, [{response, {400, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 404}) ->
+do_response(#mod{data = Data} = _ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 500}) ->
+do_response(#mod{data = Data} = _ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{proceed, [{response, {500, Response}} | Data]}.
 

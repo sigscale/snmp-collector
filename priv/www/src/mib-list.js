@@ -10,6 +10,10 @@
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
+import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
+import '@vaadin/vaadin-grid/vaadin-grid-sorter.js';
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/iron-icons/iron-icons.js';
 import './style-element.js';
 
 class mibList extends PolymerElement {
@@ -21,12 +25,127 @@ class mibList extends PolymerElement {
 					id="mibGrid"
 					loading="{{!finishedLoading}}"
 					active-item="{{activeItem}}">
-				<vaadin-grid-column width="25ex" flex-grow="1">
+				<vaadin-grid-column width="10ex" flex-grow="1">
+					<template class="header">
+						<vaadin-grid-sorter
+								path="name">
+							<vaadin-grid-filter
+									id="filterName"
+									aria-label="Name"
+									path="filterName"
+									value="{{_filterName}}">
+								<input
+										slot="filter"
+										placeholder="Name"
+										value="{{_filterName::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
 					<template>
-						[[item.moduleName]]
+						<div>
+							[[item.name]]
+						</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="15ex" flex-grow="3">
+					<template class="header">
+						<vaadin-grid-sorter
+								path="organization">
+							<vaadin-grid-filter
+									id="filterOrg"
+									aria-label="Organization"
+									path="filterOrg"
+									value="{{_filterOrg}}">
+								<input
+										slot="filter"
+										placeholder="Organization"
+										value="{{_filterOrg::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>
+						<div>
+							[[item.organization]]
+						</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="25ex" flex-grow="1">
+					<template class="header">
+						<vaadin-grid-sorter
+								path="description">
+							<vaadin-grid-filter
+									id="filterDesc"
+									aria-label="Description"
+									path="filterDesc"
+									value="{{_filterDesc}}">
+								<input
+										slot="filter"
+										placeholder="Description"
+										value="{{_filterDesc::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>
+						<div>
+							[[item.description]]
+						</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="20ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-sorter
+								path="lastUpdated">
+							<vaadin-grid-filter
+									id="filterLast"
+									aria-label="lastUpdated"
+									path="filterLast"
+									value="{{_filterLast}}">
+								<input
+										slot="filter"
+										placeholder="LastUpdated"
+										value="{{_filterLast::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>
+						<div>
+							[[item.lastUpdated]]
+						</div>
+					</template>
+				</vaadin-grid-column>
+				<vaadin-grid-column width="10ex" flex-grow="2">
+					<template class="header">
+						<vaadin-grid-sorter
+								path="traps">
+							<vaadin-grid-filter
+									id="filter"
+									aria-label="lastTraps"
+									path="filterTraps"
+									value="{{_filterTraps}}">
+								<input
+										slot="filter"
+										placeholder="Traps"
+										value="{{_filterTraps::input}}"
+										focus-target>
+							</vaadin-grid-filter>
+						</vaadin-grid-sorter>
+					</template>
+					<template>
+						<div>
+							[[item.traps]]
+						</div>
 					</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
+			<iron-ajax
+				id="getMibAjax"
+				url="snmp/v1/mibs"
+				rejectWithRequest>
+			</iron-ajax>
 		`;
 	}
 
@@ -66,22 +185,19 @@ class mibList extends PolymerElement {
 	ready() {
 		super.ready();
 		var grid = this.shadowRoot.getElementById('mibGrid');
+		var ajaxGrid = this.shadowRoot.getElementById('getMibAjax');
 		grid.dataProvider = this._getMibList;
 	}
 
 	_getMibList(params, callback) {
 		var grid = this;
-		var url = "snmp/v1/mib";
-		var StartRange = params.page * params.pageSize + 1;
-		var EndRange = StartRange + params.pageSize - 1;
-		fetch(url, {
-			method: "GET",
-			headers: {"accept": "application/json", "Range": "items=" + StartRange
-					+ "-" + EndRange},
-			credentials: "same-origin"
-		}).then(function(response) {
-			if(response.ok) {
-				var range = response.headers.get('Content-Range');
+		var ajax = document.body.querySelector('snmp-collector').shadowRoot.querySelector('mib-list').shadowRoot.getElementById('getMibAjax');
+		var mibList1 = document.body.querySelector('snmp-collector').shadowRoot.querySelector('mib-list');
+		var handleAjaxResponse = function(request) {
+			if (request){
+console.log(request);
+				mibList1.etag = request.xhr.getResponseHeader('ETag');
+				var range = request.xhr.getResponseHeader('Content-Range');
 				var range1 = range.split("/");
 				var range2 = range1[0].split("-");
 				if (range1[1] != "*") {
@@ -89,29 +205,54 @@ class mibList extends PolymerElement {
 				} else {
 					grid.size = Number(range2[1]) + grid.pageSize * 2;
 				}
-				return response.json();
+				var vaadinItems = new Array();
+				for(var index in request.response) {
+console.log(request.response);
+					var newRecord = new Object();
+					newRecord.name = json[index].name;
+					newRecord.desctiption = json[index].description;
+					newRecord.identity= json[index].module_identity;
+					vaadinItems[index] = newRecord;
+				}
+				callback(vaadinItems);
 			} else {
-				var error = new Error(response.statusText);
-				error.response = response;
-				throw error;
+				grid.size = 0;
+				callback([]);
 			}
-		}).then(function(json) {
-			var vaadinItems = new Array();
-			for(var index in json) {
-				var newRecord = new Object();
-				newRecord.moduleName = json[index].id;
-				vaadinItems[index] = newRecord;
+		};
+		var handleAjaxError = function(error) {
+			mibList1.etag = null;
+			var toast;
+			toast.text = "error"
+			toast.open();
+			if(!grid.size) {
+				 grid.size = 0;
 			}
-			callback(vaadinItems);
-		}).catch(function(error) {
-			var snmp = document.body.querySelector('snmp-collector');
-			snmp.shadowRoot.getElementById('restError').text = error.message;
-			snmp.shadowRoot.getElementById('restError').open();
-			var vaadinItems = new Array();
-			grid.size = 0;
-			console.log('Looks like there was a problem: \n', error);
-			callback(vaadinItems);
-		});
+			callback([]);
+		}
+		if(ajax.loading) {
+			ajax.lastRequest.completes.then(function(request) {
+				var startRange = params.page * params.pageSize + 1;
+				var endRange = startRange + params.pageSize - 1;
+				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (alarmList1.etag && params.page > 0) {
+					ajax.headers['If-Range'] = alarmList1.etag;
+				} else {
+					delete ajax.headers['If-Range'];
+				}
+				return ajax.generateRequest().completes;
+				}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
+			} else {
+				var startRange = params.page * params.pageSize + 1;	
+				var endRange = startRange + params.pageSize - 1;
+				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
+				if (mibList1.etag && params.page > 0) {
+					ajax.headers['If-Range'] = mibList1.etag;
+				} else {
+					delete ajax.headers['If-Range'];
+				}
+				ajax.generateRequest().completes.then(handleAjaxResponse, handleAjaxError);
+			}
 	}
 }
 

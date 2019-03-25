@@ -94,7 +94,7 @@ parse_query(Resource, ModData, {Path, []}) ->
 parse_query(Resource, ModData, {Path, "?" ++ Query}) ->
 	do_get(Resource, ModData, string:tokens(Path, "/"),
 		snmp_collector_rest:parse_query(Query));
-parse_query(_R, #mod{data = Data} = ModData, _Q) ->
+parse_query(_R, #mod{data = Data} = _ModData, _Q) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.
 
@@ -112,12 +112,12 @@ do_get(Resource, ModData, ["partyManagement", "v1", "individual", Id], Query) ->
 do_get(Resource, #mod{parsed_header = Headers} = ModData,
 		["eventManagement", "v1", "event"], Query) ->
 	do_response(ModData, Resource:get_events(Query, Headers));
-do_get(Resource, #mod{parsed_header = Headers} = ModData,
-		["snmp", "v1", "log", "http"], Query) ->
+do_get(Resource, ModData,
+		["snmp", "v1", "log", "http"], _Query) ->
 	do_response(ModData, Resource:get_http());
 do_get(Resource, ModData, ["eventManagement", "v1", "event", Id], Query) ->
 	do_response(ModData, Resource:get_event(Id, Query));
-do_get(_, #mod{data = Data} = ModData, _, _) ->
+do_get(_, #mod{data = Data} = _ModData, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.
 
@@ -127,19 +127,19 @@ do_response(#mod{data = Data} = ModData, {ok, Headers, ResponseBody}) ->
 	NewHeaders = Headers ++ [{content_length, Size}],
 	send(ModData, 200, NewHeaders, ResponseBody),
 	{proceed,[{response,{already_sent, 200, Size}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 400}) ->
+do_response(#mod{data = Data} = _ModData, {error, 400}) ->
 	Response = "<h2>HTTP Error 400 - Bad Request</h2>",
 	{proceed, [{response, {400, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 404}) ->
+do_response(#mod{data = Data} = _ModData, {error, 404}) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 412}) ->
+do_response(#mod{data = Data} = _ModData, {error, 412}) ->
 	Response = "<h2>HTTP Error 412 - Precondition Failed</h2>",
 	{proceed, [{response, {412, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 416}) ->
+do_response(#mod{data = Data} = _ModData, {error, 416}) ->
 	Response = "<h2>HTTP Error 416 - Range Not Satisfiable</h2>",
 	{proceed, [{response, {416, Response}} | Data]};
-do_response(#mod{data = Data} = ModData, {error, 500}) ->
+do_response(#mod{data = Data} = _ModData, {error, 500}) ->
 	Response = "<h2>HTTP Error 500 - Server Error</h2>",
 	{proceed, [{response, {500, Response}} | Data]}.
 
