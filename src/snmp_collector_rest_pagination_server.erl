@@ -270,7 +270,13 @@ range_request({StartRange, EndRange}, _From,
 range_request({StartRange, EndRange}, From,
 		#state{cont = Cont1, module = Module, function = Function,
 		args = Args, buffer = Buffer, etag = Etag} = State) ->
-	Size = (EndRange - StartRange) + 1,
+	Size = case {EndRange, StartRange} of
+      {undefined, _StartRange} ->
+         undefined;
+      {EndRange, StartRange}
+            when is_integer(EndRange), is_integer(StartRange) ->
+         (EndRange - StartRange) + 1
+   end,
 	case apply(Module, Function, [Cont1, Size | Args]) of
 		{error, Reason} ->
 			error_logger:error_report(["Query function failed",

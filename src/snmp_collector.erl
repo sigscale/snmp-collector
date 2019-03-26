@@ -320,7 +320,7 @@ query_mibs(Cont, Size, MatchSpec) when is_list(Cont) ->
 %% @hidden
 query_mibs([H | T], Size, MatchSpec, Acc)
 		when is_integer(Size), length(Acc) =:= Size->
-	lists:reverse(Acc);
+	{T, lists:reverse(Acc)};
 query_mibs([H | T], Size, MatchSpec, Acc) ->
 	case get_mib(H) of
 		{ok, Mib} when MatchSpec == '_' ->
@@ -338,7 +338,7 @@ query_mibs([H | T], Size, MatchSpec, Acc) ->
 			{error, Reason}
 	end;
 query_mibs([], Size, MatchSpec, Acc) ->
-	lists:reverse(Acc).
+	{eof, lists:reverse(Acc)}.
 
 -spec query_users(Cont, Size, MatchId, MatchLocale) -> Result
 	when

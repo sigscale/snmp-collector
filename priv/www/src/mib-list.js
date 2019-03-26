@@ -25,7 +25,7 @@ class mibList extends PolymerElement {
 					id="mibGrid"
 					loading="{{!finishedLoading}}"
 					active-item="{{activeItem}}">
-				<vaadin-grid-column width="10ex" flex-grow="1">
+				<vaadin-grid-column width="12ex" flex-grow="3">
 					<template class="header">
 						<vaadin-grid-sorter
 								path="name">
@@ -48,7 +48,7 @@ class mibList extends PolymerElement {
 						</div>
 					</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="15ex" flex-grow="3">
+				<vaadin-grid-column width="10ex" flex-grow="2">
 					<template class="header">
 						<vaadin-grid-sorter
 								path="organization">
@@ -71,7 +71,7 @@ class mibList extends PolymerElement {
 						</div>
 					</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="25ex" flex-grow="1">
+				<vaadin-grid-column width="30ex" flex-grow="3">
 					<template class="header">
 						<vaadin-grid-sorter
 								path="description">
@@ -94,10 +94,10 @@ class mibList extends PolymerElement {
 						</div>
 					</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="20ex" flex-grow="2">
+				<vaadin-grid-column width="8ex" flex-grow="1">
 					<template class="header">
 						<vaadin-grid-sorter
-								path="lastUpdated">
+								path="last">
 							<vaadin-grid-filter
 									id="filterLast"
 									aria-label="lastUpdated"
@@ -113,11 +113,11 @@ class mibList extends PolymerElement {
 					</template>
 					<template>
 						<div>
-							[[item.lastUpdated]]
+							[[item.last]]
 						</div>
 					</template>
 				</vaadin-grid-column>
-				<vaadin-grid-column width="10ex" flex-grow="2">
+				<vaadin-grid-column width="5ex" flex-grow="1">
 					<template class="header">
 						<vaadin-grid-sorter
 								path="traps">
@@ -195,7 +195,6 @@ class mibList extends PolymerElement {
 		var mibList1 = document.body.querySelector('snmp-collector').shadowRoot.querySelector('mib-list');
 		var handleAjaxResponse = function(request) {
 			if (request){
-console.log(request);
 				mibList1.etag = request.xhr.getResponseHeader('ETag');
 				var range = request.xhr.getResponseHeader('Content-Range');
 				var range1 = range.split("/");
@@ -207,11 +206,17 @@ console.log(request);
 				}
 				var vaadinItems = new Array();
 				for(var index in request.response) {
-console.log(request.response);
 					var newRecord = new Object();
-					newRecord.name = json[index].name;
-					newRecord.desctiption = json[index].description;
-					newRecord.identity= json[index].module_identity;
+					newRecord.name = request.response[index].name;
+					if(request.response[index].module_identity) {
+						newRecord.organization = request.response[index].module_identity.organization;
+						newRecord.description = request.response[index].module_identity.description;
+						newRecord.last= request.response[index].module_identity.last_updated;
+					}
+					if(request.response[index].traps) {
+						var trapCount = request.response[index].traps;
+						newRecord.traps = trapCount.length;
+					}
 					vaadinItems[index] = newRecord;
 				}
 				callback(vaadinItems);
@@ -243,7 +248,7 @@ console.log(request.response);
 				return ajax.generateRequest().completes;
 				}, handleAjaxError).then(handleAjaxResponse, handleAjaxError);
 			} else {
-				var startRange = params.page * params.pageSize + 1;	
+				var startRange = params.page * params.pageSize + 1;
 				var endRange = startRange + params.pageSize - 1;
 				ajax.headers['Range'] = "items=" + startRange + "-" + endRange;
 				if (mibList1.etag && params.page > 0) {
