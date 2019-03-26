@@ -99,9 +99,9 @@ parse_query(_R, #mod{data = Data} = _ModData, _Q) ->
 	{proceed, [{response, {404, Response}} | Data]}.
 
 %% @hidden
-do_get(Resource, #mod{parsed_header = _Headers} = ModData,
+do_get(Resource, #mod{parsed_header = Headers, method = Method} = ModData,
 		["snmp", "v1", "mibs"], Query) ->
-	do_response(ModData, Resource:get_mibs(Query));
+	do_response(ModData, Resource:get_mibs(Method, Query, Headers));
 do_get(Resource, ModData, ["snmp", "v1", "mibs", Id], Query) ->
 	do_response(ModData, Resource:get_mib(Id, Query));
 do_get(Resource, #mod{parsed_header = Headers} = ModData,

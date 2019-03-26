@@ -21,7 +21,7 @@
 
 -export([content_types_accepted/0, content_types_provided/0,
 		get_mibs/3, get_mib/2, post_mib/1, delete_mib/1]).
--export([mib/1]).
+-export([mib/1, module_identity/1, me/1]).
 
 -include_lib("inets/include/mod_auth.hrl").
 -include("snmp_collector.hrl").
@@ -78,10 +78,10 @@ get_mib(ID, _Query) ->
 		Result :: {ok, Headers :: [tuple()], Body :: iolist()}
 				| {error, ErrorCode :: integer()}.
 %% @doc Body producing function for
-%%    `GET|HEAD /alarmManagement/v3/alarm/'
+%%    `GET|HEAD /snmp/v1/mibs'
 %%    requests.
 get_mibs(Method, Query, Headers) ->
-	case lists:keytake("fields", 1, Query) of	
+	case lists:keytake("fields", 1, Query) of
 		{value, {_, Filters}, NewQuery} ->
 			get_mibs1(Method, NewQuery, Filters, Headers);
 		false ->
@@ -116,10 +116,10 @@ get_mibs1(Method, Query, Filters, Headers) ->
 				undefined ->
 					case snmp_collector_rest:range(Range) of
 						{error, _} ->
-                     {error, 400};
-                  {ok, {Start, End}} ->
-                     query_start(Method, Query, Filters, Start, End)
-               end;
+							{error, 400};
+						{ok, {Start, End}} ->
+							query_start(Method, Query, Filters, Start, End)
+					end;
 				PageServer ->
 					case snmp_collector_rest:range(Range) of
 						{error, _} ->
@@ -228,34 +228,34 @@ delete_mib(ID) ->
 
 %% @hidden
 query_start(Method, Query, Filters, RangeStart, RangeEnd) ->
-   try
-      CountOnly = case Method of
-         "GET" ->
-            false;
-         "HEAD" ->
-            true
-      end,
+	try
+		CountOnly = case Method of
+			"GET" ->
+				false;
+			"HEAD" ->
+				true
+		end,
 		FilterArgs = case lists:keyfind("filter", 1, Query) of
 			{_, StringF} ->
 				{ok, Tokens, _} = snmp_collector_rest_query_scanner:string(StringF),
 				case snmp_collector_rest_query_parser:parse(Tokens) of
 					{ok, [{array, [{complex, Filter}]}]} ->
-						Head = mib(Filter);
-					false ->
-						['_', '_', '_', CountOnly]
-				end
-			end,
-			MFA = [snmp_collector, query_mibs, [FilterArgs]],	
-			case supervisor:start_child(snmp_collector_rest_pagination_sup, [MFA]) of
-				{ok, PageServer, Etag} ->
-					query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
-				{error, _Reason} ->
-					{error, 500}
-			end
-		catch
-			_ ->
-				{error, 400}
-		end.
+						['_'] %% @todo Build MatchSpecs from Filters
+				end;
+			false ->
+				['_']
+		end,
+		MFA = [snmp_collector, query_mibs, FilterArgs],
+		case supervisor:start_child(snmp_collector_rest_pagination_sup, [MFA]) of
+			{ok, PageServer, Etag} ->
+				query_page(PageServer, Etag, Query, Filters, RangeStart, RangeEnd);
+			{error, _Reason} ->
+				{error, 500}
+		end
+	catch
+		_ ->
+			{error, 400}
+	end.
 
 %% @hidden
 query_page(PageServer, Etag, _Query, _Filters, Start, End) ->
@@ -268,12 +268,11 @@ query_page(PageServer, Etag, _Query, _Filters, Start, End) ->
 				{content_range, ContentRange}],
 			{ok, Headers, []};
 		{Events, ContentRange} ->
-			JsonObj = lists:map(fun mib/1, Events),
-			Body = zj:encode(JsonObj),
+			Json =  zj:encode(mib(Events)),
 			Headers = [{content_type, "application/json"},
 				{etag, Etag}, {accept_ranges, "items"},
 				{content_range, ContentRange}],
-			{ok, Headers, Body}
+			{ok, Headers, Json}
 	end.
 
 -spec oidobjects(OidObjects, Acc) -> Result
@@ -302,38 +301,71 @@ mib(#mib{} = Mib) ->
 mib([#mib{} | _] = MibList) ->
 	[mib(Mib) || Mib <- MibList].
 %% @hidden
-mib([misc | T], #mib{misc = Misc} = A, Acc) when is_list(Misc) ->
+mib([misc | T], #mib{misc = Misc} = A, Acc)
+		when length(Misc) > 0 ->
 	mib(T, A, Acc#{"misc" => Misc});
 mib([mib_format_version | T], #mib{mib_format_version = MibFormat} = A, Acc)
-		when is_list(MibFormat) ->
+		when length(MibFormat) > 0 ->
 	mib(T, A, Acc#{"mib_format_version" => MibFormat});
 mib([name | T], #mib{name = Name} = A, Acc)
-		when is_list(Name) ->
+		when length(Name) > 0 ->
 	mib(T, A, Acc#{"name" => Name});
 mib([module_identity | T], #mib{module_identity = MID} = A, Acc)
-		when is_list(MID) ->
-	mib(T, A, Acc#{"module_identity" => MID});
+		when is_record(MID, module_identity) ->
+	mib(T, A, Acc#{"module_identity" => module_identity(MID)});
 mib([mes | T], #mib{mes = Mes} = A, Acc)
 		when is_list(Mes), length(Mes) > 0 ->
 	mib(T, A, Acc#{"mes" => me(Mes)});
 mib([asn1_types | T], #mib{asn1_types = Asn} = A, Acc)
-		when is_list(Asn) ->
+		when length(Asn) > 0 ->
 	mib(T, A, Acc#{"asn1_types" => Asn});
 mib([traps | T], #mib{traps = Traps} = A, Acc)
 		when is_list(Traps), length(Traps) > 0 ->
 	mib(T, A, Acc#{"traps" => trap(Traps)});
 mib([variable_infos | T], #mib{variable_infos = VarInfo} = A, Acc)
-		when is_list(VarInfo) ->
+		when length(VarInfo) > 0 ->
 	mib(T, A, Acc#{"variable_infos" => VarInfo});
-mib([table_infos | T], #mib{table_infos = TabInfo} = A, Acc)
-		when is_list(TabInfo) ->
-	mib(T, A, Acc#{"table_infos" => TabInfo});
+%mib([table_infos | T], #mib{table_infos = TabInfo} = A, Acc)
+%		when length(TabInfo) > 0 ->
+%	mib(T, A, Acc#{"table_infos" => TabInfo});
 mib([imports | T], #mib{imports = Imports} = A, Acc)
-		when is_list(Imports) ->
+		when length(Imports) > 0 ->
 	mib(T, A, Acc#{"imports" => Imports});
 mib([_H | T], A, Acc) ->
 	mib(T, A, Acc);
 mib([], _A, Acc) ->
+	Acc.
+
+%% @hidden
+-spec module_identity(Mid) -> Mid 
+	when
+		Mid :: [#module_identity{}] | [map()] | #module_identity{} | map().
+%% @doc CODEC for module_identity record.
+module_identity(#module_identity{} = Mid) ->
+	Fields = record_info(fields, module_identity),
+	module_identity(Fields, Mid, #{});
+module_identity([#module_identity{} | _] = MidList) ->
+	[module_identity(Mid) || Mid <- MidList].
+%% @hidden
+module_identity([last_updated | T], #module_identity{last_updated = Last} = B, Acc)
+	when length(Last) > 0 ->
+	module_identity(T, B, Acc#{"last_updated" => Last});
+module_identity([organization | T], #module_identity{organization = Org} = B, Acc)
+	when length(Org) > 0 ->
+	module_identity(T, B, Acc#{"organization" => Org});
+module_identity([contact_info | T], #module_identity{contact_info = Contact} = B, Acc)
+	when length(Contact) > 0 ->
+	ContactStrinf = snmp_collector_utils:stringify(Contact),
+	module_identity(T, B, Acc#{"contact_info" => ContactStrinf});
+module_identity([description | T], #module_identity{description = Des} = B, Acc)
+	when length(Des) > 0 ->
+	DesString = snmp_collector_utils:stringify(Des),
+	module_identity(T, B, Acc#{"description" => DesString});
+%module_identity([revisions | T], #module_identity{revisions = Revision} = B, Acc) ->
+%	module_identity(T, B, Acc#{"revisions" => Revision});
+module_identity([_H | T], B, Acc) ->
+	module_identity(T, B, Acc);
+module_identity([], _B, Acc) ->
 	Acc.
 
 -spec me(Me) -> Me
@@ -347,26 +379,31 @@ me(#me{} = Me) ->
 me([#me{} | _] = MeList) ->
 	[me(Me) || Me <- MeList].
 %% @hidden
-me([oid | T], #me{oid = OID} = M, Acc) when is_list(OID) ->
-	me(T, M, Acc#{"oid" => lists:flatten(io_lib:write(OID))});
+me([oid | T], #me{oid = OID} = M, Acc)
+		when is_list(OID), length(OID) > 0 ->
+	me(T, M, Acc#{"oid" => OID});
 me([aliasname | T], #me{aliasname = AliasName} = M, Acc)
-		when is_atom(AliasName) ->
-	me(T, M, Acc#{"aliasname" => AliasName});
+		when is_atom(AliasName), AliasName /= undefined->
+	AliasNameList = atom_to_list(AliasName),
+	me(T, M, Acc#{"aliasname" => AliasNameList});
 me([entrytype | T], #me{entrytype = EntryType} = M, Acc)
-		when is_atom(EntryType) ->
-	me(T, M, Acc#{"entrytype" => EntryType});
+		when is_atom(EntryType), EntryType /= undefined ->
+	EntryTypeList = atom_to_list(EntryType),
+	me(T, M, Acc#{"entrytype" => EntryTypeList});
 me([asn1_type | T],
 		#me{asn1_type = {asn1_type, Value, _, _, _, _, _, _, _}} = M,
-		Acc) when is_atom(Value) ->
-	me(T, M, Acc#{"asn1_type" => Value});
+		Acc) when is_atom(Value), Value /= undefined ->
+	Asn = atom_to_list(Value),
+	me(T, M, Acc#{"asn1_type" => Asn});
 me([imported | T], #me{imported = Imported} = M, Acc)
-		when is_boolean(Imported) ->
-	me(T, M, Acc#{"imported" => Imported});
+		when is_boolean(Imported), Imported /= undefined ->
+	ImportList = atom_to_list(Imported),
+	me(T, M, Acc#{"imported" => ImportList});
 me([access | T], #me{access = Access} = M, Acc)
 		when Access /= undefined ->
 	me(T, M, Acc#{"access" => Access});
 me([description | T], #me{description = Description} = M, Acc)
-		when Description =/= undefined ->
+		when is_list(Description), Description /= undefined ->
 	me(T, M, Acc#{"description" => Description});
 me([_H | T], M, Acc) ->
 	me(T, M, Acc);
@@ -393,21 +430,25 @@ trap([H | T], Acc) ->
 trap([], Acc) ->
 	lists:reverse(Acc).
 %% @hidden
-trap([enterpriseoid| T], #trap{enterpriseoid = OID} = N, Acc) when is_list(OID) ->
+trap([enterpriseoid| T], #trap{enterpriseoid = OID} = N, Acc)
+		when is_list(OID), length(OID) > 0 ->
 	trap(T, N, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
 trap([trapname | T], #trap{trapname = TrapName} = N, Acc)
-		when is_atom(trapname) ->
-	trap(T, N, maps:put("trapname", TrapName, Acc));
+		when is_atom(trapname), TrapName /= undefined ->
+	TrapNameList = atom_to_list(TrapName),
+	trap(T, N, maps:put("trapname", TrapNameList, Acc));
 trap([trapname | T], #notification{trapname = TrapName} = N, Acc)
-		when is_atom(trapname) ->
-	trap(T, N, maps:put("trapname", TrapName, Acc));
+		when is_atom(trapname), TrapName /= undefined ->
+	TrapNameList1 = atom_to_list(TrapName),
+	trap(T, N, maps:put("trapname", TrapNameList1, Acc));
 trap([oidobjects | T], #trap{oidobjects = OidObjects} = N, Acc)
-		when is_list(OidObjects) ->
+		when is_list(OidObjects), length(OidObjects) > 0 ->
 	trap(T, N, maps:put("objects", oidobjects(OidObjects, []), Acc));
-trap([oid | T], #notification{oid = OID} = N, Acc) when is_list(OID) ->
+trap([oid | T], #notification{oid = OID} = N, Acc)
+		when is_list(OID), length(OID) > 0 ->
 	trap(T, N, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
 trap([oidobjects | T], #notification{oidobjects = OidObjects} = N, Acc)
-		when is_list(OidObjects) ->
+		when is_list(OidObjects), length(OidObjects) > 0 ->
 	trap(T, N, maps:put("objects", oidobjects(OidObjects, []), Acc));
 trap([_H | T], N, Acc) ->
 	trap(T, N, Acc);
