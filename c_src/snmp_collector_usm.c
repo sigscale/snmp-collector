@@ -28,8 +28,8 @@
  * RFC2274 A.2.1.
  */
 static void
-password_to_key_md5_nif(uint8_t *password, int password_len,
-		uint8_t *engineID, int engine_len, uint8_t *result, int result_len)
+password_to_key_md5(uint8_t *password, int password_len,
+		uint8_t *engineID, int engineID_len, uint8_t *result, int result_len)
 {
 }
 
@@ -37,9 +37,37 @@ password_to_key_md5_nif(uint8_t *password, int password_len,
  * RFC2274 A.2.2.
  */
 static void
-password_to_key_sha_nif(uint8_t *password, int password_len,
+password_to_key_sha(uint8_t *password, int password_len,
 		uint8_t *engineID, int engine_len, uint8_t *result, int result_len)
 {
+}
+
+static ERL_NIF_TERM
+password_to_key_md5_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+	ErlNifBinary password, engineID, res;
+
+	if (!enif_inspect_iolist_as_binary(env, argv[0], &password)
+			|| !enif_inspect_iolist_as_binary(env, argv[1], &engineID))
+		return enif_make_badarg(env);
+	if (!enif_alloc_binary(160, &res))
+		return enif_raise_exception(env, enif_make_atom(env, "ealloc"));
+	password_to_key_md5(password.data, password.size, engineID.data, engineID.size, res.data, res.size);
+	return enif_make_binary(env, &res);
+}
+
+static ERL_NIF_TERM
+password_to_key_sha_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+	ErlNifBinary password, engineID, res;
+
+	if (!enif_inspect_iolist_as_binary(env, argv[0], &password)
+			|| !enif_inspect_iolist_as_binary(env, argv[1], &engineID))
+		return enif_make_badarg(env);
+	if (!enif_alloc_binary(160, &res))
+		return enif_raise_exception(env, enif_make_atom(env, "ealloc"));
+	password_to_key_sha(password.data, password.size, engineID.data, engineID.size, res.data, res.size);
+	return enif_make_binary(env, &res);
 }
 
 static ErlNifFunc nif_funcs[] = {
