@@ -15,6 +15,8 @@ install-sh
 missing
 
 # http://www.gnu.org/software/libtool
+depcomp
+ltmain.sh
 compile
 config.guess
 config.h.in~
