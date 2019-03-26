@@ -18,6 +18,9 @@ AM_INIT_AUTOMAKE([-Wno-portability])
 ##
 AC_ARG_ENABLE([debug],
 		[AS_HELP_STRING([--enable-debug], [enable debugging (default is no)])])
+AC_ARG_WITH([ssl],
+		[AS_HELP_STRING([--with-ssl=PATH], [specify location of OpenSSL include and lib])])
+CFLAGS="${CFLAGS} -Wall"
 
 
 ##
