@@ -22,7 +22,6 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
-#include <arpa/inet.h>
 #include "erl_nif.h"
 
 /* Password to Key Algorithm (MD5)
