@@ -19,6 +19,7 @@
 *** for SNMPv3 (RFC2274).
 ***/
 
+#include <arpa/inet.h>
 #include <openssl/evp.h>
 #include <string.h>
 #include "erl_nif.h"
