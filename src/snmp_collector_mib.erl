@@ -31,13 +31,11 @@
 -spec load_default_mibs() -> ok.
 %% @doc Load default SNMP MIBs.
 load_default_mibs() ->
-erlang:display({?MODULE, ?LINE}),
 	DefaultMibDir = code:priv_dir(snmp) ++ "/mibs",
 	{ok, MibList} = file:list_dir(DefaultMibDir),
 	load_default_mibs(DefaultMibDir, MibList).
 %% @hidden
 load_default_mibs(Dir, [Mib | Rest]) ->
-erlang:display({?MODULE, ?LINE}),
 	MibPath = Dir ++ "/" ++ Mib,
 	case snmpm:load_mib(MibPath) of
 		ok ->
@@ -61,7 +59,6 @@ load_default_mibs(_, []) ->
 		Reason :: term().
 %% @doc Load all MIBs into the SNMP Manager.
 load_manager_mibs(MibDir, BinDir) ->
-erlang:display({?MODULE, ?LINE}),
 	case file:list_dir(MibDir) of
 		{ok, []} ->
 			{error, mib_directory_empty};
@@ -102,11 +99,9 @@ erlang:display({?MODULE, ?LINE}),
 		Reason :: term().
 %% @doc Compile all MIBs in the Mib directory.
 compile_mibs(MibDir, BinDir, ["bin" | T], BinList) ->
-erlang:display({?MODULE, ?LINE}),
 	compile_mibs(MibDir, BinDir, T, BinList);
 %% @hidden
 compile_mibs(MibDir, BinDir ,[Mib | T], BinList) ->
-erlang:display({?MODULE, ?LINE}),
 	MibPath = MibDir ++ "/" ++ Mib,
 	case file:read_file(MibPath) of
 		{ok, File} ->
@@ -145,9 +140,8 @@ erlang:display({?MODULE, ?LINE}),
 				false ->
 					case snmpc:compile(MibPath, [module_identity,
 						{outdir, BinDir}, {group_check, false}, {warnings, false},
-								{i, [BinDir]}, {il, ["snmo/priv/mibs/"]}]) of
+								{i, [BinDir]}, {il, ["snmp/priv/mibs/"]}]) of
 							{ok, BinFileName} ->
-erlang:display({?MODULE, ?LINE}),
 								error_logger:info_report(["SNMP Manager Complied MIB",
 										{mib, BinFileName}]),
 								compile_mibs(MibDir, BinDir, T, BinList);
@@ -159,7 +153,6 @@ erlang:display({?MODULE, ?LINE}),
 					end
 			end;
 		{error, Reason} ->
-erlang:display({?MODULE, ?LINE, Reason}),
 			{error, Reason}
 	end;
 %% @hidden
@@ -174,7 +167,6 @@ compile_mibs(_, _, [], _) ->
 %% @doc Load a mib into the SNMP Manager.
 load_mibs(BinDir)
 		when is_list(BinDir) ->
-erlang:display({?MODULE, ?LINE}),
 	case file:list_dir(BinDir) of
 		{ok, BinList} ->
 			case load_mibs1(BinDir, BinList) of
@@ -191,16 +183,12 @@ load_mibs1(BinDir, [BinFile | Rest]) ->
 	BinPath = BinDir ++ "/" ++ BinFile,
 	case snmpm:load_mib(BinPath) of
 		ok ->
-erlang:display({?MODULE, ?LINE}),
 			load_mibs1(BinDir, Rest);
 		{error, {already_loaded, _, _}} ->
-erlang:display({?MODULE, ?LINE}),
 			load_mibs1(BinDir, Rest);
 		{error, already_loaded} ->
-erlang:display({?MODULE, ?LINE}),
 			load_mibs1(BinDir, Rest);
 		{error, Reason} ->
-erlang:display({?MODULE, ?LINE}),
 			{error, Reason}
 	end;
 %% @hidden
