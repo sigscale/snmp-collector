@@ -19,8 +19,6 @@
 *** for SNMPv3 (RFC2274).
 ***/
 
-#include <openssl/md5.h>
-#include <openssl/sha.h>
 #include <openssl/evp.h>
 #include "erl_nif.h"
 

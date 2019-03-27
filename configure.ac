@@ -93,9 +93,7 @@ AC_LANG_POP([Erlang])
 ## Headers:  check for header files
 ##
 AC_CHECK_HEADERS([erl_nif.h], [], [AC_MSG_ERROR([Erlang NIFs not found!])])
-AC_CHECK_HEADERS([openssl/md5.h], [], [AC_MSG_ERROR([openssl not found!])])
-AC_CHECK_HEADERS([openssl/sha.h], [], [AC_MSG_ERROR([openssl not found!])])
-AC_CHECK_HEADERS([openssl/evp.h], [], [AC_MSG_ERROR([openssl not found!])])
+AC_CHECK_HEADERS([openssl/evp.h], [], [AC_MSG_ERROR([openssl/evp.h not found!])])
 
 ##
 ## Typedefs & Structures:  check for typedefs, structures,
@@ -106,8 +104,6 @@ AC_CHECK_HEADERS([openssl/evp.h], [], [AC_MSG_ERROR([openssl not found!])])
 ##
 ## Functions:  check for library functions
 ##
-AC_CHECK_FUNC([MD5_Init], [], [AC_MSG_ERROR([MD5Init function not found!])])
-AC_CHECK_FUNC([SHA1_Init], [], [AC_MSG_ERROR([SHAInit function not found!])])
 AC_CHECK_FUNC([EVP_DigestInit], [], [AC_MSG_ERROR([EVP_Digest function not found!])])
 
 
