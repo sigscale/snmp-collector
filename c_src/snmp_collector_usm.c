@@ -57,7 +57,7 @@ password_to_key_md5(uint8_t *password, int password_len,
 	EVP_DigestFinal(context, (unsigned char *) key, (unsigned int *) &key_len);
 	free(context);
 	free(buf);
-	return 0;
+	return 1;
 }
 
 /* Password to Key Algorithm (SHA)
@@ -93,7 +93,7 @@ password_to_key_sha(uint8_t *password, int password_len,
 	EVP_DigestFinal(context, (unsigned char *) key, (unsigned int *) &key_len);
 	free(context);
 	free(buf);
-	return 0;
+	return 1;
 }
 
 static ERL_NIF_TERM
