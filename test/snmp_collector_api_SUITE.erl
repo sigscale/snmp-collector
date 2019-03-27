@@ -128,7 +128,8 @@ sequences() ->
 all() ->
 	[add_user, get_user, delete_user,
 			get_mib,
-			get_faults, log_agent, log_severity, log_filter].
+			get_faults, log_agent, log_severity, log_filter,
+	password_to_key_md5, password_to_key_sha].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -306,6 +307,25 @@ log_filter(_Config) ->
 			{skip, "requires OTP 21 or later"}
 	end.
 
+password_to_key_md5() ->
+	[{userdata, [{doc, "Generate a new localized key using MD5 Algorithm."}]}].
+
+password_to_key_md5(_Config) ->
+	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
+	Password = "maplesyrup",
+	<<16#52, 16#6f, 16#5e, 16#ed, 16#9f, 16#cc, 16#e2, 16#6f,
+			16#89, 16#64, 16#c2, 16#93, 16#07, 16#87, 16#d8, 16#2b>> =
+			snmp_collector_usm:password_to_key_md5(Password, EngineID).
+
+password_to_key_sha() ->
+	[{userdata, [{doc, "Generate a new localized key using SHA Algorithm."}]}].
+
+password_to_key_sha(_Config) ->
+	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
+	Password = "maplesyrup",
+	<<16#8a, 16#a3, 16#d9, 16#9e, 16#3e, 16#30, 16#56, 16#f2,
+			16#bf, 16#e3, 16#a9, 16#ee, 16#f3, 16#45, 16#d5, 16#39, 16#54, 16#91, 16#12, 16#be>> =
+			snmp_collector_usm:password_to_key_sha(Password, EngineID).
 
 %%---------------------------------------------------------------------
 %%  Internal functions
