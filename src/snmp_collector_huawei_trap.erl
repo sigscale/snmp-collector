@@ -188,7 +188,7 @@ event([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
 event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
 	event(T, [{"alarmCondition", "fault"} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
-	event(T, [{"alarmCondition", "clear"} | Acc]);
+	event(T, [{"alarmCondition", "cleared"} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "3"} | T], Acc) ->
 	event(T, [{"alarmCondition", "event"} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "4"} | T], Acc) ->

@@ -200,7 +200,7 @@ event([{"nbiProposedRepairAction", Value} | T], Acc)
 	event(T, [{"proposedRepairactions", Value} | Acc]);
 event([{"nbiAdditionalText", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"additionalInformation", Value} | Acc]);
+	event(T, [{"additionalInfo", Value} | Acc]);
 event([{"nbiOptionalInformation", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"optionalInformation", Value} | Acc]);
