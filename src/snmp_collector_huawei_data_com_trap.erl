@@ -177,23 +177,20 @@ event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
-event([{"hwNmNorthboundDeviceType", "Critical"} | T], Acc) ->
-	event(T, [{"eventSourceType", "CRITICAL"} | Acc]);
-event([{"hwNmNorthboundDeviceType", "Major"} | T], Acc) ->
-	event(T, [{"eventSourceType", "MAJOR"} | Acc]);
-event([{"hwNmNorthboundDeviceType", "Minor"} | T], Acc) ->
-	event(T, [{"eventSourceType", "MINOR"} | Acc]);
-event([{"hwNmNorthboundDeviceType", "Warning"} | T], Acc) ->
-	event(T, [{"eventSourceType", "WARNING"} | Acc]);
+event([{"hwNmNorthboundSeverity", "Critical"} | T], Acc) ->
+	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
+event([{"hwNmNorthboundSeverity", "Major"} | T], Acc) ->
+	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
+event([{"hwNmNorthboundSeverity", "Minor"} | T], Acc) ->
+	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+event([{"hwNmNorthboundSeverity", "Warning"} | T], Acc) ->
+	event(T, [{"eventSeverity", "WARNING"} | Acc]);
 event([{"hwNmNorthboundFaultFlag", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventCategory", string:to_lower(Value)} | Acc]);
 event([{"hwNmNorthboundRestoreStatus", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmCondtion", Value} | Acc]);
-event([{"hwNmNorthboundRestoreStatus", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventStatus", Value} | Acc]);
 event([{"hwNmNorthboundEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);
