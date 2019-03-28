@@ -45,6 +45,7 @@ if test -z "${ERLANG_INSTALL_LIB_DIR}" ; then
 	ERLANG_INSTALL_LIB_DIR=$ERLANG_LIB_DIR
 fi
 AC_ERLANG_SUBST_ROOT_DIR
+CPPFLAGS="${CPPFLAGS} -I ${ERLANG_ROOT_DIR}/erts-${ERLANG_ERTS_VER}/include",
 AC_PROG_MKDIR_P
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -74,9 +75,6 @@ AC_ERLANG_SUBST_ERTS_VER
 AC_CHECK_LIB([crypto], [EVP_DigestInit], [],
       [AC_MSG_ERROR([openssl crypto was not found!])])
 AC_LANG_PUSH([Erlang])
-AC_ERLANG_CHECK_LIB([erts],
-		[CPPFLAGS="${CPPFLAGS} -I ${ERLANG_LIB_VER_erts}/include"],
-		[AC_MSG_ERROR([erts was not found!])])
 AC_ERLANG_CHECK_LIB([kernel], [], [AC_MSG_ERROR([kernel was not found!])])
 AC_ERLANG_CHECK_LIB([stdlib], [], [AC_MSG_ERROR([stdlib was not found!])])
 AC_ERLANG_CHECK_LIB([sasl], [], [AC_MSG_ERROR([sasl was not found!])])
