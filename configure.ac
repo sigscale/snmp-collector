@@ -72,7 +72,7 @@ AC_LANG_POP([Erlang])
 ## Libraries:  check for libraries
 ##
 AC_ERLANG_SUBST_ERTS_VER
-AC_CHECK_LIB([crypto], [EVP_DigestInit], [],
+AC_CHECK_LIB([crypto], [EVP_DigestInit_ex], [],
       [AC_MSG_ERROR([openssl crypto was not found!])])
 AC_LANG_PUSH([Erlang])
 AC_ERLANG_CHECK_LIB([kernel], [], [AC_MSG_ERROR([kernel was not found!])])
@@ -105,7 +105,9 @@ AC_CHECK_HEADERS([openssl/evp.h], [], [AC_MSG_ERROR([openssl/evp.h not found!])]
 ##
 ## Functions:  check for library functions
 ##
-AC_CHECK_FUNC([EVP_DigestInit], [], [AC_MSG_ERROR([EVP_Digest function not found!])])
+AC_CHECK_FUNC([EVP_DigestInit_ex], [], [AC_MSG_ERROR([EVP_DigestInit_ex() function not found!])])
+AC_CHECK_FUNC([EVP_DigestUpdate], [], [AC_MSG_ERROR([EVP_DigestUpdate() function not found!])])
+AC_CHECK_FUNC([EVP_DigestFinal_ex], [], [AC_MSG_ERROR([EVP_DigestFinal_ex() function not found!])])
 
 
 ##

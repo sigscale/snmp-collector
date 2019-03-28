@@ -24,6 +24,28 @@
 #include <string.h>
 #include "erl_nif.h"
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+
+static EVP_MD_CTX *
+EVP_MD_CTX_new(void)
+{
+	return EVP_MD_CTX_create();
+}
+
+void
+EVP_MD_CTX_reset(EVP_MD_CTX *context)
+{
+	EVP_MD_CTX_cleanup(context);
+}
+
+void
+EVP_MD_CTX_free(EVP_MD_CTX *context)
+{
+	EVP_MD_CTX_destroy(context);
+}
+
+#endif /* OpenSSL < v1.1.0 */
+
 /* Password to Key Algorithm (MD5)
  * RFC2274 A.2.1.
  */
@@ -36,10 +58,10 @@ password_to_key_md5(uint8_t *password, int password_len,
 	u_long index = 0;
 	u_long count = 0, i;
 
-	if (((context = (EVP_MD_CTX *) malloc(sizeof(EVP_MD_CTX))) == NULL)
+	if (((context = EVP_MD_CTX_new()) == NULL)
 			|| ((buf = (u_char *) malloc(engine_len > 64 ? engine_len : 64)) == NULL))
 		return -1;
-	EVP_DigestInit(context, EVP_md5());
+	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	while (count < 1048576) {
 		cp = buf;
 		for (i = 0; i < 64; i++) {
@@ -48,14 +70,15 @@ password_to_key_md5(uint8_t *password, int password_len,
 		EVP_DigestUpdate(context, buf, 64);
 		count += 64;
 	}
-	EVP_DigestFinal(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
 	memcpy(buf, key, 16);
 	memcpy(buf + 16, engine, engine_len);
 	memcpy(buf + engine_len, key, 16);
-	EVP_DigestInit(context, EVP_md5());
+	EVP_MD_CTX_reset(context);
+	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	EVP_DigestUpdate(context, buf, 32 + engine_len);
-	EVP_DigestFinal(context, (unsigned char *) key, (unsigned int *) &key_len);
-	free(context);
+	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_MD_CTX_destroy(context);
 	free(buf);
 	return 1;
 }
@@ -72,10 +95,10 @@ password_to_key_sha(uint8_t *password, int password_len,
 	u_long index = 0;
 	u_long count = 0, i;
 
-	if (((context = (EVP_MD_CTX *) malloc(sizeof(EVP_MD_CTX))) == NULL)
-			|| ((buf = (u_char *) malloc(engine_len > 72 ? engine_len : 72)) == NULL))
+	if (((context = EVP_MD_CTX_new()) == NULL)
+			|| ((buf = (u_char *) malloc(engine_len > 64 ? engine_len : 64)) == NULL))
 		return -1;
-	EVP_DigestInit(context, EVP_md5());
+	EVP_DigestInit_ex(context, EVP_sha(), NULL);
 	while (count < 1048576) {
 		cp = buf;
 		for (i = 0; i < 64; i++) {
@@ -84,14 +107,15 @@ password_to_key_sha(uint8_t *password, int password_len,
 		EVP_DigestUpdate(context, buf, 64);
 		count += 64;
 	}
-	EVP_DigestFinal(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
 	memcpy(buf, key, 20);
 	memcpy(buf + 20, engine, engine_len);
 	memcpy(buf + engine_len, key, 20);
-	EVP_DigestInit(context, EVP_md5());
+	EVP_MD_CTX_reset(context);
+	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	EVP_DigestUpdate(context, buf, 40 + engine_len);
-	EVP_DigestFinal(context, (unsigned char *) key, (unsigned int *) &key_len);
-	free(context);
+	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_MD_CTX_destroy(context);
 	free(buf);
 	return 1;
 }
