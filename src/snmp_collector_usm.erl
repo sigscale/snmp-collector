@@ -16,11 +16,11 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @doc This library module implements functions for the
-%%%	User-based Security Model (USM) for SNMPv3 (RFC2274) in the
+%%%	User-based Security Model (USM) for SNMPv3 (RFC3414) in the
 %%% 	{@link //snmp_collector. snmp_collector} application.
 %%%
-%%% @reference <a href="http://tools.ietf.org/html/rfc2274">
-%%% 	RFC2274 -  User-based Security Model (USM) for version 3 of the
+%%% @reference <a href="http://tools.ietf.org/html/rfc3414">
+%%% 	RFC3414 -  User-based Security Model (USM) for version 3 of the
 %%%              Simple Network Management Protocol (SNMPv3) </a>
 %%%
 
@@ -40,7 +40,7 @@
 		EngineID :: [byte()],
 		AuthKey :: binary().
 %% @doc Password to Key Algorithm (MD5).
-password_to_key_md5(Password, EngineID) ->
+password_to_key_md5(_Password, _EngineID) ->
 	erlang:nif_error(nif_library_not_loaded).
 
 -spec password_to_key_sha(Password, EngineID) -> AuthKey
@@ -49,7 +49,7 @@ password_to_key_md5(Password, EngineID) ->
 		EngineID :: [byte()],
 		AuthKey :: binary().
 %% @doc Password to Key Algorithm (SHA).
-password_to_key_sha(Password, EngineID) ->
+password_to_key_sha(_Password, _EngineID) ->
 	erlang:nif_error(nif_library_not_loaded).
 
 %%----------------------------------------------------------------------
