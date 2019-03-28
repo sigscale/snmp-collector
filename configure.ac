@@ -71,7 +71,7 @@ AC_LANG_POP([Erlang])
 ## Libraries:  check for libraries
 ##
 AC_ERLANG_SUBST_ERTS_VER
-AC_CHECK_LIB([crypto], [EC_GROUP_new], [],
+AC_CHECK_LIB([crypto], [EVP_DigestInit], [],
       [AC_MSG_ERROR([openssl crypto was not found!])])
 AC_LANG_PUSH([Erlang])
 AC_ERLANG_CHECK_LIB([erts],
