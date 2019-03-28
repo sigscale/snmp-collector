@@ -16,7 +16,7 @@
 *** limitations under the License.
 *****************************************************************************
 *** This module implements NIFs for the User-based Security Model (USM)
-*** for SNMPv3 (RFC2274).
+*** for SNMPv3 (RFC3414).
 ***/
 
 #include <arpa/inet.h>
@@ -47,7 +47,7 @@ EVP_MD_CTX_free(EVP_MD_CTX *context)
 #endif /* OpenSSL < v1.1.0 */
 
 /* Password to Key Algorithm (MD5)
- * RFC2274 A.2.1.
+ * RFC3414 A.2.1.
  */
 int
 password_to_key_md5(uint8_t *password, int password_len,
@@ -59,7 +59,7 @@ password_to_key_md5(uint8_t *password, int password_len,
 	u_long count = 0, i;
 
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (u_char *) malloc(engine_len > 64 ? engine_len : 64)) == NULL))
+			|| ((buf = (u_char *) malloc(engine_len > 64 ? engine_len + 32 : 64)) == NULL))
 		return -1;
 	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	while (count < 1048576) {
@@ -71,12 +71,12 @@ password_to_key_md5(uint8_t *password, int password_len,
 		count += 64;
 	}
 	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
-	memcpy(buf, key, 16);
-	memcpy(buf + 16, engine, engine_len);
-	memcpy(buf + engine_len, key, 16);
+	memcpy(buf, key, key_len);
+	memcpy(buf + key_len, engine, engine_len);
+	memcpy(buf + key_len + engine_len, key, key_len);
 	EVP_MD_CTX_reset(context);
 	EVP_DigestInit_ex(context, EVP_md5(), NULL);
-	EVP_DigestUpdate(context, buf, 32 + engine_len);
+	EVP_DigestUpdate(context, buf, (key_len * 2) + engine_len);
 	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
 	EVP_MD_CTX_destroy(context);
 	free(buf);
@@ -84,7 +84,7 @@ password_to_key_md5(uint8_t *password, int password_len,
 }
 
 /* Password to Key Algorithm (SHA)
- * RFC2274 A.2.2.
+ * RFC3414 A.2.2.
  */
 int
 password_to_key_sha(uint8_t *password, int password_len,
@@ -96,9 +96,9 @@ password_to_key_sha(uint8_t *password, int password_len,
 	u_long count = 0, i;
 
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (u_char *) malloc(engine_len > 64 ? engine_len : 64)) == NULL))
+			|| ((buf = (u_char *) malloc(engine_len > 24 ? engine_len + 40 : 64)) == NULL))
 		return -1;
-	EVP_DigestInit_ex(context, EVP_sha(), NULL);
+	EVP_DigestInit_ex(context, EVP_sha1(), NULL);
 	while (count < 1048576) {
 		cp = buf;
 		for (i = 0; i < 64; i++) {
@@ -108,12 +108,12 @@ password_to_key_sha(uint8_t *password, int password_len,
 		count += 64;
 	}
 	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
-	memcpy(buf, key, 20);
-	memcpy(buf + 20, engine, engine_len);
-	memcpy(buf + engine_len, key, 20);
+	memcpy(buf, key, key_len);
+	memcpy(buf + key_len, engine, engine_len);
+	memcpy(buf + key_len + engine_len, key, key_len);
 	EVP_MD_CTX_reset(context);
-	EVP_DigestInit_ex(context, EVP_md5(), NULL);
-	EVP_DigestUpdate(context, buf, 40 + engine_len);
+	EVP_DigestInit_ex(context, EVP_sha1(), NULL);
+	EVP_DigestUpdate(context, buf, (key_len * 2) + engine_len);
 	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
 	EVP_MD_CTX_destroy(context);
 	free(buf);
