@@ -313,9 +313,10 @@ password_to_key_md5() ->
 password_to_key_md5(_Config) ->
 	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
 	Password = "maplesyrup",
-	<<16#52, 16#6f, 16#5e, 16#ed, 16#9f, 16#cc, 16#e2, 16#6f,
-			16#89, 16#64, 16#c2, 16#93, 16#07, 16#87, 16#d8, 16#2b>> =
-			snmp_collector_usm:password_to_key_md5(Password, EngineID).
+	{Elapsed, <<16#52, 16#6f, 16#5e, 16#ed, 16#9f, 16#cc, 16#e2, 16#6f,
+			16#89, 16#64, 16#c2, 16#93, 16#07, 16#87, 16#d8, 16#2b>>} =
+			timer:tc(snmp_collector_usm, password_to_key_md5, [Password, EngineID]),
+	Elapsed.
 
 password_to_key_sha() ->
 	[{userdata, [{doc, "Generate a localized key using SHA (RFC3414 A.3.2)"}]}].
@@ -323,9 +324,10 @@ password_to_key_sha() ->
 password_to_key_sha(_Config) ->
 	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
 	Password = "maplesyrup",
-	<<16#66, 16#95, 16#fe, 16#bc, 16#92, 16#88, 16#e3, 16#62,
-			16#82, 16#23, 16#5f, 16#c7, 16#15, 16#1f, 16#12, 16#84, 16#97, 16#b3, 16#8f, 16#3f>> =
-			snmp_collector_usm:password_to_key_sha(Password, EngineID).
+	{Elapsed, <<16#66, 16#95, 16#fe, 16#bc, 16#92, 16#88, 16#e3, 16#62,
+			16#82, 16#23, 16#5f, 16#c7, 16#15, 16#1f, 16#12, 16#84, 16#97, 16#b3, 16#8f, 16#3f>>} =
+			timer:tc(snmp_collector_usm, password_to_key_sha, [Password, EngineID]),
+	Elapsed.
 
 %%---------------------------------------------------------------------
 %%  Internal functions
