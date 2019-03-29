@@ -54,7 +54,7 @@ password_to_key_md5(uint8_t *password, uint8_t password_len,
 		uint8_t *engine, uint8_t engine_len, uint8_t *key, uint8_t key_len)
 {
 	EVP_MD_CTX *context;
-	uint8_t *cp, buf[64], i;;
+	uint8_t *cp, buf[64], i;
 	uint32_t index = 0;
 	uint32_t count = 0;
 
@@ -89,7 +89,7 @@ password_to_key_sha(uint8_t *password, uint8_t password_len,
 		uint8_t *engine, uint8_t engine_len, uint8_t *key, uint8_t key_len)
 {
 	EVP_MD_CTX *context;
-	uint8_t *cp, buf[64], i;;
+	uint8_t *cp, buf[64], i;
 	uint32_t index = 0;
 	uint32_t count = 0;
 
