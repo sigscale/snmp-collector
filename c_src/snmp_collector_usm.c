@@ -71,8 +71,8 @@ password_to_key_md5(uint8_t *password, uint8_t password_len,
 	}
 	EVP_DigestFinal_ex(context, key, (unsigned int *) &key_len);
 	memcpy(buf, key, key_len);
-	memcpy(buf + key_len, engine, engine_len);
-	memcpy(buf + key_len + engine_len, key, key_len);
+	memcpy(&buf[key_len], engine, engine_len);
+	memcpy(&buf[key_len + engine_len], key, key_len);
 	EVP_MD_CTX_reset(context);
 	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	EVP_DigestUpdate(context, buf, (key_len * 2) + engine_len);
@@ -106,8 +106,8 @@ password_to_key_sha(uint8_t *password, uint8_t password_len,
 	}
 	EVP_DigestFinal_ex(context, key, (unsigned int *) &key_len);
 	memcpy(buf, key, key_len);
-	memcpy(buf + key_len, engine, engine_len);
-	memcpy(buf + key_len + engine_len, key, key_len);
+	memcpy(&buf[key_len], engine, engine_len);
+	memcpy(&buf[key_len + engine_len], key, key_len);
 	EVP_MD_CTX_reset(context);
 	EVP_DigestInit_ex(context, EVP_sha1(), NULL);
 	EVP_DigestUpdate(context, buf, (key_len * 2) + engine_len);
