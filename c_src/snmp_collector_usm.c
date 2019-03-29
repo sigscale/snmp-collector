@@ -50,16 +50,16 @@ EVP_MD_CTX_free(EVP_MD_CTX *context)
  * RFC3414 A.2.1.
  */
 int
-password_to_key_md5(uint8_t *password, int password_len,
-		uint8_t *engine, int engine_len, uint8_t *key, int key_len)
+password_to_key_md5(uint8_t *password, uint8_t password_len,
+		uint8_t *engine, uint8_t engine_len, uint8_t *key, uint8_t key_len)
 {
 	EVP_MD_CTX *context;
-	u_char *cp, *buf;
-	u_long index = 0;
-	u_long count = 0, i;
+	uint8_t *cp, *buf, i;;
+	uint32_t index = 0;
+	uint32_t count = 0;
 
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (u_char *) malloc(engine_len > 64 ? engine_len + 32 : 64)) == NULL))
+			|| ((buf = (uint8_t *) malloc(engine_len > 64 ? engine_len + 32 : 64)) == NULL))
 		return -1;
 	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	while (count < 1048576) {
@@ -70,14 +70,14 @@ password_to_key_md5(uint8_t *password, int password_len,
 		EVP_DigestUpdate(context, buf, 64);
 		count += 64;
 	}
-	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_DigestFinal_ex(context, key, (unsigned int *) &key_len);
 	memcpy(buf, key, key_len);
 	memcpy(buf + key_len, engine, engine_len);
 	memcpy(buf + key_len + engine_len, key, key_len);
 	EVP_MD_CTX_reset(context);
 	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	EVP_DigestUpdate(context, buf, (key_len * 2) + engine_len);
-	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_DigestFinal_ex(context, key, (unsigned int *) &key_len);
 	EVP_MD_CTX_destroy(context);
 	free(buf);
 	return 1;
@@ -87,16 +87,16 @@ password_to_key_md5(uint8_t *password, int password_len,
  * RFC3414 A.2.2.
  */
 int
-password_to_key_sha(uint8_t *password, int password_len,
-		uint8_t *engine, int engine_len, uint8_t *key, int key_len)
+password_to_key_sha(uint8_t *password, uint8_t password_len,
+		uint8_t *engine, uint8_t engine_len, uint8_t *key, uint8_t key_len)
 {
 	EVP_MD_CTX *context;
-	u_char *cp, *buf;
-	u_long index = 0;
-	u_long count = 0, i;
+	uint8_t *cp, *buf, i;;
+	uint32_t index = 0;
+	uint32_t count = 0;
 
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (u_char *) malloc(engine_len > 24 ? engine_len + 40 : 64)) == NULL))
+			|| ((buf = (uint8_t *) malloc(engine_len > 24 ? engine_len + 40 : 64)) == NULL))
 		return -1;
 	EVP_DigestInit_ex(context, EVP_sha1(), NULL);
 	while (count < 1048576) {
@@ -107,14 +107,14 @@ password_to_key_sha(uint8_t *password, int password_len,
 		EVP_DigestUpdate(context, buf, 64);
 		count += 64;
 	}
-	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_DigestFinal_ex(context, key, (unsigned int *) &key_len);
 	memcpy(buf, key, key_len);
 	memcpy(buf + key_len, engine, engine_len);
 	memcpy(buf + key_len + engine_len, key, key_len);
 	EVP_MD_CTX_reset(context);
 	EVP_DigestInit_ex(context, EVP_sha1(), NULL);
 	EVP_DigestUpdate(context, buf, (key_len * 2) + engine_len);
-	EVP_DigestFinal_ex(context, (unsigned char *) key, (unsigned int *) &key_len);
+	EVP_DigestFinal_ex(context, key, (unsigned int *) &key_len);
 	EVP_MD_CTX_destroy(context);
 	free(buf);
 	return 1;
