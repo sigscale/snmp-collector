@@ -790,9 +790,12 @@ erlang:display({?MODULE, ?LINE, A});
 check_response({_RequestId, {error, Reason}}) ->
 	error_logger:info_report(["SNMP Manager POST Failed",
 			{error, Reason}]);
-check_response({_RequestId, {{"HTTP/1.1",400, "Bad Request"},_ , _}}) ->
+check_response({_RequestId, {{"HTTP/1.1",400, _BadRequest},_ , _}}) ->
 			error_logger:info_report(["SNMP Manager POST Failed",
 					{error, "400, bad_request"}]);
+check_response({_RequestId, {{"HTTP/1.1",500, _InternalError},_ , _}}) ->
+			error_logger:info_report(["SNMP Manager POST Failed",
+					{error, "500, internal_server_error"}]);
 check_response({_RequestId, {{"HTTP/1.1",201, _Created},_ , _}}) ->
 	void.
 
