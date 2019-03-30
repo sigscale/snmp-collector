@@ -785,6 +785,8 @@ engine_id4(PEN, Acc) ->
 	when
 		ReplyInfo :: tuple().
 %% @doc Check the response of a httpc request.
+check_response(A) ->
+erlang:display({?MODULE, ?LINE, A});
 check_response({_RequestId, {error, Reason}}) ->
 	error_logger:info_report(["SNMP Manager POST Failed",
 			{error, Reason}]);
@@ -931,10 +933,10 @@ auth_key(usmNoAuthProtocol, AuthPass, EngineID)
 	[];
 auth_key(usmHMACMD5AuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
-	snmp:passwd2localized_key(md5, AuthPass, EngineID);
+	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
 auth_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
-	snmp:passwd2localized_key(sha, AuthPass, EngineID).
+	snmp_collector_usm:password_to_key_sha(AuthPass, EngineID);
 
 skip_to_eol([$\n | T]) ->
 	T;
