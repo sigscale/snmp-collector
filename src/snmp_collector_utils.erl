@@ -877,7 +877,7 @@ add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProto
 add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
 	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
@@ -885,7 +885,7 @@ add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProt
 add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
 	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
@@ -900,7 +900,7 @@ add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProto
 add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
 	AuthKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmAesCfb128Protocol, PrivPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
@@ -908,7 +908,7 @@ add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProt
 add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
 	AuthKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmAesCfb128Protocol, PrivPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
