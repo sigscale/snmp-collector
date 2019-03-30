@@ -418,7 +418,7 @@ security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPas
 		when is_list(EngineID), is_list(SecName) ->
 	case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, SecName}) of
 		[{_, {usm_user, _, _, _, AuthProtocol, _, PrivProtocol, _}}] ->
-			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
+			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms, Packet) of
 				true ->
 					{ok, AuthProtocol, PrivProtocol};
@@ -439,7 +439,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 	case ets:match(snmpm_usm_table, {{usmUserTable, '_', TargetName},
 			{usm_user, '_', TargetName, SecName, '$1', '_', '$2', '_'}}) of
 		[[AuthProtocol, PrivProtocol]] ->
-			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
+			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
 					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
@@ -455,7 +455,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 					{error, authentication_failed}
 			end;
 		[[AuthProtocol, PrivProtocol],  _] ->
-			AuthKey = auth_key(AuthProtocol, AuthPass, EngineID),
+			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
 					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
