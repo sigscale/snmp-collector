@@ -785,8 +785,6 @@ engine_id4(PEN, Acc) ->
 	when
 		ReplyInfo :: tuple().
 %% @doc Check the response of a httpc request.
-check_response(A) ->
-erlang:display({?MODULE, ?LINE, A});
 check_response({_RequestId, {error, Reason}}) ->
 	error_logger:info_report(["SNMP Manager POST Failed",
 			{error, Reason}]);
