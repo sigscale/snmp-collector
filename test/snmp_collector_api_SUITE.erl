@@ -129,7 +129,8 @@ all() ->
 	[add_user, get_user, delete_user,
 			get_mib,
 			get_faults, log_agent, log_severity, log_filter,
-	password_to_key_md5, password_to_key_sha].
+			get_kul_md5, get_kul_sha, get_kul_md5_5, get_kul_sha_5,
+			get_kul_md5_64, get_kul_sha_64].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -307,10 +308,10 @@ log_filter(_Config) ->
 			{skip, "requires OTP 21 or later"}
 	end.
 
-password_to_key_md5() ->
+get_kul_md5() ->
 	[{userdata, [{doc, "Generate a localized key using MD5 (RFC3414 A.3.1)"}]}].
 
-password_to_key_md5(_Config) ->
+get_kul_md5(_Config) ->
 	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
 	Password = "maplesyrup",
 	{Elapsed, <<16#52, 16#6f, 16#5e, 16#ed, 16#9f, 16#cc, 16#e2, 16#6f,
@@ -318,15 +319,55 @@ password_to_key_md5(_Config) ->
 			timer:tc(snmp_collector_usm, password_to_key_md5, [Password, EngineID]),
 	Elapsed.
 
-password_to_key_sha() ->
+get_kul_sha() ->
 	[{userdata, [{doc, "Generate a localized key using SHA (RFC3414 A.3.2)"}]}].
 
-password_to_key_sha(_Config) ->
+get_kul_sha(_Config) ->
 	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
 	Password = "maplesyrup",
 	{Elapsed, <<16#66, 16#95, 16#fe, 16#bc, 16#92, 16#88, 16#e3, 16#62,
 			16#82, 16#23, 16#5f, 16#c7, 16#15, 16#1f, 16#12, 16#84, 16#97, 16#b3, 16#8f, 16#3f>>} =
 			timer:tc(snmp_collector_usm, password_to_key_sha, [Password, EngineID]),
+	Elapsed.
+
+get_kul_md5_5() ->
+	[{userdata, [{doc, "Verify NIF using OTP library implementation (MD5) (5 octect password)"}]}].
+
+get_kul_md5_5(_Config) ->
+	EngineID = snmp_collector_utils:engine_id(),
+	Password = snmp_collector_utils:generate_identity(5),
+	Md5Key = list_to_binary(snmp_usm:passwd2localized_key(md5, Password, EngineID)),
+	{Elapsed, Md5Key} = timer:tc(snmp_collector_usm, password_to_key_md5, [Password, EngineID]),
+	Elapsed.
+
+get_kul_sha_5() ->
+	[{userdata, [{doc, "Verify NIF using OTP library implementation (SHA) (5 octect password)"}]}].
+
+get_kul_sha_5(_Config) ->
+	EngineID = snmp_collector_utils:engine_id(),
+	Password = snmp_collector_utils:generate_identity(5),
+	ShaKey = list_to_binary(snmp_usm:passwd2localized_key(sha, Password, EngineID)),
+	{Elapsed, ShaKey} = timer:tc(snmp_collector_usm, password_to_key_sha, [Password, EngineID]),
+	Elapsed.
+
+get_kul_md5_64() ->
+	[{userdata, [{doc, "Verify NIF using OTP library implementation (MD5) (64 octect password)"}]}].
+
+get_kul_md5_64(_Config) ->
+	EngineID = snmp_collector_utils:engine_id(),
+	Password = snmp_collector_utils:generate_identity(64),
+	Md5Key = list_to_binary(snmp_usm:passwd2localized_key(md5, Password, EngineID)),
+	{Elapsed, Md5Key} = timer:tc(snmp_collector_usm, password_to_key_md5, [Password, EngineID]),
+	Elapsed.
+
+get_kul_sha_64() ->
+	[{userdata, [{doc, "Verify NIF using OTP library implementation (SHA) (64 octect password)"}]}].
+
+get_kul_sha_64(_Config) ->
+	EngineID = snmp_collector_utils:engine_id(),
+	Password = snmp_collector_utils:generate_identity(64),
+	ShaKey = list_to_binary(snmp_usm:passwd2localized_key(sha, Password, EngineID)),
+	{Elapsed, ShaKey} = timer:tc(snmp_collector_usm, password_to_key_sha, [Password, EngineID]),
 	Elapsed.
 
 %%---------------------------------------------------------------------
