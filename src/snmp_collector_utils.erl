@@ -939,7 +939,7 @@ auth_key(usmHMACMD5AuthProtocol, AuthPass, EngineID)
 	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
 auth_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
-	snmp_collector_usm:password_to_key_sha(AuthPass, EngineID);
+	snmp_collector_usm:password_to_key_sha(AuthPass, EngineID).
 
 skip_to_eol([$\n | T]) ->
 	T;
