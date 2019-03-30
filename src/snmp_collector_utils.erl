@@ -869,46 +869,46 @@ add_usm_user(EngineID, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, 
 %% @hidden
 add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
 			{auth_key, AuthKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
-	PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
 %% @hidden
 add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = snmp:passwd2localized_key(md5, AuthPass, EngineID),
-	PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
 %% @hidden
 add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = snmp:passwd2localized_key(sha, AuthPass, EngineID),
+	AuthKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmNoPrivProtocol}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = snmp:passwd2localized_key(sha, AuthPass, EngineID),
-	PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
+	AuthKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
 %% @hidden
 add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = snmp:passwd2localized_key(sha, AuthPass, EngineID),
-	PrivKey = snmp:passwd2localized_key(sha, PrivPass, EngineID),
+	AuthKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmAesCfb128Protocol, AuthPass, EngineID),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
 	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
@@ -922,20 +922,20 @@ add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
 			{error, Reason}
 	end.
 
--spec auth_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
+-spec generate_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
 	when
 		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
 		AuthPass :: list(),
 		EngineID :: list(),
 		AuthKey :: list().
 %% @doc Generates a key that can be used as an authentication using MD5 or SHA.
-auth_key(usmNoAuthProtocol, AuthPass, EngineID)
+generate_key(usmNoAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
 	[];
-auth_key(usmHMACMD5AuthProtocol, AuthPass, EngineID)
+generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
 	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
-auth_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
+generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
 	snmp_collector_usm:password_to_key_sha(AuthPass, EngineID).
 

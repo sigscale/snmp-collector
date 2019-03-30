@@ -182,7 +182,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
-											PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
+											PrivKey = snmp_collector_usm:password_to_key_md5(PrivPass, EngineID),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -210,7 +210,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											PrivKey = snmp:passwd2localized_key(md5, PrivPass, EngineID),
+											PrivKey = snmp_collector_usm:password_to_key_md5(PrivPass, EngineID),
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -252,7 +252,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
-											PrivKey  = lists:sublist(snmp:passwd2localized_key(sha, PrivPass, EngineID), 16),
+											PrivKey = lists:sublist(snmp_collector_usm:password_to_key_sha(PrivPass, EngineID), 16),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -280,7 +280,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											PrivKey  = lists:sublist(snmp:passwd2localized_key(sha, PrivPass, EngineID), 16),
+											PrivKey = lists:sublist(snmp_collector_usm:password_to_key_sha(PrivPass, EngineID), 16),
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
