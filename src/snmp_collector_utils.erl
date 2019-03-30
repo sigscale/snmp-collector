@@ -665,7 +665,7 @@ check_response({_RequestId, {error, Reason}}) ->
 check_response({_RequestId, {{"HTTP/1.1",400, "Bad Request"},_ , _}}) ->
 			error_logger:info_report(["SNMP Manager POST Failed",
 					{error, "400, bad_request"}]);
-check_response({_RequestId, {{"HTTP/1.1",200, _Created},_ , _}}) ->
+check_response({_RequestId, {{"HTTP/1.1",201, _Created},_ , _}}) ->
 	void.
 
 -spec strip_name(Name) -> Name
