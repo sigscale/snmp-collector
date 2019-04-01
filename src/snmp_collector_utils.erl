@@ -825,7 +825,7 @@ timestamp() ->
 -spec authenticate(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
 	when
 		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
-		AuthKey :: list(),
+		AuthKey :: [byte()],
 		AuthParams :: list(),
 		Packet :: [byte()],
 		Result :: true | false.
@@ -922,9 +922,9 @@ add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
 -spec generate_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
 	when
 		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
-		AuthPass :: list(),
-		EngineID :: list(),
-		AuthKey :: list().
+		AuthPass :: string(),
+		EngineID :: [byte()],
+		AuthKey :: [byte()].
 %% @doc Generates a key that can be used as an authentication using MD5 or SHA.
 generate_key(usmNoAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
