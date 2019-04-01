@@ -123,35 +123,42 @@ password_to_key_sha(uint8_t *password, size_t password_len,
 static ERL_NIF_TERM
 password_to_key_md5_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-	ErlNifBinary password, engine, key;
+	ErlNifBinary password, engine;
+	size_t key_len = 16;
+	uint8_t i, key[key_len];
+	ERL_NIF_TERM result[key_len];
 
 	if (!enif_inspect_iolist_as_binary(env, argv[0], &password)
 			|| !enif_inspect_iolist_as_binary(env, argv[1], &engine)
 			|| engine.size > 32)
 		return enif_make_badarg(env);
-	if (!enif_alloc_binary(16, &key))
-		return enif_raise_exception(env, enif_make_atom(env, "ealloc"));
 	if (!password_to_key_md5(password.data, password.size,
-			engine.data, engine.size, key.data, key.size))
+			engine.data, engine.size, key, key_len))
 		return enif_raise_exception(env, enif_make_atom(env, "ealloc"));
-	return enif_make_binary(env, &key);
+	for (i = 0; i < key_len; i++)
+		result[i] = enif_make_uint(env, key[i]);
+	return enif_make_list_from_array(env, result, key_len);
 }
 
 static ERL_NIF_TERM
 password_to_key_sha_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-	ErlNifBinary password, engine, key;
+	ErlNifBinary password, engine;
+	size_t key_len = 20;
+	uint8_t i, key[key_len];
+	ERL_NIF_TERM result[key_len];
+
 
 	if (!enif_inspect_iolist_as_binary(env, argv[0], &password)
 			|| !enif_inspect_iolist_as_binary(env, argv[1], &engine)
 			|| engine.size > 32)
 		return enif_make_badarg(env);
-	if (!enif_alloc_binary(20, &key))
-		return enif_raise_exception(env, enif_make_atom(env, "ealloc"));
 	if (!password_to_key_sha(password.data, password.size,
-			engine.data, engine.size, key.data, key.size))
+			engine.data, engine.size, key, key_len))
 		return enif_raise_exception(env, enif_make_atom(env, "ealloc"));
-	return enif_make_binary(env, &key);
+	for (i = 0; i < key_len; i++)
+		result[i] = enif_make_uint(env, key[i]);
+	return enif_make_list_from_array(env, result, key_len);
 }
 
 static ErlNifFunc nif_funcs[] = {

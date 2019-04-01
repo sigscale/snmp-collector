@@ -38,7 +38,7 @@
 	when
 		Password :: string(),
 		EngineID :: [byte()],
-		AuthKey :: binary().
+		AuthKey :: [byte()].
 %% @doc Password to Key Algorithm (MD5).
 password_to_key_md5(_Password, _EngineID) ->
 	erlang:nif_error(nif_library_not_loaded).
@@ -47,7 +47,7 @@ password_to_key_md5(_Password, _EngineID) ->
 	when
 		Password :: string(),
 		EngineID :: [byte()],
-		AuthKey :: binary().
+		AuthKey :: [byte()].
 %% @doc Password to Key Algorithm (SHA).
 password_to_key_sha(_Password, _EngineID) ->
 	erlang:nif_error(nif_library_not_loaded).

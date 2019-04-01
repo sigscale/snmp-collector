@@ -314,8 +314,8 @@ get_kul_md5() ->
 get_kul_md5(_Config) ->
 	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
 	Password = "maplesyrup",
-	{Elapsed, <<16#52, 16#6f, 16#5e, 16#ed, 16#9f, 16#cc, 16#e2, 16#6f,
-			16#89, 16#64, 16#c2, 16#93, 16#07, 16#87, 16#d8, 16#2b>>} =
+	{Elapsed, [16#52, 16#6f, 16#5e, 16#ed, 16#9f, 16#cc, 16#e2, 16#6f,
+			16#89, 16#64, 16#c2, 16#93, 16#07, 16#87, 16#d8, 16#2b]} =
 			timer:tc(snmp_collector_usm, password_to_key_md5, [Password, EngineID]),
 	Elapsed.
 
@@ -325,8 +325,8 @@ get_kul_sha() ->
 get_kul_sha(_Config) ->
 	EngineID = [16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#02],
 	Password = "maplesyrup",
-	{Elapsed, <<16#66, 16#95, 16#fe, 16#bc, 16#92, 16#88, 16#e3, 16#62,
-			16#82, 16#23, 16#5f, 16#c7, 16#15, 16#1f, 16#12, 16#84, 16#97, 16#b3, 16#8f, 16#3f>>} =
+	{Elapsed, [16#66, 16#95, 16#fe, 16#bc, 16#92, 16#88, 16#e3, 16#62,
+			16#82, 16#23, 16#5f, 16#c7, 16#15, 16#1f, 16#12, 16#84, 16#97, 16#b3, 16#8f, 16#3f]} =
 			timer:tc(snmp_collector_usm, password_to_key_sha, [Password, EngineID]),
 	Elapsed.
 
@@ -336,7 +336,7 @@ get_kul_md5_5() ->
 get_kul_md5_5(_Config) ->
 	EngineID = snmp_collector_utils:engine_id(),
 	Password = snmp_collector_utils:generate_identity(5),
-	Md5Key = list_to_binary(snmp_usm:passwd2localized_key(md5, Password, EngineID)),
+	Md5Key = snmp_usm:passwd2localized_key(md5, Password, EngineID),
 	{Elapsed, Md5Key} = timer:tc(snmp_collector_usm, password_to_key_md5, [Password, EngineID]),
 	Elapsed.
 
@@ -346,7 +346,7 @@ get_kul_sha_5() ->
 get_kul_sha_5(_Config) ->
 	EngineID = snmp_collector_utils:engine_id(),
 	Password = snmp_collector_utils:generate_identity(5),
-	ShaKey = list_to_binary(snmp_usm:passwd2localized_key(sha, Password, EngineID)),
+	ShaKey = snmp_usm:passwd2localized_key(sha, Password, EngineID),
 	{Elapsed, ShaKey} = timer:tc(snmp_collector_usm, password_to_key_sha, [Password, EngineID]),
 	Elapsed.
 
@@ -356,7 +356,7 @@ get_kul_md5_64() ->
 get_kul_md5_64(_Config) ->
 	EngineID = snmp_collector_utils:engine_id(),
 	Password = snmp_collector_utils:generate_identity(64),
-	Md5Key = list_to_binary(snmp_usm:passwd2localized_key(md5, Password, EngineID)),
+	Md5Key = snmp_usm:passwd2localized_key(md5, Password, EngineID),
 	{Elapsed, Md5Key} = timer:tc(snmp_collector_usm, password_to_key_md5, [Password, EngineID]),
 	Elapsed.
 
@@ -366,7 +366,7 @@ get_kul_sha_64() ->
 get_kul_sha_64(_Config) ->
 	EngineID = snmp_collector_utils:engine_id(),
 	Password = snmp_collector_utils:generate_identity(64),
-	ShaKey = list_to_binary(snmp_usm:passwd2localized_key(sha, Password, EngineID)),
+	ShaKey = snmp_usm:passwd2localized_key(sha, Password, EngineID),
 	{Elapsed, ShaKey} = timer:tc(snmp_collector_usm, password_to_key_sha, [Password, EngineID]),
 	Elapsed.
 
