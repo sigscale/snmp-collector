@@ -919,17 +919,24 @@ add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
 			{error, Reason}
 	end.
 
--spec generate_key(AuthProtocol, AuthPass, EngineID) -> AuthKey
+-spec generate_key(Protocol, Pass, EngineID) -> Key
 	when
-		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
-		AuthPass :: string(),
+		Protocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol
+				| usmHMACSHAAuthProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+		Pass :: string(),
 		EngineID :: [byte()],
-		AuthKey :: [byte()].
-%% @doc Generates a key that can be used as an authentication using MD5 or SHA.
+		Key :: [byte()].
+%% @doc Generates a localized key (Kul) for authentication or privacy.
 generate_key(usmNoAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
 	[];
 generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID)
+		when is_list(AuthPass), is_list(EngineID) ->
+	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
+generate_key(usmDESPrivProtocol, AuthPass, EngineID)
+		when is_list(AuthPass), is_list(EngineID) ->
+	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
+generate_key(usmAesCfb128Protocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
 	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
 generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
