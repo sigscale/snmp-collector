@@ -38,10 +38,10 @@
 %%  The snmp_collector_utilites public API
 %%----------------------------------------------------------------------
 
--spec date(MilliSeconds) -> Result
+-spec date(MilliSeconds) -> DateTime
 	when
 		MilliSeconds :: pos_integer(),
-		Result :: calendar:datetime().
+		DateTime :: calendar:datetime().
 %% @doc Convert timestamp to date and time.
 date(MilliSeconds) when is_integer(MilliSeconds) ->
 	Seconds = ?EPOCH + (MilliSeconds div 1000),
@@ -259,12 +259,11 @@ oid_to_name(OID, [_H | T], {error, _Reason}) ->
 oid_to_name(OID, [], {error, _Reason}) ->
 	lists:flatten(io_lib:fwrite("~p", [OID])).
 
--spec get_name(Body) -> Result
+-spec get_name(Body) -> Name
 	when
 		Body :: list(),
-		Result :: Name,
 		Name :: string().
-%% @doc Get the name of the MIB from the body of a MIB.
+%% @doc Get the name of a MIB from the MIB body.
 get_name([H | _] = Body) when H >= $A, H =< $Z ->
 	get_name1(Body, []);
 get_name([$ | T]) ->
@@ -369,12 +368,12 @@ common_event_header([H | T], TargetName, CH, AD) ->
 common_event_header([], _TargetName, CH, AD) ->
 	{CH, AD}.
 
--spec fault_fields(AlarmDetails) -> Result
+-spec fault_fields(AlarmDetails) -> FaultFields
 	when
 		AlarmDetails :: [{Name, Value}],
 		Name :: list(),
 		Value :: list(),
-		Result :: map().
+		FaultFields :: map().
 %% @doc Create the fault fields map.
 fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
 	DefaultMap = #{"alarmAdditionalInformation" => [],
@@ -522,12 +521,11 @@ log_events(CommonEventHeader, FaultFields)
 			{error, Reason}
 	end.
 
--spec post_event(CommonEventHeader, FaultFields, Url) -> Result
+-spec post_event(CommonEventHeader, FaultFields, Url) -> ok
    when
 		CommonEventHeader :: map(),
 		FaultFields :: map(),
-		Url :: inet:ip_address() | [],
-		Result :: ok.
+		Url :: inet:ip_address() | [].
 %% @doc Log the event to disk.
 post_event(_CommonEventHeader, _FaultFields, []) ->
 	ok;
@@ -618,10 +616,9 @@ oids_to_names([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
 
--spec stringify(String) -> Result
+-spec stringify(String) -> String
 	when
-		String :: string(),
-		Result :: string().
+		String :: string().
 %% @doc JSON encode a string.
 %% @private
 stringify(String) ->
