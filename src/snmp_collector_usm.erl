@@ -27,29 +27,45 @@
 -module(snmp_collector_usm).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
--export([password_to_key_md5/2, password_to_key_sha/2]).
+-export([ku_md5/1, ku_sha/1, kul_md5/2, kul_sha/2]).
 -on_load(init/0).
 
 %%----------------------------------------------------------------------
 %%  The snmp_collector_usm public API
 %%----------------------------------------------------------------------
 
--spec password_to_key_md5(Password, EngineID) -> AuthKey
+-spec ku_md5(Password) -> Ku
 	when
 		Password :: string(),
-		EngineID :: [byte()],
-		AuthKey :: [byte()].
-%% @doc Password to Key Algorithm (MD5).
-password_to_key_md5(_Password, _EngineID) ->
+		Ku :: binary().
+%% @doc Password to key (Ku) algorithm (MD5).
+ku_md5(_Password) ->
 	erlang:nif_error(nif_library_not_loaded).
 
--spec password_to_key_sha(Password, EngineID) -> AuthKey
+-spec ku_sha(Password) -> Ku
 	when
 		Password :: string(),
+		Ku :: binary().
+%% @doc Password to key (Ku) algorithm (SHA).
+ku_sha(_Password) ->
+	erlang:nif_error(nif_library_not_loaded).
+
+-spec kul_md5(Ku, EngineID) -> Kul
+	when
+		Ku :: binary(),
 		EngineID :: [byte()],
-		AuthKey :: [byte()].
-%% @doc Password to Key Algorithm (SHA).
-password_to_key_sha(_Password, _EngineID) ->
+		Kul :: [byte()].
+%% @doc Localized key (Kul) algorithm (MD5).
+kul_md5(_Ku, _EngineID) ->
+	erlang:nif_error(nif_library_not_loaded).
+
+-spec kul_sha(Ku, EngineID) -> Kul
+	when
+		Ku :: binary(),
+		EngineID :: [byte()],
+		Kul :: [byte()].
+%% @doc Localized key (Kul) algorithm (SHA).
+kul_sha(_Ku, _EngineID) ->
 	erlang:nif_error(nif_library_not_loaded).
 
 %%----------------------------------------------------------------------

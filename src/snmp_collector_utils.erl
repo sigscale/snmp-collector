@@ -932,16 +932,20 @@ generate_key(usmNoAuthProtocol, AuthPass, EngineID)
 	[];
 generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
-	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
+	Ku = snmp_collector_usm:ku_md5(AuthPass),
+	snmp_collector_usm:kul_md5(Ku, EngineID);
 generate_key(usmDESPrivProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
-	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
+	Ku = snmp_collector_usm:ku_md5(AuthPass),
+	snmp_collector_usm:kul_md5(Ku, EngineID);
 generate_key(usmAesCfb128Protocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
-	snmp_collector_usm:password_to_key_md5(AuthPass, EngineID);
+	Ku = snmp_collector_usm:ku_md5(AuthPass),
+	snmp_collector_usm:kul_md5(Ku, EngineID);
 generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
 		when is_list(AuthPass), is_list(EngineID) ->
-	snmp_collector_usm:password_to_key_sha(AuthPass, EngineID).
+	Ku = snmp_collector_usm:ku_sha(AuthPass),
+	snmp_collector_usm:kul_sha(Ku, EngineID).
 
 skip_to_eol([$\n | T]) ->
 	T;
