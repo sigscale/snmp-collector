@@ -83,8 +83,26 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 	case catch snmp_pdus:dec_message_only(Packet) of
 		#message{version = 'version-1'} ->
 			{stop, shutdown, StateData};
-		#message{version = 'version-2'} ->
-			{stop, shutdown, StateData};
+		#message{version = 'version-2', data = Data} ->
+			case catch snmp_pdus:dec_pdu(Data) of
+				#pdu{error_status = noError, varbinds = Varbinds} ->
+					case handle_trap(Address, Port, {noError, 0, Varbinds}) of
+						ignore ->
+							{stop, shutdown, StateData};
+						{error, Reason} ->
+							error_logger:info_report(["SNMP Manager SNMP v2 Trap Handler Failed",
+									{error, Reason},
+									{port, Port},
+									{address, Address}]),
+							{stop, shutdown, StateData}
+					end;
+				{'EXIT', Reason} ->
+					error_logger:error_report(["SNMP Manager Decoding SNMP v2c Failed",
+							{error, Reason},
+							{port, Port},
+							{address, Address}]),
+					{stop, shutdown, StateData}
+			end;
 		#message{version = 'version-3', vsn_hdr = #v3_hdr{msgSecurityParameters = SecurityParams, msgFlags = [Flag]}, data = Data} ->
 			case catch snmp_pdus:dec_usm_security_parameters(SecurityParams) of
 				#usmSecurityParameters{msgUserName = UserName, msgAuthoritativeEngineID = EngineID, msgAuthoritativeEngineBoots = EngineBoots,
