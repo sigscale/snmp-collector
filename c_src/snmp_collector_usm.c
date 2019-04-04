@@ -58,7 +58,7 @@ ku_md5(uint8_t *password, size_t password_len, uint8_t *ku, size_t ku_len)
 
 	buf_len = password_len + 64;
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (uint8_t *) malloc(buf_len)) == NULL))
+			|| ((buf = (uint8_t *) enif_alloc(buf_len)) == NULL))
 		return -1;
 	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	for (i = 0; i < buf_len; i += password_len) {
@@ -72,7 +72,7 @@ ku_md5(uint8_t *password, size_t password_len, uint8_t *ku, size_t ku_len)
 	}
 	EVP_DigestFinal_ex(context, (uint8_t *) ku, (unsigned int *) &ku_len);
 	EVP_MD_CTX_destroy(context);
-	free(buf);
+	enif_free(buf);
 	return 1;
 }
 
@@ -88,7 +88,7 @@ ku_sha(uint8_t *password, size_t password_len, uint8_t *ku, size_t ku_len)
 
 	buf_len = password_len + 64;
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (uint8_t *) malloc(buf_len)) == NULL))
+			|| ((buf = (uint8_t *) enif_alloc(buf_len)) == NULL))
 		return -1;
 	EVP_DigestInit_ex(context, EVP_sha1(), NULL);
 	for (i = 0; i < buf_len; i += password_len) {
@@ -102,7 +102,7 @@ ku_sha(uint8_t *password, size_t password_len, uint8_t *ku, size_t ku_len)
 	}
 	EVP_DigestFinal_ex(context, (uint8_t *) ku, (unsigned int *) &ku_len);
 	EVP_MD_CTX_destroy(context);
-	free(buf);
+	enif_free(buf);
 	return 1;
 }
 
@@ -118,7 +118,7 @@ kul_md5(uint8_t *ku, size_t ku_len,
 
 	buf_len = engine_len + 32;
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (uint8_t *) malloc(buf_len)) == NULL))
+			|| ((buf = (uint8_t *) enif_alloc(buf_len)) == NULL))
 		return -1;
 	EVP_DigestInit_ex(context, EVP_md5(), NULL);
 	memcpy(buf, ku, 16);
@@ -128,7 +128,7 @@ kul_md5(uint8_t *ku, size_t ku_len,
 	EVP_DigestUpdate(context, buf, 32 + engine_len);
 	EVP_DigestFinal_ex(context, (uint8_t *) kul, (unsigned int *) &kul_len);
 	EVP_MD_CTX_destroy(context);
-	free(buf);
+	enif_free(buf);
 	return 1;
 }
 
@@ -144,7 +144,7 @@ kul_sha(uint8_t *ku, size_t ku_len,
 
 	buf_len = engine_len + 40;
 	if (((context = EVP_MD_CTX_new()) == NULL)
-			|| ((buf = (uint8_t *) malloc(buf_len)) == NULL))
+			|| ((buf = (uint8_t *) enif_alloc(buf_len)) == NULL))
 		return -1;
 	EVP_DigestInit_ex(context, EVP_sha1(), NULL);
 	memcpy(buf, ku, 20);
@@ -154,7 +154,7 @@ kul_sha(uint8_t *ku, size_t ku_len,
 	EVP_DigestUpdate(context, buf, 40 + engine_len);
 	EVP_DigestFinal_ex(context, (uint8_t *) kul, (unsigned int *) &kul_len);
 	EVP_MD_CTX_destroy(context);
-	free(buf);
+	enif_free(buf);
 	return 1;
 }
 
