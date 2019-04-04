@@ -298,6 +298,12 @@ get_name2([$\n | T], Name) ->
 get_name2("DEFINITIONS " ++ _,  Name) ->
 	Name.
 
+%% @hidden
+skip_to_eol([$\n | T]) ->
+	T;
+skip_to_eol([_ | T]) ->
+	skip_to_eol(T).
+
 -spec generate_identity(Length) -> string()
 	when
 		Length :: pos_integer().
@@ -947,7 +953,3 @@ generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID)
 	Ku = snmp_collector_usm:ku_sha(AuthPass),
 	snmp_collector_usm:kul_sha(Ku, EngineID).
 
-skip_to_eol([$\n | T]) ->
-	T;
-skip_to_eol([_ | T]) ->
-	skip_to_eol(T).
