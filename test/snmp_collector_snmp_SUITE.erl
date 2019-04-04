@@ -62,6 +62,13 @@ end_per_suite(_Config) ->
 -spec init_per_testcase(TestCase :: atom(), Config :: [tuple()]) -> Config :: [tuple()].
 %% Initialization before each test case.
 %%
+init_per_testcase(send_trap_v2, Config) ->
+	ok = init_snmp(Config),
+	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
+	AgentConf = [{engine_id, "snmpv2trap"}, {taddress, {127,0,0,1}}, {port, Port},
+			{community, "public"}, {version, v2}, {sec_model, v2c}, {sec_level, noAuthNoPriv}],
+	ok = snmpm:register_agent("ct", "ct", AgentConf),
+	Config;
 init_per_testcase(send_trap_noauth_nopriv, Config) ->
 	ok = init_snmp(Config),
 	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
@@ -176,13 +183,61 @@ sequences() ->
 %% Returns a list of all test cases in this test suite.
 %%
 all() ->
-	[send_trap_noauth_nopriv, send_trap_md5_nopriv, send_trap_md5_des,
+	[send_trap_v2, send_trap_noauth_nopriv, send_trap_md5_nopriv, send_trap_md5_des,
 		send_trap_md5_aes, send_trap_sha_nopriv, send_trap_sha_aes, send_trap_sha_des].
 
 %%---------------------------------------------------------------------
 %%  Test cases
 %%---------------------------------------------------------------------
 
+send_trap_v2() ->
+	Port = rand:uniform(64511) + 1024,
+	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
+	{require, snmp_mgr_agent, snmp},
+	{default_config, snmp,
+			[{start_agent, true},
+			{agent_notify_type, trap},
+			{agent_engine_id, "snmpv2trap"},
+			{agent_vsns, [v2]},
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
+					[{vacmSecurityToGroup, usm, "ct", "ct"},
+					{vacmSecurityToGroup, v2c, "ct", "ct"},
+					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
+					{vacmAccess, "ct", "", usm, authNoPriv, exact, "internet", "internet", "internet"},
+					{vacmAccess, "ct", "", usm, authPriv, exact, "internet", "internet", "internet"},
+					{vacmViewTreeFamily, "internet", [1,3,6,1], included, null},
+					{vacmViewTreeFamily, "restricted", [1,3,6,1], included, null}]},
+			{agent_notify_def, [{"cttrap", "ct_tag", trap}]},
+			{agent_target_address_def, [{"ct_trap", transportDomainUdpIpv4, {[127,0,0,1], Port},
+					1500, 3, "ct_tag", "ct_params", "noAuthNoPrivAgent", [], 2048}]},
+			{agent_target_param_def, [{"ct_params", v2c, v2c, "ct", noAuthNoPriv}]},
+			{start_manager, true},
+			{mgr_port, 56673},
+			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+	{require, snmp_app},
+	{default_config, snmp_app,
+			[{manager,
+					[{config, [{verbosity, silence}]},
+					{server, [{verbosity, silence}]},
+					{notestore, [{verbosity, silence}]},
+					{net_if, [{verbosity, silence}]}]},
+			{agent,
+					[{config, [{verbosity, silence}]},
+					{agent_verbosity, silence},
+					{net_if, [{verbosity, silence}]}]}]}].
+
+send_trap_v2(_Config) ->
+	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
+	receive
+		ok ->
+			ok;
+		{error, Reason} ->
+			ct:fail(Reason)
+	after
+		4000 ->
+			ct:fail(timeout)
+	end.
 send_trap_noauth_nopriv() ->
 	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
@@ -190,10 +245,10 @@ send_trap_noauth_nopriv() ->
 	{default_config, snmp,
 			[{start_agent, true},
 			{agent_engine_id, "noAuthNoPrivAgent"},
-	  	   {agent_notify_type, trap},
+			{agent_notify_type, trap},
 			{agent_vsns, [v3]},
-	      {agent_community, [{"public", "public", "ct", "", ""}]},
-	      {agent_vacm,
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
 					[{vacmSecurityToGroup, usm, "ct", "ct"},
 					{vacmSecurityToGroup, v2c, "ct", "ct"},
 					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
@@ -226,7 +281,7 @@ send_trap_noauth_nopriv() ->
 send_trap_noauth_nopriv(_Config) ->
 	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
 	receive
-		ok -> 
+		ok ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
@@ -242,10 +297,10 @@ send_trap_md5_nopriv() ->
 	{default_config, snmp,
 			[{start_agent, true},
 			{agent_engine_id, "md5NoPrivAgent"},
-	  	   {agent_notify_type, trap},
+			{agent_notify_type, trap},
 			{agent_vsns, [v3]},
-	      {agent_community, [{"public", "public", "ct", "", ""}]},
-	      {agent_vacm,
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
 					[{vacmSecurityToGroup, usm, "ct", "ct"},
 					{vacmSecurityToGroup, v2c, "ct", "ct"},
 					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
@@ -279,7 +334,7 @@ send_trap_md5_nopriv() ->
 send_trap_md5_nopriv(_Config) ->
 	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
 	receive
-		ok -> 
+		ok ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
@@ -295,10 +350,10 @@ send_trap_md5_des() ->
 	{default_config, snmp,
 			[{start_agent, true},
 			{agent_engine_id, "md5DesAgent"},
-	  	   {agent_notify_type, trap},
+			{agent_notify_type, trap},
 			{agent_vsns, [v3]},
-	      {agent_community, [{"public", "public", "ct", "", ""}]},
-	      {agent_vacm,
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
 					[{vacmSecurityToGroup, usm, "ct", "ct"},
 					{vacmSecurityToGroup, v2c, "ct", "ct"},
 					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
@@ -333,7 +388,7 @@ send_trap_md5_des() ->
 send_trap_md5_des(_Config) ->
 	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
 	receive
-		ok -> 
+		ok ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
@@ -349,10 +404,10 @@ send_trap_md5_aes() ->
 	{default_config, snmp,
 			[{start_agent, true},
 			{agent_engine_id, "md5AesAgent"},
-	  	   {agent_notify_type, trap},
+			{agent_notify_type, trap},
 			{agent_vsns, [v3]},
-	      {agent_community, [{"public", "public", "ct", "", ""}]},
-	      {agent_vacm,
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
 					[{vacmSecurityToGroup, usm, "ct", "ct"},
 					{vacmSecurityToGroup, v2c, "ct", "ct"},
 					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
@@ -387,7 +442,7 @@ send_trap_md5_aes() ->
 send_trap_md5_aes(_Config) ->
 	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
 	receive
-		ok -> 
+		ok ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
@@ -403,10 +458,10 @@ send_trap_sha_nopriv() ->
 	{default_config, snmp,
 			[{start_agent, true},
 			{agent_engine_id, "shaNoPrivAgent"},
-	  	   {agent_notify_type, trap},
+			{agent_notify_type, trap},
 			{agent_vsns, [v3]},
-	      {agent_community, [{"public", "public", "ct", "", ""}]},
-	      {agent_vacm,
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
 					[{vacmSecurityToGroup, usm, "ct", "ct"},
 					{vacmSecurityToGroup, v2c, "ct", "ct"},
 					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
@@ -440,7 +495,7 @@ send_trap_sha_nopriv() ->
 send_trap_sha_nopriv(_Config) ->
 	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
 	receive
-		ok -> 
+		ok ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
@@ -456,10 +511,10 @@ send_trap_sha_aes() ->
 	{default_config, snmp,
 			[{start_agent, true},
 			{agent_engine_id, "shaAesAgent"},
-	  	   {agent_notify_type, trap},
+			{agent_notify_type, trap},
 			{agent_vsns, [v3]},
-	      {agent_community, [{"public", "public", "ct", "", ""}]},
-	      {agent_vacm,
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
 					[{vacmSecurityToGroup, usm, "ct", "ct"},
 					{vacmSecurityToGroup, v2c, "ct", "ct"},
 					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
@@ -494,7 +549,7 @@ send_trap_sha_aes() ->
 send_trap_sha_aes(_Config) ->
 	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
 	receive
-		ok -> 
+		ok ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
@@ -510,10 +565,10 @@ send_trap_sha_des() ->
 	{default_config, snmp,
 			[{start_agent, true},
 			{agent_engine_id, "shaDesAgent"},
-	  	   {agent_notify_type, trap},
+			{agent_notify_type, trap},
 			{agent_vsns, [v3]},
-	      {agent_community, [{"public", "public", "ct", "", ""}]},
-	      {agent_vacm,
+			{agent_community, [{"public", "public", "ct", "", ""}]},
+			{agent_vacm,
 					[{vacmSecurityToGroup, usm, "ct", "ct"},
 					{vacmSecurityToGroup, v2c, "ct", "ct"},
 					{vacmAccess, "ct", "", any, noAuthNoPriv, exact, "restricted", "", "restricted"},
@@ -548,7 +603,7 @@ send_trap_sha_des() ->
 send_trap_sha_des(_Config) ->
 	ok = snmpa:send_notification(snmp_master_agent, ctTrap1, no_receiver),
 	receive
-		ok -> 
+		ok ->
 			ok;
 		{error, Reason} ->
 			ct:fail(Reason)
@@ -563,7 +618,7 @@ send_trap_sha_des(_Config) ->
 
 %% Create a unique SNMP EngineID for SigScale Enterprise.
 engine_id() ->
-   PEN = binary_to_list(<<1:1, ?sigscalePEN:31>>),
+	PEN = binary_to_list(<<1:1, ?sigscalePEN:31>>),
 	engine_id(PEN, []).
 engine_id(PEN, Acc) when length(Acc) == 27 ->
 	PEN ++ [5 | Acc];
