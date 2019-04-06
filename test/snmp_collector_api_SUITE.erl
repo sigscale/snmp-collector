@@ -315,7 +315,7 @@ ku_md5(_Config) ->
 	Password = "maplesyrup",
 	Ku = <<16#9f, 16#af, 16#32, 16#83, 16#88, 16#4e, 16#92, 16#83,
 			16#4e, 16#bc, 16#98, 16#47, 16#d8, 16#ed, 16#d9, 16#63>>,
-	{Elapsed, Ku} = timer:tc(snmp_collector_usm, ku_md5, [Password]),
+	{Elapsed, Ku} = timer:tc(snmp_collector_usm, ku, [md5, Password]),
 	Elapsed.
 
 ku_sha() ->
@@ -326,7 +326,7 @@ ku_sha(_Config) ->
 	Ku = <<16#9f, 16#b5, 16#cc, 16#03, 16#81, 16#49, 16#7b, 16#37,
 			16#93, 16#52, 16#89, 16#39, 16#ff, 16#78, 16#8d, 16#5d,
 			16#79, 16#14, 16#52, 16#11>>,
-	{Elapsed, Ku} = timer:tc(snmp_collector_usm, ku_sha, [Password]),
+	{Elapsed, Ku} = timer:tc(snmp_collector_usm, ku, [sha, Password]),
 	Elapsed.
 
 kul_md5() ->
@@ -339,7 +339,7 @@ kul_md5(_Config) ->
 			16#00, 16#00, 16#00, 16#00, 16#02],
 	Kul = [16#52, 16#6f, 16#5e, 16#ed, 16#9f, 16#cc, 16#e2, 16#6f,
 			16#89, 16#64, 16#c2, 16#93, 16#07, 16#87, 16#d8, 16#2b],
-	{Elapsed, Kul} = timer:tc(snmp_collector_usm, kul_md5, [Ku, EngineID]),
+	{Elapsed, Kul} = timer:tc(snmp_collector_usm, kul, [md5, Ku, EngineID]),
 	Elapsed.
 
 kul_sha() ->
@@ -354,7 +354,7 @@ kul_sha(_Config) ->
 	Kul = [16#66, 16#95, 16#fe, 16#bc, 16#92, 16#88, 16#e3, 16#62,
 			16#82, 16#23, 16#5f, 16#c7, 16#15, 16#1f, 16#12, 16#84,
 			16#97, 16#b3, 16#8f, 16#3f],
-	{Elapsed, Kul} = timer:tc(snmp_collector_usm, kul_sha, [Ku, EngineID]),
+	{Elapsed, Kul} = timer:tc(snmp_collector_usm, kul, [sha, Ku, EngineID]),
 	Elapsed.
 
 kul_md5_5() ->
@@ -365,8 +365,8 @@ kul_md5_5(_Config) ->
 	Password = snmp_collector_utils:generate_identity(5),
 	Kul = snmp_usm:passwd2localized_key(md5, Password, EngineID),
 	F = fun() ->
-			Ku = snmp_collector_usm:ku_md5(Password),
-			snmp_collector_usm:kul_md5(Ku, EngineID)
+			Ku = snmp_collector_usm:ku(md5, Password),
+			snmp_collector_usm:kul(md5, Ku, EngineID)
 	end,
 	{Elapsed, Kul} = timer:tc(F).
 
@@ -378,8 +378,8 @@ kul_sha_5(_Config) ->
 	Password = snmp_collector_utils:generate_identity(5),
 	Kul = snmp_usm:passwd2localized_key(sha, Password, EngineID),
 	F = fun() ->
-			Ku = snmp_collector_usm:ku_sha(Password),
-			snmp_collector_usm:kul_sha(Ku, EngineID)
+			Ku = snmp_collector_usm:ku(sha, Password),
+			snmp_collector_usm:kul(sha, Ku, EngineID)
 	end,
 	{Elapsed, Kul} = timer:tc(F),
 	Elapsed.
@@ -392,8 +392,8 @@ kul_md5_64(_Config) ->
 	Password = snmp_collector_utils:generate_identity(64),
 	Kul = snmp_usm:passwd2localized_key(md5, Password, EngineID),
 	F = fun() ->
-			Ku = snmp_collector_usm:ku_md5(Password),
-			snmp_collector_usm:kul_md5(Ku, EngineID)
+			Ku = snmp_collector_usm:ku(md5, Password),
+			snmp_collector_usm:kul(md5, Ku, EngineID)
 	end,
 	{Elapsed, Kul} = timer:tc(F),
 	Elapsed.
@@ -406,8 +406,8 @@ kul_sha_64(_Config) ->
 	Password = snmp_collector_utils:generate_identity(64),
 	Kul = snmp_usm:passwd2localized_key(sha, Password, EngineID),
 	F = fun() ->
-			Ku = snmp_collector_usm:ku_sha(Password),
-			snmp_collector_usm:kul_sha(Ku, EngineID)
+			Ku = snmp_collector_usm:ku(sha, Password),
+			snmp_collector_usm:kul(sha, Ku, EngineID)
 	end,
 	{Elapsed, Kul} = timer:tc(F),
 	Elapsed.
