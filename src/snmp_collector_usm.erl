@@ -27,45 +27,32 @@
 -module(snmp_collector_usm).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
--export([ku_md5/1, ku_sha/1, kul_md5/2, kul_sha/2]).
+-export([ku/2, kul/3]).
 -on_load(init/0).
+%% private functions
+-export([ku_cont/6]).
 
 %%----------------------------------------------------------------------
 %%  The snmp_collector_usm public API
 %%----------------------------------------------------------------------
 
--spec ku_md5(Password) -> Ku
+-spec ku(DigestType, Password) -> Ku
 	when
+		DigestType :: md5 | sha,
 		Password :: string(),
 		Ku :: binary().
-%% @doc Password to key (Ku) algorithm (MD5).
-ku_md5(_Password) ->
+%% @doc Password to key (Ku) algorithm.
+ku(_DigestType, _Password) ->
 	erlang:nif_error(nif_library_not_loaded).
 
--spec ku_sha(Password) -> Ku
+-spec kul(DigestType, Ku, EngineID) -> Kul
 	when
-		Password :: string(),
-		Ku :: binary().
-%% @doc Password to key (Ku) algorithm (SHA).
-ku_sha(_Password) ->
-	erlang:nif_error(nif_library_not_loaded).
-
--spec kul_md5(Ku, EngineID) -> Kul
-	when
+		DigestType :: md5 | sha,
 		Ku :: binary(),
 		EngineID :: [byte()],
 		Kul :: [byte()].
 %% @doc Localized key (Kul) algorithm (MD5).
-kul_md5(_Ku, _EngineID) ->
-	erlang:nif_error(nif_library_not_loaded).
-
--spec kul_sha(Ku, EngineID) -> Kul
-	when
-		Ku :: binary(),
-		EngineID :: [byte()],
-		Kul :: [byte()].
-%% @doc Localized key (Kul) algorithm (SHA).
-kul_sha(_Ku, _EngineID) ->
+kul(_DigestType, _Ku, _EngineID) ->
 	erlang:nif_error(nif_library_not_loaded).
 
 %%----------------------------------------------------------------------
@@ -85,5 +72,18 @@ init() ->
 		Path ->
 			Path
 	end,
-	ok = erlang:load_nif(PrivDir ++ "/lib/snmp_collector_usm", 0).
+	erlang:load_nif(PrivDir ++ "/lib/snmp_collector_usm", 0).
+
+-spec ku_cont(KuLength, Context, Buffer, PasswordLength, Count, I) -> Ku
+	when
+		KuLength :: pos_integer(),
+		Context :: any(),
+		Buffer :: binary(),
+		PasswordLength :: pos_integer(),
+		Count :: pos_integer(),
+		I :: pos_integer(),
+		Ku :: binary().
+%% @doc Password to key (Ku) algorithm (MD5) continuation.
+ku_cont(_KuLength, _Context, _Buffer, _PasswordLength, _Count, _I) ->
+	erlang:nif_error(nif_library_not_loaded).
 

@@ -200,8 +200,8 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
-											Ku = snmp_collector_usm:ku_md5(PrivPass),
-											PrivKey = snmp_collector_usm:kul_md5(Ku, EngineID),
+											Ku = snmp_collector_usm:ku(md5, PrivPass),
+											PrivKey = snmp_collector_usm:kul(md5, Ku, EngineID),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -229,8 +229,8 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											Ku = snmp_collector_usm:ku_md5(PrivPass),
-											PrivKey = snmp_collector_usm:kul_md5(Ku, EngineID),
+											Ku = snmp_collector_usm:ku(md5, PrivPass),
+											PrivKey = snmp_collector_usm:kul(md5, Ku, EngineID),
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -272,8 +272,8 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
-											Ku = snmp_collector_usm:ku_sha(PrivPass),
-											PrivKey = snmp_collector_usm:kul_sha(Ku, EngineID),
+											Ku = snmp_collector_usm:ku(sha, PrivPass),
+											PrivKey = snmp_collector_usm:kul(sha, Ku, EngineID),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -301,8 +301,8 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
-											Ku = snmp_collector_usm:ku_sha(PrivPass),
-											PrivKey = snmp_collector_usm:kul_sha(Ku, EngineID),
+											Ku = snmp_collector_usm:ku(sha, PrivPass),
+											PrivKey = snmp_collector_usm:kul(sha, Ku, EngineID),
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
