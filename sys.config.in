@@ -1,5 +1,5 @@
 [{snmp_collector,
-      [{sock_opts, [{recbuf, 131072}, {sndbuf, 131072}]}},
+      [{sock_opts, [{recbuf, 131072}, {sndbuf, 131072}]}]},
 {mnesia,
       [{dir, "db"}]},
 {snmp,
