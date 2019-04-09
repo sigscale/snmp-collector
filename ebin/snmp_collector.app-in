@@ -55,5 +55,5 @@
 				{ves_password, "admin"},
 				{rest_page_size, 1000},
 				{rest_page_timeout, 60000},
-				{sock_opts, []},
+				{sock_opts, []}]},
 		{mod, {snmp_collector_app, []}}]}.
