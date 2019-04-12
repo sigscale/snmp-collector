@@ -185,12 +185,12 @@ event([{"hwNmNorthboundSeverity", "Minor"} | T], Acc) ->
 	event(T, [{"eventSeverity", "MINOR"} | Acc]);
 event([{"hwNmNorthboundSeverity", "Warning"} | T], Acc) ->
 	event(T, [{"eventSeverity", "WARNING"} | Acc]);
-event([{"hwNmNorthboundFaultFlag", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventCategory", string:to_lower(Value)} | Acc]);
-event([{"hwNmNorthboundRestoreStatus", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmCondtion", Value} | Acc]);
+event([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
+	event(T, [{"alarmCondition", "NEW"} | Acc]);
+event([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
+	event(T, [{"alarmCondition", "CHANGED"} | Acc]);
+event([{"hwNmNorthboundRestoreStatus", "cleared"} | T], Acc) ->
+	event(T, [{"alarmCondition", "CLEARED"} | Acc]);
 event([{"hwNmNorthboundEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);

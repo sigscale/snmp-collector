@@ -185,10 +185,12 @@ event([{"alarmPerceivedSeverity", "3"} | T], Acc) ->
 	event(T, [{"eventSeverity", "MINOR"} | Acc]);
 event([{"alarmPerceivedSeverity", "4"} | T], Acc) ->
 	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+event([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
+	event(T, [{"alarmCondition", "NEW"} | Acc]);
 event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
-	event(T, [{"alarmCondition", "cleared"} | Acc]);
-event([{"snmpTrapOID", _Value} | T], Acc) ->
-	event(T, [{"alarmCondition", "uncleared"} | Acc]);
+	event(T, [{"alarmCondition", "CLEARED"} | Acc]);
+event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
+	event(T, [{"alarmCondition", "CHANGED"} | Acc]);
 event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);

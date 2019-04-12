@@ -186,17 +186,11 @@ event([{"iMAPNorthboundAlarmLevel", "3"} | T], Acc) ->
 event([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
 	event(T, [{"eventSeverity", "WARNING"} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
-	event(T, [{"alarmCondition", "fault"} | Acc]);
+	event(T, [{"alarmCondition", "NEW"} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
-	event(T, [{"alarmCondition", "cleared"} | Acc]);
-event([{"iMAPNorthboundAlarmCategory", "3"} | T], Acc) ->
-	event(T, [{"alarmCondition", "event"} | Acc]);
-event([{"iMAPNorthboundAlarmCategory", "4"} | T], Acc) ->
-	event(T, [{"alarmCondition", "acknowledged"} | Acc]);
-event([{"iMAPNorthboundAlarmCategory", "5"} | T], Acc) ->
-	event(T, [{"alarmCondition", "unacknowledged"} | Acc]);
+	event(T, [{"alarmCondition", "CLEARED"} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
-	event(T, [{"alarmCondition", "changed"} | Acc]);
+	event(T, [{"alarmCondition", "CHANGED"} | Acc]);
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmRestore", Value} | Acc]);

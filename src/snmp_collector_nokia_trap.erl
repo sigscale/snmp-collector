@@ -182,10 +182,12 @@ event([{"nbiPerceivedSeverity", "3"} | T], Acc) ->
 	event(T, [{"eventSeverity", "MINOR"} | Acc]);
 event([{"nbiPerceivedSeverity", "4"} | T], Acc) ->
 	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
+	event(T, [{"alarmCondtion", "NEW"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	event(T, [{"alarmCondtion", "cleared"} | Acc]);
-event([{"snmpTrapOID", _Value} | T], Acc) ->
-	event(T, [{"alarmCondtion", "uncleared"} | Acc]);
+	event(T, [{"alarmCondtion", "CLEARED"} | Acc]);
+event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
+	event(T, [{"alarmCondtion", "CHANGED"} | Acc]);
 event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);
