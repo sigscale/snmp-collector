@@ -170,7 +170,10 @@ iso8601hour(Date, [$ , $- , $ , H1, H2 | T])
 iso8601hour(Date, [$ , H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T).
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, Other) ->
+erlang:display({?MODULE, ?LINE, Date, Other}), exit(badarg).
+
 %% @hidden
 iso8601minute(Date, Hour, []) ->
 	DateTime = {Date, {Hour, 0, 0}},
