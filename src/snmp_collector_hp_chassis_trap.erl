@@ -93,11 +93,11 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(_TargetName, {_ErrorStatus, _ErrorIndex, _Varbinds}, _UserData) ->
-	case heartbeat(Varbinds) of
-		true ->
-			ignore;
-		false ->
+handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
+%	case heartbeat(Varbinds) of
+%		true ->
+%			ignore;
+%		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
@@ -107,13 +107,13 @@ handle_trap(_TargetName, {_ErrorStatus, _ErrorIndex, _Varbinds}, _UserData) ->
 					ignore;
 				{error, Reason} ->
 					{error, Reason}
-			end
-	end;
-handle_trap(_TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, _Varbinds}, _UserData) ->
-	case heartbeat(Varbinds) of
-		true ->
-			ignore;
-		false ->
+			end;
+%	end;
+handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
+%	case heartbeat(Varbinds) of
+%		true ->
+%			ignore;
+%		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
@@ -123,8 +123,8 @@ handle_trap(_TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, _Varbinds}, _
 					ignore;
 				{error, Reason} ->
 					{error, Reason}
-			end
-	end.
+			end.
+%	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
 	when
@@ -197,16 +197,14 @@ event([{"cpqRackPowerSupplySparePartNumber", Value} | T], Acc)
 event([{"cpqRackCommonEnclosureTrapSequenceNum", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"rackCommonEnclosureTrapSequenceNum", Value} | Acc]);
-event([{"cpqHoTrapFlags", 2} | T], Acc)
-		when is_list(Value) ->
+event([{"cpqHoTrapFlags", 2} | T], Acc) ->
 	event(T, [{"alarmCondtion", "CLEARED"} | Acc]);
-event([{"cpqHoTrapFlags", 3} | T], Acc)
-		when is_list(Value) ->
+event([{"cpqHoTrapFlags", 3} | T], Acc) ->
 	event(T, [{"alarmCondtion", "NEW"} | Acc]);
-event([{"cpqHoTrapFlags", 4} | T], Acc)
-		when is_list(Value) ->
+event([{"cpqHoTrapFlags", 4} | T], Acc) ->
 	event(T, [{"alarmCondtion", "NEW"} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
 	Acc.
+
