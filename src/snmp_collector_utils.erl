@@ -21,7 +21,8 @@
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
-		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0]).
+		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
+		authenticate_v2/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -424,22 +425,24 @@ fault_fields([], Acc) ->
 %% @private
 security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPass)
 		when is_list(EngineID), is_list(SecName) ->
-	case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, SecName}) of
-		[{_, {usm_user, _, _, _, AuthProtocol, _, PrivProtocol, _}}] ->
-			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
-			case authenticate(AuthProtocol, AuthKey, AuthParms, Packet) of
-				true ->
-					{ok, AuthProtocol, PrivProtocol};
-				false ->
-					{error, authentication_failed}
+	case agent_name(Address) of
+		{_, TargetName, SecurityModel} when is_list(TargetName), SecurityModel == any;
+				SecurityModel == 3 ->
+			case ets:lookup(snmpm_usm_table, {usmUserTable, EngineID, SecName}) of
+				[{_, {usm_user, _, _, _, AuthProtocol, _, PrivProtocol, _}}] ->
+					AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
+					case authenticate_v3(AuthProtocol, AuthKey, AuthParms, Packet) of
+						true ->
+							{ok, AuthProtocol, PrivProtocol};
+						false ->
+							{error, authentication_failed}
+					end;
+				[] ->
+					security_params1(EngineID, TargetName, SecName, AuthParms,
+							Packet, AuthPass, PrivPass)
 			end;
-		[] ->
-			case agent_name(Address) of
-				{_, TargetName} when is_list(TargetName) ->
-					security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, PrivPass);
-				{error, _Reason} ->
-					{error, not_found}
-			end
+		{error, _Reason} ->
+			{error, not_found}
 	end.
 %% @hidden
 security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, PrivPass)
@@ -448,7 +451,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			{usm_user, '_', TargetName, SecName, '$1', '_', '$2', '_'}}) of
 		[[AuthProtocol, PrivProtocol]] ->
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
-			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
+			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
 					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
@@ -464,7 +467,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			end;
 		[[AuthProtocol, PrivProtocol],  _] ->
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
-			case authenticate(AuthProtocol, AuthKey, AuthParms ,Packet) of
+			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
 					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
@@ -482,20 +485,47 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			{error, not_found}
 	end.
 
+-spec authenticate_v2(Address, Community) -> Result
+	when
+		Address :: inet:ip_address(),
+		Community :: string(),
+		Result :: authenticated | {authentication_failed, Reason},
+		Reason :: term().
+%% @doc Authenticate SNMPv2 Packets.
+authenticate_v2(Address, Community) ->
+	case agent_name(Address) of
+		{AgentName, TargetName, SecurityModel} when is_list(TargetName), SecurityModel == any;
+				SecurityModel == 2 ->
+			case ets:lookup(snmpm_agent_table, {TargetName, community}) of
+				[{_, Community}] ->
+					{authenticated, TargetName, AgentName};
+				[] ->
+					{authentication_failed, invalid_community}
+			end;
+		{error, Reason} ->
+			{authentication_failed, Reason}
+	end.
+
 -spec agent_name(Address) -> Result
 	when
 		Address :: inet:ip_address(),
-		Result :: {AgentName, TargetName} | {error, Reason},
+		Result :: {AgentName, TargetName, SecurityModel} | {error, Reason},
 		AgentName :: string(),
 		TargetName :: snmpm:target_name(),
-		Reason :: target_name_not_found | agent_name_not_found | term().
+		SecurityModel :: any | v1 | v2c | usm,
+		Reason :: term().
 %% @doc Identify the Agent name and Target Name for the received packet.
 agent_name(Address) ->
 	case ets:match(snmpm_agent_table, {{'$1', '_'}, {Address ,'_'}}) of
 		[[TargetName]] ->
 			case ets:match(snmpm_agent_table, {{TargetName, user_id},'$1'}) of
 				[[AgentName]] ->
-					{AgentName, TargetName};
+					case ets:match(snmpm_agent_table, {{AgentName ,sec_model}, '$1'}) of
+						[[SecurityModel]] ->
+							{AgentName, TargetName, SecurityModel};
+						[] ->
+							{error, security_model_not_found}
+					end;
 				[] ->
 					{error, agent_name_not_found}
 			end;
@@ -834,7 +864,7 @@ event_id() ->
 timestamp() ->
 	erlang:system_time(?MILLISECOND).
 
--spec authenticate(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
+-spec authenticate_v3(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
 	when
 		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
 		AuthKey :: [byte()],
@@ -842,21 +872,21 @@ timestamp() ->
 		Packet :: [byte()],
 		Result :: true | false.
 %% @doc Authenticate the SNMP agent.
-authenticate(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
+authenticate_v3(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
 	case snmp_collector_snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) of
 		true ->
 			true;
 		false ->
 			false
 	end;
-authenticate(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
+authenticate_v3(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
 	case snmp_collector_snmp_usm:auth_in(usmHMACSHAAuthProtocol, AuthKey, AuthParams, Packet) of
 		true ->
 			true;
 		false ->
 			false
 	end;
-authenticate(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
+authenticate_v3(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
 	true.
 
 -spec add_usm_user(EngineID, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
