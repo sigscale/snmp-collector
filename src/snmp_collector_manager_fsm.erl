@@ -83,21 +83,30 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 	case catch snmp_pdus:dec_message_only(Packet) of
 		#message{version = 'version-1'} ->
 			{stop, shutdown, StateData};
-		#message{version = 'version-2', data = Data} ->
-			case catch snmp_pdus:dec_pdu(Data) of
-				#pdu{error_status = noError, varbinds = Varbinds} ->
-					case handle_trap(Address, Port, {noError, 0, Varbinds}) of
-						ignore ->
-							{stop, shutdown, StateData};
-						{error, Reason} ->
-							error_logger:info_report(["SNMP Manager SNMP v2 Trap Handler Failed",
+		#message{version = 'version-2', data = Data, vsn_hdr = Community} ->
+			case snmp_collector_utils:authenticate_v2(Address, Community) of
+				{authenticated, TargetName, AgentName} ->
+					case catch snmp_pdus:dec_pdu(Data) of
+						#pdu{error_status = noError, varbinds = Varbinds, error_index = 0} ->
+							case handle_trap_v2(TargetName, AgentName, Address, Port, {noError, 0, Varbinds}) of
+								ignore ->
+									{stop, shutdown, StateData};
+								{error, Reason} ->
+									error_logger:info_report(["SNMP Manager SNMPv2 Trap Handler Failed",
+											{error, Reason},
+											{port, Port},
+											{address, Address}]),
+								{stop, shutdown, StateData}
+							end;
+						{'EXIT', Reason} ->
+							error_logger:error_report(["SNMP Manager Decoding SNMPv2 Failed",
 									{error, Reason},
 									{port, Port},
 									{address, Address}]),
 							{stop, shutdown, StateData}
 					end;
-				{'EXIT', Reason} ->
-					error_logger:error_report(["SNMP Manager Decoding SNMP v2c Failed",
+				{authentication_failed, Reason} ->
+					error_logger:error_report(["SNMP Manager SNMPv2 Authentication Failed",
 							{error, Reason},
 							{port, Port},
 							{address, Address}]),
@@ -273,7 +282,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmDESPrivProtocol} when Flag == 3 ->
 											Ku = snmp_collector_usm:ku(sha, PrivPass),
-											PrivKey = snmp_collector_usm:kul(sha, Ku, EngineID),
+											PrivKey = lists:sublist(snmp_collector_usm:kul(sha, Ku, EngineID), 16),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -302,7 +311,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmAesCfb128Protocol} when Flag == 3 ->
 											Ku = snmp_collector_usm:ku(sha, PrivPass),
-											PrivKey = snmp_collector_usm:kul(sha, Ku, EngineID),
+											PrivKey = lists:sublist(snmp_collector_usm:kul(sha, Ku, EngineID), 16),
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
 													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
@@ -550,19 +559,42 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 		when ErrorStatus == noError ->
 	case snmp_collector_utils:agent_name(Address) of
-		{AgentName, TargetName} when is_list(AgentName), is_list(TargetName) ->
+		{AgentName, TargetName, _} when is_list(AgentName), is_list(TargetName) ->
 			case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 				[[Module, UserData]] ->
 					Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
 				[] ->
 					snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-							trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
-					{error, agent_name_not_found}
+							trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
 			end;
 		{error, Reason} ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
 			{error, Reason}
+	end.
+
+-spec handle_trap_v2(TargetName, AgentName, Address, Port, TrapInfo) -> Result
+	when
+		TargetName :: string(),
+		AgentName :: string(),
+		Address :: inet:ip_address(),
+		Port :: pos_integer(),
+		TrapInfo :: {ErrorStatus, ErrorIndex, Varbinds},
+		ErrorStatus :: atom(),
+		ErrorIndex :: integer(),
+		Varbinds :: [snmp:varbinds()],
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Send Varbinds to the associated trap handler modules.
+handle_trap_v2(TargetName, AgentName, Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
+		when ErrorStatus == noError ->
+	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
+		[[Module, UserData]] ->
+			Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
+		[] ->
+			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
+					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
+			{error, not_found}
 	end.
 
 -spec flag(Flag) -> Result
