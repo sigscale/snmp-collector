@@ -238,6 +238,7 @@ send_trap_v2(_Config) ->
 		4000 ->
 			ct:fail(timeout)
 	end.
+
 send_trap_noauth_nopriv() ->
 	Port = rand:uniform(64511) + 1024,
 	[{userdata, [{doc, "Test suite for SNMP manager in SigScale SNMP Collector"}]},
