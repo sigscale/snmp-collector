@@ -441,8 +441,8 @@ security_params(EngineID, Address, SecName, AuthParms, Packet, AuthPass, PrivPas
 					security_params1(EngineID, TargetName, SecName, AuthParms,
 							Packet, AuthPass, PrivPass)
 			end;
-		{error, _Reason} ->
-			{error, not_found}
+		{error, Reason} ->
+			{error, Reason}
 	end.
 %% @hidden
 security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, PrivPass)
@@ -520,7 +520,7 @@ agent_name(Address) ->
 		[[TargetName]] ->
 			case ets:match(snmpm_agent_table, {{TargetName, user_id},'$1'}) of
 				[[AgentName]] ->
-					case ets:match(snmpm_agent_table, {{AgentName ,sec_model}, '$1'}) of
+					case ets:match(snmpm_agent_table, {{TargetName,sec_model}, '$1'}) of
 						[[SecurityModel]] ->
 							{AgentName, TargetName, SecurityModel};
 						[] ->
