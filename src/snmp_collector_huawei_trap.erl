@@ -162,15 +162,21 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
-event([{"iMAPNorthboundAlarmNEDevID", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmID", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"sourceId", Value} | Acc]);
-event([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"sourceName", Value} | Acc]);
+	event(T, [{"alarmId", Value} | Acc]);
 event([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
 		when is_list(Value) ->
+	event(T, [{"eventId	", Value} | Acc]);
+event([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
+		when is_list(Value) ->
 	event(T, [{"eventName", Value} | Acc]);
+event([{"iMAPNorthboundAlarmNEDevID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceName", Value} | Acc]);
+event([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"objectInstance", Value}| Acc]);
 event([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"specificProblem", Value} | Acc]);
@@ -185,12 +191,16 @@ event([{"iMAPNorthboundAlarmLevel", "3"} | T], Acc) ->
 	event(T, [{"eventSeverity", "MINOR"} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
 	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+event([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
+	event(T, [{"eventSeverity", "INDETERMINATE"} | Acc]);
+event([{"iMAPNorthboundAlarmLevel", "6"} | T], Acc) ->
+	event(T, [{"eventSeverity", "CLEARED"} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
-	event(T, [{"alarmCondition", "NEW"} | Acc]);
+	event(T, [{"alarmCondition", "NEW"}, {"eventName", notifyNewAlarm} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CLEARED"} | Acc]);
+	event(T, [{"alarmCondition", "CLEARED"}, {"eventName", notifyClearedAlarm} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CHANGED"} | Acc]);
+	event(T, [{"alarmCondition", "CHANGED"} , {"eventName", notifyChangedAlarm}| Acc]);
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmRestore", Value} | Acc]);
@@ -235,28 +245,52 @@ event([{"iMAPNorthboundAlarmRestoreTime", Value} | T], Acc)
 	event(T, [{"restoreTime", Value} | Acc]);
 event([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"ackTime", Value} | Acc]);
+	event(T, [{"alarmAckTime", Value} | Acc]);
 event([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"alarmConfirm", Value} | Acc]);
+	event(T, [{"alarmAckState", Value} | Acc]);
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmRestore", Value} | Acc]);
-event([{"iMAPNorthboundAlarmType", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmType", Value} | Acc]);
-event([{"iMAPNorthboundAlarmID", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmID", Value} | Acc]);
-event([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmDevCsn", Value} | Acc]);
+event([{"iMAPNorthboundAlarmType", 1} | T], Acc) ->
+	event(T, [{"eventType", "Power System"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 2} | T], Acc) ->
+	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 3} | T], Acc) ->
+	event(T, [{"eventType", "Signaling System"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 4} | T], Acc) ->
+	event(T, [{"eventType", "Trunk System"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 5} | T], Acc) ->
+	event(T, [{"eventType", "Hardware System"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 6} | T], Acc) ->
+	event(T, [{"eventType", "Software System"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 7} | T], Acc) ->
+	event(T, [{"eventType", "Running System"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 8} | T], Acc) ->
+	event(T, [{"eventType", "Communication System"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 9} | T], Acc) ->
+	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 10} | T], Acc) ->
+	event(T, [{"eventType", "Processing error"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 11} | T], Acc) ->
+	event(T, [{"eventType", "OMC"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 12} | T], Acc) ->
+	event(T, [{"eventType", "Integrity Violation"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 13} | T], Acc) ->
+	event(T, [{"eventType", "Operational Violation"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 14} | T], Acc) ->
+	event(T, [{"eventType", "Physical Violation"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 15} | T], Acc) ->
+	event(T, [{"eventType", "Security Service Or Mechanism Violation"} | Acc]);
+event([{"iMAPNorthboundAlarmType", 16} | T], Acc) ->
+	event(T, [{"eventType", "Time Domain Violation"} | Acc]);
 event([{"iMAPNorthboundAlarmProductID", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmProductID", Value} | Acc]);
 event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"alarmOccurTime", Value} | Acc]);
+	event(T, [{"alarmOccurTime", Value} ,{"alarmReportingTime",
+			erlang:system_time(?MILLISECOND)}| Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
@@ -275,21 +309,9 @@ heartbeat(Varbinds) ->
 				{varbind, _, _, _, _} ->
 					true;
 				false ->
-					heartbeat1(Varbinds)
-			end;
-		{error, _Reason} ->
-				false
-	end.
-heartbeat1(Varbinds) ->
-	case snmpm:name_to_oid(hwNmNorthboundEventKeepAlive) of
-		{ok, [HeartBeat]} ->
-			NewHeartBeat = lists:flatten(HeartBeat ++ [0]),
-			case lists:keyfind(NewHeartBeat, 2, Varbinds) of
-				{varbind, _, _, _, _} ->
-					true;
-				false ->
 					false
 			end;
 		{error, _Reason} ->
 				false
 	end.
+
