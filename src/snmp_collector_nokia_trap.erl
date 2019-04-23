@@ -162,15 +162,31 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
-event([{"nbiObjectInstance", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"sourceName", Value} | Acc]);
 event([{"nbiAlarmId", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"eventName", Value} | Acc]);
+	event(T, [{"alarmId", Value} | Acc]);
+event([{"nbiSequenceId", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventId", Value} | Acc]);
+event([{"", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceName", Value} | Acc]);
+event([{"", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceId", Value} | Acc]);
+event([{"nbiObjectInstance", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"objectInstance", Value} | Acc]);
 event([{"nbiSpecificProblem", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"specificProblem", Value} | Acc]);
+event([{"nbiAckState", acknowledged} | T], Acc) ->
+	event(T, [{"alarmAckState", "Acknowledged"} | Acc]);
+event([{"nbiAckState", unacknowledged} | T], Acc) ->
+	event(T, [{"alarmAckState", "Unacknowledged"} | Acc]);
+event([{"nbiAckTime", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmAckTime", Value} | Acc]);
 event([{"nbiAlarmType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
@@ -182,18 +198,22 @@ event([{"nbiPerceivedSeverity", "3"} | T], Acc) ->
 	event(T, [{"eventSeverity", "MINOR"} | Acc]);
 event([{"nbiPerceivedSeverity", "4"} | T], Acc) ->
 	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+event([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
+	event(T, [{"eventSeverity", "CLEARED"} | Acc]);
+event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
+	event(T, [{"eventSeverity", "INDETERMINATE"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
-	event(T, [{"alarmCondtion", "NEW"} | Acc]);
+	event(T, [{"alarmCondtion", "NEW"},
+			{"eventName", "notifyNewAlarm"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	event(T, [{"alarmCondtion", "CLEARED"} | Acc]);
+	event(T, [{"alarmCondtion", "CLEARED"},
+			{"eventName", "notifyClearedAlarm"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
-	event(T, [{"alarmCondtion", "CHANGED"} | Acc]);
+	event(T, [{"alarmCondtion", "CHANGED"},
+			{"eventName", "notifyChangedAlarm"} | Acc]);
 event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);
-event([{"nbiSequenceId", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"sequenceId", Value} | Acc]);
 event([{"nbiProbableCause", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"probableCause", Value} | Acc]);
@@ -206,6 +226,19 @@ event([{"nbiAdditionalText", Value} | T], Acc)
 event([{"nbiOptionalInformation", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"optionalInformation", Value} | Acc]);
+event([{"nbiCommentText", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventComment", Value} | Acc]);
+event([{"nbiAlarmType", 1} | T], Acc) ->
+	event(T, [{"eventType", "Communication System"} | Acc]);
+event([{"nbiAlarmType", 2} | T], Acc) ->
+	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
+event([{"nbiAlarmType", 3} | T], Acc) ->
+	event(T, [{"eventType", "Processing error"} | Acc]);
+event([{"nbiAlarmType", 4} | T], Acc) ->
+	event(T, [{"eventType", "Hardware System"} | Acc]);
+event([{"nbiAlarmType", 5} | T], Acc) ->
+	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->

@@ -162,15 +162,18 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
+event([{"alarmId", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmId", Value} | Acc]);
+event([{"id", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"eventId", Value} | Acc]);
 event([{"alarmNeIP", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceId", Value} | Acc]);
 event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceName", Value} | Acc]);
-event([{"systemDN", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventName", Value} | Acc]);
 event([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"specificProblem", Value} | Acc]);
@@ -178,31 +181,61 @@ event([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
+	event(T, [{"eventSeverity", "INDETERMINATE"} | Acc]);
 event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
+	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
 event([{"alarmPerceivedSeverity", "3"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
 event([{"alarmPerceivedSeverity", "4"} | T], Acc) ->
+	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+event([{"alarmPerceivedSeverity", "5"} | T], Acc) ->
 	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+event([{"alarmPerceivedSeverity", "6"} | T], Acc) ->
+	event(T, [{"eventSeverity", "CLEARED"} | Acc]);
 event([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
-	event(T, [{"alarmCondition", "NEW"} | Acc]);
+	event(T, [{"alarmCondition", "NEW"}, {"eventName", notifyNewAlarm} | Acc]);
 event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CLEARED"} | Acc]);
+	event(T, [{"alarmCondition", "CLEARED"}, {"eventName", notifyClearedAlarm} | Acc]);
 event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CHANGED"} | Acc]);
+	event(T, [{"alarmCondition", "CHANGED"}, {"eventName", notifyChangedAlarm} | Acc]);
 event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);
 event([{"alarmProbableCause", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"probableCause", Value} | Acc]);
-event([{"alarmEventType", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventType", Value} | Acc]);
+event([{"alarmEventType", 1} | T], Acc) ->
+	event(T, [{"eventType", "Communication System"} | Acc]);
+event([{"alarmEventType", 2} | T], Acc) ->
+	event(T, [{"eventType", "Processing error"} | Acc]);
+event([{"alarmEventType", 3} | T], Acc) ->
+	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
+event([{"alarmEventType", 4} | T], Acc) ->
+	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
+event([{"alarmEventType", 5} | T], Acc) ->
+	event(T, [{"eventType", "Hardware System"} | Acc]);
+event([{"alarmEventType", 6} | T], Acc) ->
+	event(T, [{"eventType", "Integrity Violation"} | Acc]);
+event([{"alarmEventType", 7} | T], Acc) ->
+	event(T, [{"eventType", "Operational Violation"} | Acc]);
+event([{"alarmEventType", 8} | T], Acc) ->
+	event(T, [{"eventType", "Physical Violation"} | Acc]);
+event([{"alarmEventType", 9} | T], Acc) ->
+	event(T, [{"eventType", "Security Service Or Mechanism Violation"} | Acc]);
+event([{"alarmEventType", 10} | T], Acc) ->
+	event(T, [{"eventType", "Time Domain Violation"} | Acc]);
+event([{"alarmEventType", 11} | T], Acc) ->
+	event(T, [{"eventType", "OMC"} | Acc]);
 event([{"alarmMocObjectInstance", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"objectInstance", Value} | Acc]);
+event([{"alarmOtherInfo", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmDetails", Value} | Acc]);
+event([{"alarmAck", 1} | T], Acc) ->
+	event(T, [{"alarmAckState", "Acknowledged"} | Acc]);
+event([{"alarmAck", 2} | T], Acc) ->
+	event(T, [{"alarmAckState", "Unacknowledged"} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
