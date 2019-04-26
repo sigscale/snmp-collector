@@ -371,6 +371,8 @@ common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, maps:put("sequence", Value, CH), AD);
 common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, maps:put("version", Value, CH), AD);
+common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, maps:put("eventType", Value, CH), AD);
 common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, maps:put("startEpochMicrosec", iso8601(Value), CH), AD);
 common_event_header([H | T], TargetName, CH, AD) ->
