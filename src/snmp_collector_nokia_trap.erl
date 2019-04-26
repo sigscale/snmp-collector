@@ -165,9 +165,6 @@ event(NameValuePair) ->
 event([{"nbiAlarmId", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmId", Value} | Acc]);
-event([{"nbiSequenceId", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventId", Value} | Acc]);
 event([{"", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceName", Value} | Acc]);

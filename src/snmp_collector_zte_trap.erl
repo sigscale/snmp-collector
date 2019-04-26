@@ -165,9 +165,6 @@ event(NameValuePair) ->
 event([{"alarmId", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmId", Value} | Acc]);
-event([{"id", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventId", Value} | Acc]);
 event([{"alarmNeIP", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceId", Value} | Acc]);

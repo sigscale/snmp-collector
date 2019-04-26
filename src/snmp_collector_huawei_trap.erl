@@ -165,9 +165,6 @@ event(NameValuePair) ->
 event([{"iMAPNorthboundAlarmID", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmId", Value} | Acc]);
-event([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventId	", Value} | Acc]);
 event([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventName", Value} | Acc]);

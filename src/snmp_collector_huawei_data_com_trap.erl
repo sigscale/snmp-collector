@@ -168,9 +168,6 @@ event([{"hwNmNorthboundSerialNo", Value} | T], Acc)
 event([{"hwNmNorthboundNEName", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceName", Value} | Acc]);
-event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventId", Value} | Acc]);
 event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"specificProblem", Value} | Acc]);
