@@ -161,6 +161,9 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
+event([{"", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmId", Value} | Acc]);
 event([{"cpqRackUid", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceId", Value} | Acc]);
@@ -169,8 +172,8 @@ event([{"cpqRackName", Value} | T], Acc)
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"cpqRackCommonEnclosureIndex", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"eventName", Value} | Acc]);
-event([{"", Value} | T], Acc)
+	event(T, [{"eventid", Value} | Acc]);
+event([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"cpqRackEventTime", Value} | T], Acc)
@@ -198,11 +201,62 @@ event([{"cpqRackCommonEnclosureTrapSequenceNum", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"rackCommonEnclosureTrapSequenceNum", Value} | Acc]);
 event([{"cpqHoTrapFlags", 2} | T], Acc) ->
-	event(T, [{"alarmCondtion", "CLEARED"} | Acc]);
+	event(T, [{"alarmCondtion", "CLEARED"}, {"eventName", notifyClearedAlarm} | Acc]);
 event([{"cpqHoTrapFlags", 3} | T], Acc) ->
-	event(T, [{"alarmCondtion", "NEW"} | Acc]);
+	event(T, [{"alarmCondtion", "NEW"}, {"eventName", notifyNewAlarm} | Acc]);
 event([{"cpqHoTrapFlags", 4} | T], Acc) ->
-	event(T, [{"alarmCondtion", "NEW"} | Acc]);
+	event(T, [{"alarmCondtion", "NEW"}, {"eventName", notifyNewAlarm} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22001]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackNameChanged"}, {"probableCause", "Rack name changed"},
+		{"eventType", "Operational Violation"} , {eventSeverity, "INFORMATIONAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22002]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureNameChanged"}, {"probableCause", "Enclosure name changed"},
+		{"eventType", "Operational Violation"}, {eventSeverity, "INFORMATIONAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22003]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureRemoved"}, {"probableCause", "Enclosure removed"},
+		{"eventType", "Operational Violation"}, {eventSeverity, "INFORMATIONAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22004]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureInserted"}, {"probableCause", "Enclosure inserted"},
+		{"eventType", "Operational Violation"}, {eventSeverity, "INFORMATIONAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22005]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureTempFailed"}, {"probableCause", "Enclosure temperature failed"},
+		{"eventType", "Hardware System"}, {eventSeverity, "CRITICAL"},
+		{proposedRepairactions, "Shutdown the enclosure and possibly the rack as soon as possible.
+				Ensure all fans are working properly and that air flow in the rack has not been blocked."} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22006]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureTempDegraded"}, {"probableCause", "Enclosure temperature degraded"},
+		{"eventType", "Hardware Violation"}, {eventSeverity, "MAJOR"},
+		{proposedRepairactions, "Shutdown the enclosure and possibly the rack as soon as possible.
+				Ensure all fans are working properly and that air flow in the rack has not been blocked."} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22007]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureTempOk"}, {"probableCause", "Enclosure temperature ok"},
+		{"eventType", "Operational Violation"} , {eventSeverity, "INFORMATIONAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22008]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureFanFailed"}, {"probableCause", "Enclosure fan failed"},
+		{"eventType", "Hardware System"} , {eventSeverity, "CRITICAL"},
+		{proposedRepairactions, "Replace the failed enclosure fan."} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22009]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureFanDegraded"}, {"probableCause", "Enclosure fan degraded"},
+		{"eventType", "Hardware System"} , {eventSeverity, "MAJOR"},
+		{proposedRepairactions, "Replace the failing enclosure fan."} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22010]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureFanOk"}, {"probableCause", "Enclosure fan ok"},
+		{"eventType", "Operational System"} , {eventSeverity, "INFORMATIONAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22011]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureFanRemoved"}, {"probableCause", "Enclosure fan removed"},
+		{"eventType", "Hardware System"} , {eventSeverity, "MINOR"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22012]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackEnclosureFanInserted"}, {"probableCause", "Enclosure fan inserted"},
+		{"eventType", "Operational System"} , {eventSeverity, "INFORMATIONAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22013]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackPowerSupplyFailed"}, {"probableCause", "Rack power supply failed"},
+		{"eventType", "Power System"} , {eventSeverity, "CRITICAL"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22014]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackPowerSupplyDegraded"}, {"probableCause", "Rack power supply degraded"},
+		{"eventType", "Power System"} , {eventSeverity, "MAJOR"} | Acc]);
+event([{"snmpTrapOID", "compaqq.[22015]"} | T], Acc) ->
+	event(T, [{"eventName", "cpqRackPowerSupplyOk"}, {"probableCause", "Rack power supply ok"},
+		{"eventType", "Power System"} , {eventSeverity, "INFORMATIONAL"} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
