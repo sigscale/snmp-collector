@@ -85,10 +85,10 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 			{stop, shutdown, StateData};
 		#message{version = 'version-2', data = Data, vsn_hdr = Community} ->
 			case snmp_collector_utils:authenticate_v2(Address, Community) of
-				{authenticated, TargetName, AgentName} ->
+				{authenticated, _TargetName, _AgentName} ->
 					case catch snmp_pdus:dec_pdu(Data) of
 						#pdu{error_status = noError, varbinds = Varbinds, error_index = 0} ->
-							case handle_trap_v2(TargetName, AgentName, Address, Port, {noError, 0, Varbinds}) of
+							case handle_trap(Address, Port, {noError, 0, Varbinds}) of
 								ignore ->
 									{stop, shutdown, StateData};
 								{error, Reason} ->
@@ -571,30 +571,6 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
 			{error, Reason}
-	end.
-
--spec handle_trap_v2(TargetName, AgentName, Address, Port, TrapInfo) -> Result
-	when
-		TargetName :: string(),
-		AgentName :: string(),
-		Address :: inet:ip_address(),
-		Port :: pos_integer(),
-		TrapInfo :: {ErrorStatus, ErrorIndex, Varbinds},
-		ErrorStatus :: atom(),
-		ErrorIndex :: integer(),
-		Varbinds :: [snmp:varbinds()],
-		Result :: ignore | {error, Reason},
-		Reason :: term().
-%% @doc Send Varbinds to the associated trap handler modules.
-handle_trap_v2(TargetName, AgentName, Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
-		when ErrorStatus == noError ->
-	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
-		[[Module, UserData]] ->
-			Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
-		[] ->
-			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
-			{error, not_found}
 	end.
 
 -spec flag(Flag) -> Result
