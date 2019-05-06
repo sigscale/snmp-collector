@@ -491,7 +491,9 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 	when
 		Address :: inet:ip_address(),
 		Community :: string(),
-		Result :: authenticated | {authentication_failed, Reason},
+		Result :: {authenticated, TargetName, AgentName} | {authentication_failed, Reason},
+		TargetName :: string(),
+		AgentName :: string(),
 		Reason :: term().
 %% @doc Authenticate SNMPv2 Packets.
 authenticate_v2(Address, Community) ->
