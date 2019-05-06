@@ -161,7 +161,7 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
-event([{"", Value} | T], Acc)
+event([{" cpqRackCommonEnclosureSerialNum", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmId", Value} | Acc]);
 event([{"cpqRackUid", Value} | T], Acc)
