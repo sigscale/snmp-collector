@@ -614,7 +614,7 @@ arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(Value, utf8) of
 		Value2 when is_list(Value2) ->
-			arrange_list(T, [{OID, stringify(Value2)} | Acc]);
+			arrange_list(T, [{OID, (Value2)} | Acc]);
 		{incomplete, Good, Bad} ->
 			error_logger:info_report(["Error parsing 'OCTET STRING'",
 					{error, incomplete},
