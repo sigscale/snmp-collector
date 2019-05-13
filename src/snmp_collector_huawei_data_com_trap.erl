@@ -165,6 +165,9 @@ event(NameValuePair) ->
 event([{"hwNmNorthboundSerialNo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmId", Value} | Acc]);
+event([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"sourceId", Value} | Acc]);
 event([{"hwNmNorthboundNEName", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceName", Value} | Acc]);

@@ -226,15 +226,15 @@ event([{"nbiOptionalInformation", Value} | T], Acc)
 event([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventComment", Value} | Acc]);
-event([{"nbiAlarmType", 1} | T], Acc) ->
+event([{"nbiAlarmType", "1"} | T], Acc) ->
 	event(T, [{"eventType", "Communication System"} | Acc]);
-event([{"nbiAlarmType", 2} | T], Acc) ->
+event([{"nbiAlarmType", "2"} | T], Acc) ->
 	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
-event([{"nbiAlarmType", 3} | T], Acc) ->
+event([{"nbiAlarmType", "3"} | T], Acc) ->
 	event(T, [{"eventType", "Processing error"} | Acc]);
-event([{"nbiAlarmType", 4} | T], Acc) ->
+event([{"nbiAlarmType", "4"} | T], Acc) ->
 	event(T, [{"eventType", "Hardware System"} | Acc]);
-event([{"nbiAlarmType", 5} | T], Acc) ->
+event([{"nbiAlarmType", "5"} | T], Acc) ->
 	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);

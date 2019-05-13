@@ -201,27 +201,27 @@ event([{"alarmEventTime", Value} | T], Acc)
 event([{"alarmProbableCause", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"probableCause", Value} | Acc]);
-event([{"alarmEventType", 1} | T], Acc) ->
+event([{"alarmEventType", "1"} | T], Acc) ->
 	event(T, [{"eventType", "Communication System"} | Acc]);
-event([{"alarmEventType", 2} | T], Acc) ->
+event([{"alarmEventType", "2"} | T], Acc) ->
 	event(T, [{"eventType", "Processing error"} | Acc]);
-event([{"alarmEventType", 3} | T], Acc) ->
+event([{"alarmEventType", "3"} | T], Acc) ->
 	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
-event([{"alarmEventType", 4} | T], Acc) ->
+event([{"alarmEventType", "4"} | T], Acc) ->
 	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
-event([{"alarmEventType", 5} | T], Acc) ->
+event([{"alarmEventType", "5"} | T], Acc) ->
 	event(T, [{"eventType", "Hardware System"} | Acc]);
-event([{"alarmEventType", 6} | T], Acc) ->
+event([{"alarmEventType", "6"} | T], Acc) ->
 	event(T, [{"eventType", "Integrity Violation"} | Acc]);
-event([{"alarmEventType", 7} | T], Acc) ->
+event([{"alarmEventType", "7"} | T], Acc) ->
 	event(T, [{"eventType", "Operational Violation"} | Acc]);
-event([{"alarmEventType", 8} | T], Acc) ->
+event([{"alarmEventType", "8"} | T], Acc) ->
 	event(T, [{"eventType", "Physical Violation"} | Acc]);
-event([{"alarmEventType", 9} | T], Acc) ->
+event([{"alarmEventType", "9"} | T], Acc) ->
 	event(T, [{"eventType", "Security Service Or Mechanism Violation"} | Acc]);
-event([{"alarmEventType", 10} | T], Acc) ->
+event([{"alarmEventType", "10"} | T], Acc) ->
 	event(T, [{"eventType", "Time Domain Violation"} | Acc]);
-event([{"alarmEventType", 11} | T], Acc) ->
+event([{"alarmEventType", "11"} | T], Acc) ->
 	event(T, [{"eventType", "OMC"} | Acc]);
 event([{"alarmMocObjectInstance", Value} | T], Acc)
 		when is_list(Value) ->
