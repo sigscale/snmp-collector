@@ -492,7 +492,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 		Reason :: des_decryption_failed | term().
 %% @doc Decrypt a SNMP packet using DES privacy protocol.
 dec_des(PrivKey, MsgPrivParams, Data)
-	when is_list(PrivKey) ->
+		when is_list(PrivKey) ->
 	case catch snmp_usm:des_decrypt(PrivKey, MsgPrivParams, Data) of
 		{ok, DecryptedData} ->
 			case snmp_pdus:dec_scoped_pdu_data(DecryptedData) of
