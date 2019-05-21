@@ -233,6 +233,24 @@ event([{"alarmAck", 1} | T], Acc) ->
 	event(T, [{"alarmAckState", "Acknowledged"} | Acc]);
 event([{"alarmAck", 2} | T], Acc) ->
 	event(T, [{"alarmAckState", "Unacknowledged"} | Acc]);
+event([{"alarmSystemType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmSystemType", Value} | Acc]);
+event([{"alarmNeIP", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmNeIP", Value} | Acc]);
+event([{"timeZoneID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"timeZoneID", Value} | Acc]);
+event([{"alarmIRP", Value} | T], Acc)
+		when is_list(Value), Value /= [] ->
+	event(T, [{"alarmIRP", Value} | Acc]);
+event([{"alarmIndex", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmIndex", Value} | Acc]);
+event([{"alarmCodeName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmCodeName", Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
