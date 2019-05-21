@@ -202,6 +202,10 @@ event([{"hwNmNorthboundNEType", Value} | T], Acc)
 event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"objectInstance", Value} | Acc]);
+event([{"hwNmNorthboundProbableCause", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"probableCause", Value},
+			{"eventType", "Quality Of Service Alarm"} | Acc]);
 event([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
 	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
 event([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->
@@ -222,9 +226,6 @@ event([{"hwNmNorthboundEventType", "Signal"} | T], Acc) ->
 	event(T, [{"eventType", "Signaling System"} | Acc]);
 event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
 	event(T, [{"eventType", "Relay System"} | Acc]);
-event([{"hwNmNorthboundProbableCause", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"probableCause", Value} | Acc]);
 event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmDetails", Value} | Acc]);

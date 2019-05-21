@@ -165,10 +165,10 @@ event(NameValuePair) ->
 event([{"nbiAlarmId", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmId", Value} | Acc]);
-event([{"", Value} | T], Acc)
+event([{"nbiOptionalInformation", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceName", Value} | Acc]);
-event([{"", Value} | T], Acc)
+event([{"nbiSequenceId", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceId", Value} | Acc]);
 event([{"nbiObjectInstance", Value} | T], Acc)
@@ -220,9 +220,6 @@ event([{"nbiProposedRepairAction", Value} | T], Acc)
 event([{"nbiAdditionalText", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"additionalInfo", Value} | Acc]);
-event([{"nbiOptionalInformation", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"optionalInformation", Value} | Acc]);
 event([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventComment", Value} | Acc]);

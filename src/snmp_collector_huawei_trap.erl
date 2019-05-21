@@ -225,9 +225,6 @@ event([{"iMAPNorthboundAlarmClearOperator", Value} | T], Acc)
 event([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"proposedRepairactions", Value} | Acc]);
-event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"probableCause", Value} | Acc]);
 event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"extendInfo", Value} | Acc]);
@@ -246,6 +243,10 @@ event([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmRestore", Value} | Acc]);
+event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"probableCause", Value},
+		{"eventType", "Quality Of Service Alarm"} | Acc]);
 event([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
 	event(T, [{"eventType", "Power System"} | Acc]);
 event([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
