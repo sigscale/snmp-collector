@@ -18,6 +18,7 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_nokia_trap.beam \
 			snmp_collector_nec_trap.beam \
 			snmp_collector_hp_chassis_trap.beam \
+			snmp_collector_cisco_trap.beam \
 			snmp_collector_debug_sup.beam \
 			snmp_collector_debug_fsm.beam \
 			snmp_collector.beam \

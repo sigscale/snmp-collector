@@ -12,6 +12,7 @@
 					snmp_collector_nokia_trap,
 					snmp_collector_nec_trap,
 					snmp_collector_hp_chassis_trap,
+					snmp_collector_cisco_trap,
 					snmp_collector,
 					snmp_collector_snmpm_user_default,
 					snmp_collector_rest,

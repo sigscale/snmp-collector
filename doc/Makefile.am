@@ -14,6 +14,7 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_zte_trap.html \
 			snmp_collector_nec_trap.html \
 			snmp_collector_hp_chassis_trap.html \
+			snmp_collector_cisco_trap.html \
 			snmp_collector_debug_sup.html \
 			snmp_collector_debug_fsm.html \
 			snmp_collector.html \
