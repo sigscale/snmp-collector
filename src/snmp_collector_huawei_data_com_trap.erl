@@ -173,7 +173,7 @@ event([{"hwNmNorthboundNEName", Value} | T], Acc)
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value} | Acc]);
+	event(T, [{"specificProblem", Value}, {"alarmCondition", "NEW"} | Acc]);
 event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
