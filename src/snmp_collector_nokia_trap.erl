@@ -176,7 +176,7 @@ event([{"nbiObjectInstance", Value} | T], Acc)
 	event(T, [{"objectInstance", Value} | Acc]);
 event([{"nbiSpecificProblem", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value} | Acc]);
+	event(T, [{"specificProblem", Value}, {"alarmCondtion", "NEW"} | Acc]);
 event([{"nbiAckState", 1} | T], Acc) ->
 	event(T, [{"alarmAckState", "Acknowledged"} | Acc]);
 event([{"nbiAckState", 2} | T], Acc) ->

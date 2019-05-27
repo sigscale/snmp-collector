@@ -175,7 +175,7 @@ event([{"cpqRackCommonEnclosureIndex", Value} | T], Acc)
 	event(T, [{"eventid", Value} | Acc]);
 event([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"eventSourceType", Value} | Acc]);
+	event(T, [{"eventSourceType", Value}, {"alarmCondtion", "NEW"} | Acc]);
 event([{"cpqRackEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);

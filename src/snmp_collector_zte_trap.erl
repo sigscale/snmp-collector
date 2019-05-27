@@ -173,7 +173,7 @@ event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value} | Acc]);
+	event(T, [{"specificProblem", Value}, {"alarmCondtion", "NEW"} | Acc]);
 event([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
