@@ -7,215 +7,194 @@
 
 % Event Types [ITU-T X.733].
 
--define(?ET_Operational_Violation, "Operational Violation").
--define(?ET_Power_System, "Power System").
--define(?ET_Environmental_Alarm, "Environmental Alarm").
--define(?ET_Signaling_System, "Signaling System").
--define(?ET_Trunk_System, "Trunk System").
--define(?ET_Hardware_System, "Hardware System").
--define(?ET_Software_System, "Software System").
--define(?ET_Running_System, "Running System").
--define(?ET_Communication_System, "Communication System").
--define(?ET_Quality_Of_Service_Alarm, "Quality Of ServiceAlarm").
--define(?ET_Processing_Error, "Processing Error").
--define(?ET_OMC, "OMC").
--define(?ET_Integrity_Violation, "Integrity Violation").
--define(?ET_Operational_Violation, "Operational Violation").
--define(?ET_Physical_Violation, "Physical Violation").
--define(?ET_Security_Service_Or_Mechanism_Violation, "Security Service Or Mechanism Violation").
--define(?ET_Time_Domain_Violation, "Time Domain Violation").
+-define(ET_Power_System, "Power System").
+-define(ET_Environmental_Alarm, "Environmental Alarm").
+-define(ET_Signaling_System, "Signaling System").
+-define(ET_Trunk_System, "Trunk System").
+-define(ET_Hardware_System, "Hardware System").
+-define(ET_Software_System, "Software System").
+-define(ET_Running_System, "Running System").
+-define(ET_Communication_System, "Communication System").
+-define(ET_Quality_Of_Service_Alarm, "Quality Of ServiceAlarm").
+-define(ET_Processing_Error, "Processing Error").
+-define(ET_OMC, "OMC").
+-define(ET_Integrity_Violation, "Integrity Violation").
+-define(ET_Operational_Violation, "Operational Violation").
+-define(ET_Physical_Violation, "Physical Violation").
+-define(ET_Security_Service_Or_Mechanism_Violation, "Security Service Or Mechanism Violation").
+-define(ET_Time_Domain_Violation, "Time Domain Violation").
 
 % Probable Causes 3GPP 32.111-2 Annex B
 
--define(?PC_Indeterminate, "Indeterminate").
--define(?PC_Alarm_Indication_Signal, "Alarm Indication Signal").
--define(?PC_Broadcast_Channel_Failure, "Broadcast Channel Failure").
--define(?PC_Call_Setup_Failure, "Call setup Failure").
--define(?PC_Communications_Receive_Failure, "Communications Receive Failure").
--define(?PC_Communications_Transmit_Failure, "Communications Transmit Failure").
--define(?PC_Connection_Establishment_Error, "Connection Establishment Error").
--define(?PC_Degraded_Signal, "Degraded Signal").
--define(?PC_Demodulation_Failure, "Demodulation Failure").
--define(?PC_FERF, "Far End Receiver Failure").
--define(?PC_Framing_Error, "Framing Error").
--define(?PC_Invalid_Message_Received, "Invalid Message Received").
--define(?PC_Local_Node_Transmission_Error, "Local Node Transmission Error").
--define(?PC_LOF, "Loss Of Fram").
--define(?PC_LOP, "Loss Of Pointer").
--define(?PC_LOS, "Loss of Signal").
--define(?PC_Modulaion_Failure, "Modulation Failure").
--define(?PC_Payload_Type_Mismatch, "Payload Type Mismatch").
--define(?PC_Transmission_Error, "Transmission Error").
--define(?PC_Remote_Alarm_Interface, "Remote Alarm Interface").
--define(?PC_Remote_Node_Transmission_Error, "Remote Node Transmission Error").
--define(?PC_Routing_Failure, "Routing Failure").
--define(?PC_EBER, "Excessive Bit Error Rate").
--define(?PC_Excessive_Bit_Error_Rate, "Excessive Bit Error Rate").
--define(?PC_Unavailable, "Unavailable").
--define(?PC_Signal_Label_Mismatch, "Signal Label Mismatch").
--define(?PC_Loss_Of_Multi_Frame, "Loss Of Multi Frame").
--define(?PC_Antenna_Failure, "Antenna Failure").
--define(?PC_Back_Plane_Failure, "Back Plane Failure").
--define(?PC_Battery_Charging_Failure, "Battery Charging Failure").
--define(?PC_Data_Set_Problem, "Data Set Problem").
--define(?PC_Disk_Failure, "Disk Failure").
--define(?PC_Equipment_Identifier_Duplication, "Equipment Identifier Duplication").
--define(?PC_External_If_Device_Problem, "External If Device Problem").
--define(?PC_Frequency_Hopping_Failure, "Frequency_Hopping_Failure").
--define(?PC_IO_Device_Error, "IO Device Error").
--define(?PC_Line_Card_Problem, "Line Card Problem").
--define(?PC_Loss_Of_Redundancy, "Loss Of Redundancy").
--define(?PC_Loss_Of_Synchronization, "Loss Of Synchronization").
--define(?PC_Multiplexer_Problem, "Multiplexer Problem").
--define(?PC_NE_Identifier_Duplication, "NE Identifier Duplication").
--define(?PC_Power_Problem, "Power Problem").
--define(?PC_Power_Supply_Failure, "Power Supply Failure").
--define(?PC_Protection_Path_Failure, "Protection Path Failure").
--define(?PC_Protecting_Resource_Failure, "Protecting Resource Failure").
--define(?PC_Protection_Mechanism_Failure, "Protection Mechanism Failure").
--define(?PC_Real_Time_Clock_Failure, "Real Time Clock Failure").
--define(?PC_Receiver_Failure, "Receiver Failure").
--define(?PC_Replaceable_Unit_Missing, "Replaceable Unit Missing").
--define(?PC_Replaceable_Unit_Type_Mismatch, "Replaceable Unit Type Mismatch").
--define(?PC_Signal_Quality_Evaluation_Failure, "Signal Quality Evaluation Failure").
--define(?PC_Synchronization_Source_Mismatch, "Synchronization Source Mismatch").
--define(?PC_Terminal_Problem, "Terminal Problem").
--define(?PC_Transceiver_Failure, "Transceiver Failure").
--define(?PC_Transceiver_Failure, "Transceiver Failure").
--define(?PC_Trunk_Card_Problem, "Trunk Card Problem").
--define(?PC_Replaceable_Unit_Problem, "Replaceable Unit Problem").
--define(?PC_Air_Compressor_Failure, "Air Compressor Failure").
--define(?PC_Air_Conditioning_Failure, "Air Conditioning Failure").
--define(?PC_Air_Dryer_Failure, "Air Dryer Failure").
--define(?PC_Battery_Discharging, "Battery Discharging").
--define(?PC_Battery_Failure, "Battery Failure").
--define(?PC_Commercial_Power_Failure, "Commercial Power Failure").
--define(?PC_Cooling_Fan_Failure, "Cooling Fan Failure").
--define(?PC_Cooling_System_Failure, "Cooling System Failure").
--define(?PC_Engine_Failure, "Engine Failure").
--define(?PC_Fire_Detector_Failure, "Fire Detector Failure").
--define(?PC_Fuse_Failure, "Fuse Failure").
--define(?PC_Generator_Failure, "Generator_Failure").
--define(?PC_Low_Battery_Threshold, "Low Battery Threshold").
--define(?PC_Pump_Failure, "Pump Failure").
--define(?PC_Rectifier_Failure, "Rectifier Failure").
--define(?PC_Rectifier_High_Voltage, "Rectifier High Voltage").
--define(?PC_Rectifier_Low_F_voltage, "Rectifier Low F voltage").
--define(?PC_Ventilation_System_Failure, "Ventilation System Failure").
--define(?PC_Enclosure_Door_Open, "Enclosure Door Open").
--define(?PC_Explosive_Gas, "Explosive Gas").
--define(?PC_External_Equipment_Failure, "External Equipment Failure").
--define(?PC_External_Point_Failure, "External Point Failure").
--define(?PC_Fire, "Fire").
--define(?PC_Flood, "Flood").
--define(?PC_High_Humidity, "High Humidity").
--define(?PC_High_Temperature, "High Temperature").
--define(?PC_High_Wind, "High Wind").
--define(?PC_Ice_Build_Up, "Ice BuildUp").
--define(?PC_Intrusion_Detection, "Intrusion Detection").
--define(?PC_Low_Fuel, "Low Fuel").
--define(?PC_Low_Humidity, "Low Humidity").
--define(?PC_Low_Cable_Pressure, "Low Cable Pressure").
--define(?PC_Low_Temperature, "Low Temperature").
--define(?PC_Low_Water, "Low Water").
--define(?PC_Smoke, "Smoke").
--define(?PC_Toxic_Gas, "Toxic Gas").
--define(?PC_Application_Subsystem_Failure, "Application Subsystem_Failure").
--define(?PC_Configuration_Or_Customisation_Error, "Configuration Or Customisation Error").
--define(?PC_Database_Inconsistency, "Database Inconsistency").
--define(?PC_File_Error, "File Error").
--define(?PC_Storage_Capacity_Problem, "Storage Capacity Problem").
--define(?PC_Memory_Mismatch, "Memory Mismatch").
--define(?PC_Corrupt_Data, "Corrupt Data").
--define(?PC_Loss_Of_Real_Time, "Loss Of Real Time").
--define(?PC_Out_Of_CPU_Cycles, "Out Of CPU Cycles").
--define(?PC_Out_Of_CPU_Cycles, "Out Of CPU Cycles").
--define(?PC_Out_Of_Memory, "Out Of Memory").
--define(?PC_Reinitialized, "Reinitialized").
--define(?PC_Software_Environment_Problem, "Software Environment Problem").
--define(?PC_Software_Error, "Software Error").
--define(?PC_Software_Download_Failure, "Software Download Failure").
--define(?PC_Timeout_Expired, "Timeout Expired").
--define(?PC_Version_Mismatch, "Version Mismatch").
--define(?PC_Bndwidth_Reduced, "Bndwidth Reduced").
--define(?PC_Congestion, "Congestion").
--define(?PC_Excessive_Error_Rate, "Excessive Error Rate").
--define(?PC_Excessive_Rresponse_Time, "Excessive Response Time").
--define(?PC_Excessive_Retransmission_Rate, "Excessive Retransmission Rate").
--define(?PC_Reduced_Logging_Capability, "Reduced Logging Capability").
--define(?PC_System_Resources_Overload, "System Resources Overload").
--define(?PC_Adapter_Error, "Adapter Error").
--define(?PC_Authentication_Failure, "Authentication Failure").
--define(?PC_Bandwidth_Reduction, "Bandwidth Reduction").
--define(?PC_Breach_Of_Confidentiality, "Breach Of Confidentiality").
--define(?PC_Cable_Tamper, "Cable Tamper").
--define(?PC_Call_Establishment_Error, "Call Establishment Error").
--define(?PC_Communication_Protocol_Error, "Communication Protocol Error").
--define(?PC_Communication_Subsystem_Failure, "Communication Subsystem Failure").
--define(?PC_Configuration_Or_Customizing_Error, "Configuration or Customizing Error").
--define(?PC_Congestion, "Congestion").
--define(?PC_Corrupt_Data, "Corrupt_Data").
--define(?PC_CPU_Cycles_Limit_Exceeded, "CPU Cycles Limit Exceeded").
--define(?PC_Data_Set_Or_Modem_Error, "Data Set Or Modem Error").
--define(?PC_Degraded_Signal, "Degraded Signal").
--define(?PC_Denial_Of_Service, "Denial Of Service").
--define(?PC_Denial_Of_Service, "DTE-DCE Interface Error").
--define(?PC_Duplicate_Information, "DuplicateInformation").
--define(?PC_Enclosure_Door_Open, "Enclosure Door Open").
--define(?PC_Equipment_Malfunction, "Equipment Malfunction").
--define(?PC_Excessive_vibration, "Excessive Vibration").
--define(?PC_File_Error, "File Error").
--define(?PC_Fire_Detected, "Fire_Detected").
--define(?PC_Flood_Detected, "Flood Detected").
--define(?PC_Framing_Error, "Framing Error").
--define(?PC_HOVOCP, "Heating Or Ventilation Or Cooling System Problem").
--define(?PC_Humidity_Unacceptable, "Humidity Unacceptable").
--define(?PC_Info_Missing, "Information Missing").
--define(?PC_Info_Mod_Detected, "Information Modification Detected").
--define(?PC_Info_Out_Of_Sequence, "Information Out Of Sequence").
--define(?PC_Input_Output_Device_Error, "Input/output Device Error").
--define(?PC_Input_Device_Error, "Input Device Error").
--define(?PC_Intrusion_Detection, "Intrusion Detection").
--define(?PC_Key_Expired, "Key Expired").
--define(?PC_LAN_Error, "LAN Error").
--define(?PC_Leak_Detection, "Leak Detection").
--define(?PC_Local_Node_Transmission_Error, "Local Node Transmission Error").
--define(?PC_Loss_Of_Frame, "Loss Of Frame").
--define(?PC_Loss_Of_Signal, "Loss Of Signal").
--define(?PC_Material_Supply_Exhausted, "Material Supply Exhausted").
--define(?PC_Multiplexer_Problem, "Multiplexer Problem").
--define(?PC_Non_repudiation_Failure, "Non-repudiation Failure").
--define(?PC_Out_Of_Hours_Activity, "Out Of Hours Activity").
--define(?PC_Out_Of_Memory, "Out Of Memory").
--define(?PC_Out_Of_Service, "Out Of Service").
--define(?PC_Output_Device_Error, "Output_Device_Error").
--define(?PC_Performance_Degraded, "Performance Degraded").
--define(?PC_Pressure_Unacceptable, "Pressure Unacceptable").
--define(?PC_Procedural_Error, "Procedural Error").
--define(?PC_Processor_Problem, "Processor Problem").
--define(?PC_Pump_Failure, "Pump Failure").
--define(?PC_Queue_Size_Exceeded, "Queue Size Exceeded").
--define(?PC_Receive_Failure, "Receive Failure").
--define(?PC_Receiver_Failure, "Receiver Failure").
--define(?PC_Remote_Node_Transmission_Error, "Remote Node Transmission Error").
--define(?PC_Resource_At_Or_Nearing_Capacity, "Resource At Or Nearing Capacity").
--define(?PC_Response_Time_Excessive, "Response Time Excessive").
--define(?PC_Re_Transmission_Rate_Excessive, "Re-transmission_Rate_Excessive").
--define(?PC_Software_Error, "Software Error").
--define(?PC_Software_Program_Abnormally_Terminated, "Software Program Abnormally Terminated").
--define(?PC_Software_Program_Error, "Software Program Error").
--define(?PC_Storage_Capacity_Problem, "Storage Capacity Problem").
--define(?PC_Temperature_Unacceptable, "Temperature Unacceptable").
--define(?PC_Threshold_Crossed, "Threshold Crossed").
--define(?PC_Timing_Problem, "Timing Problem").
--define(?PC_Toxic_Leak_Detected, "Toxic Leak Detected").
--define(?PCTransmit_Failure_, "Transmit Failure").
--define(?PC_Transmitter_Failure, "Transmitter Failure").
--define(?PC_Unauthorized_Access_Attempt, "Unauthorized Access Attempt").
--define(?PC_Underlying_Resource_Unavailable, "Underlying Resource Unavailable").
--define(?PC_Unexpected_Info, "Unexpected Information").
--define(?PC_Unspecified_Reason, "Unspecified Reason").
--define(?PC_Unspecified_Reason, "Unspecified Reason").
--define(?PC_Unspecified_Reason, "Unspecified Reason").
--define(?PC_Version_Mismatch, "Version Mismatch").
+-define(PC_Indeterminate, "Indeterminate").
+-define(PC_Alarm_Indication_Signal, "Alarm Indication Signal").
+-define(PC_Broadcast_Channel_Failure, "Broadcast Channel Failure").
+-define(PC_Call_Setup_Failure, "Call setup Failure").
+-define(PC_Communications_Receive_Failure, "Communications Receive Failure").
+-define(PC_Communications_Transmit_Failure, "Communications Transmit Failure").
+-define(PC_Connection_Establishment_Error, "Connection Establishment Error").
+-define(PC_Degraded_Signal, "Degraded Signal").
+-define(PC_Demodulation_Failure, "Demodulation Failure").
+-define(PC_FERF, "Far End Receiver Failure").
+-define(PC_Invalid_Message_Received, "Invalid Message Received").
+-define(PC_LOF, "Loss Of Fram").
+-define(PC_LOP, "Loss Of Pointer").
+-define(PC_LOS, "Loss of Signal").
+-define(PC_Modulaion_Failure, "Modulation Failure").
+-define(PC_Payload_Type_Mismatch, "Payload Type Mismatch").
+-define(PC_Transmission_Error, "Transmission Error").
+-define(PC_Remote_Alarm_Interface, "Remote Alarm Interface").
+-define(PC_Routing_Failure, "Routing Failure").
+-define(PC_EBER, "Excessive Bit Error Rate").
+-define(PC_Excessive_Bit_Error_Rate, "Excessive Bit Error Rate").
+-define(PC_Unavailable, "Unavailable").
+-define(PC_Signal_Label_Mismatch, "Signal Label Mismatch").
+-define(PC_Loss_Of_Multi_Frame, "Loss Of Multi Frame").
+-define(PC_Antenna_Failure, "Antenna Failure").
+-define(PC_Back_Plane_Failure, "Back Plane Failure").
+-define(PC_Battery_Charging_Failure, "Battery Charging Failure").
+-define(PC_Data_Set_Problem, "Data Set Problem").
+-define(PC_Disk_Failure, "Disk Failure").
+-define(PC_Equipment_Identifier_Duplication, "Equipment Identifier Duplication").
+-define(PC_External_If_Device_Problem, "External If Device Problem").
+-define(PC_Frequency_Hopping_Failure, "Frequency_Hopping_Failure").
+-define(PC_IO_Device_Error, "IO Device Error").
+-define(PC_Line_Card_Problem, "Line Card Problem").
+-define(PC_Loss_Of_Redundancy, "Loss Of Redundancy").
+-define(PC_Loss_Of_Synchronization, "Loss Of Synchronization").
+-define(PC_Multiplexer_Problem, "Multiplexer Problem").
+-define(PC_NE_Identifier_Duplication, "NE Identifier Duplication").
+-define(PC_Power_Problem, "Power Problem").
+-define(PC_Power_Supply_Failure, "Power Supply Failure").
+-define(PC_Protection_Path_Failure, "Protection Path Failure").
+-define(PC_Protecting_Resource_Failure, "Protecting Resource Failure").
+-define(PC_Protection_Mechanism_Failure, "Protection Mechanism Failure").
+-define(PC_Real_Time_Clock_Failure, "Real Time Clock Failure").
+-define(PC_Replaceable_Unit_Missing, "Replaceable Unit Missing").
+-define(PC_Replaceable_Unit_Type_Mismatch, "Replaceable Unit Type Mismatch").
+-define(PC_Signal_Quality_Evaluation_Failure, "Signal Quality Evaluation Failure").
+-define(PC_Synchronization_Source_Mismatch, "Synchronization Source Mismatch").
+-define(PC_Terminal_Problem, "Terminal Problem").
+-define(PC_Transceiver_Failure, "Transceiver Failure").
+-define(PC_Trunk_Card_Problem, "Trunk Card Problem").
+-define(PC_Replaceable_Unit_Problem, "Replaceable Unit Problem").
+-define(PC_Air_Compressor_Failure, "Air Compressor Failure").
+-define(PC_Air_Conditioning_Failure, "Air Conditioning Failure").
+-define(PC_Air_Dryer_Failure, "Air Dryer Failure").
+-define(PC_Battery_Discharging, "Battery Discharging").
+-define(PC_Battery_Failure, "Battery Failure").
+-define(PC_Commercial_Power_Failure, "Commercial Power Failure").
+-define(PC_Cooling_Fan_Failure, "Cooling Fan Failure").
+-define(PC_Cooling_System_Failure, "Cooling System Failure").
+-define(PC_Engine_Failure, "Engine Failure").
+-define(PC_Fire_Detector_Failure, "Fire Detector Failure").
+-define(PC_Fuse_Failure, "Fuse Failure").
+-define(PC_Generator_Failure, "Generator_Failure").
+-define(PC_Low_Battery_Threshold, "Low Battery Threshold").
+-define(PC_Rectifier_Failure, "Rectifier Failure").
+-define(PC_Rectifier_High_Voltage, "Rectifier High Voltage").
+-define(PC_Rectifier_Low_F_voltage, "Rectifier Low F voltage").
+-define(PC_Ventilation_System_Failure, "Ventilation System Failure").
+-define(PC_Enclosure_Door_Open, "Enclosure Door Open").
+-define(PC_Explosive_Gas, "Explosive Gas").
+-define(PC_External_Equipment_Failure, "External Equipment Failure").
+-define(PC_External_Point_Failure, "External Point Failure").
+-define(PC_Fire, "Fire").
+-define(PC_Flood, "Flood").
+-define(PC_High_Humidity, "High Humidity").
+-define(PC_High_Temperature, "High Temperature").
+-define(PC_High_Wind, "High Wind").
+-define(PC_Ice_Build_Up, "Ice BuildUp").
+-define(PC_Intrusion_Detection, "Intrusion Detection").
+-define(PC_Low_Fuel, "Low Fuel").
+-define(PC_Low_Humidity, "Low Humidity").
+-define(PC_Low_Cable_Pressure, "Low Cable Pressure").
+-define(PC_Low_Temperature, "Low Temperature").
+-define(PC_Low_Water, "Low Water").
+-define(PC_Smoke, "Smoke").
+-define(PC_Toxic_Gas, "Toxic Gas").
+-define(PC_Application_Subsystem_Failure, "Application Subsystem_Failure").
+-define(PC_Configuration_Or_Customisation_Error, "Configuration Or Customisation Error").
+-define(PC_Database_Inconsistency, "Database Inconsistency").
+-define(PC_File_Error, "File Error").
+-define(PC_Memory_Mismatch, "Memory Mismatch").
+-define(PC_Corrupt_Data, "Corrupt Data").
+-define(PC_Loss_Of_Real_Time, "Loss Of Real Time").
+-define(PC_Out_Of_CPU_Cycles, "Out Of CPU Cycles").
+-define(PC_Reinitialized, "Reinitialized").
+-define(PC_Software_Environment_Problem, "Software Environment Problem").
+-define(PC_Software_Download_Failure, "Software Download Failure").
+-define(PC_Timeout_Expired, "Timeout Expired").
+-define(PC_Bndwidth_Reduced, "Bndwidth Reduced").
+-define(PC_Congestion, "Congestion").
+-define(PC_Excessive_Error_Rate, "Excessive Error Rate").
+-define(PC_Excessive_Rresponse_Time, "Excessive Response Time").
+-define(PC_Excessive_Retransmission_Rate, "Excessive Retransmission Rate").
+-define(PC_Reduced_Logging_Capability, "Reduced Logging Capability").
+-define(PC_System_Resources_Overload, "System Resources Overload").
+-define(PC_Adapter_Error, "Adapter Error").
+-define(PC_Authentication_Failure, "Authentication Failure").
+-define(PC_Bandwidth_Reduction, "Bandwidth Reduction").
+-define(PC_Breach_Of_Confidentiality, "Breach Of Confidentiality").
+-define(PC_Cable_Tamper, "Cable Tamper").
+-define(PC_Call_Establishment_Error, "Call Establishment Error").
+-define(PC_Communication_Protocol_Error, "Communication Protocol Error").
+-define(PC_Communication_Subsystem_Failure, "Communication Subsystem Failure").
+-define(PC_Configuration_Or_Customizing_Error, "Configuration or Customizing Error").
+-define(PC_CPU_Cycles_Limit_Exceeded, "CPU Cycles Limit Exceeded").
+-define(PC_Data_Set_Or_Modem_Error, "Data Set Or Modem Error").
+-define(PC_Denial_Of_Service, "Denial Of Service").
+-define(PC_DTE_DCE_Interface_Error, "DTE-DCE Interface Error").
+-define(PC_Duplicate_Information, "DuplicateInformation").
+-define(PC_Equipment_Malfunction, "Equipment Malfunction").
+-define(PC_Excessive_vibration, "Excessive Vibration").
+-define(PC_Fire_Detected, "Fire_Detected").
+-define(PC_Flood_Detected, "Flood Detected").
+-define(PC_Framing_Error, "Framing Error").
+-define(PC_HOVOCP, "Heating Or Ventilation Or Cooling System Problem").
+-define(PC_Humidity_Unacceptable, "Humidity Unacceptable").
+-define(PC_Info_Missing, "Information Missing").
+-define(PC_Info_Mod_Detected, "Information Modification Detected").
+-define(PC_Info_Out_Of_Sequence, "Information Out Of Sequence").
+-define(PC_Input_Output_Device_Error, "Input/output Device Error").
+-define(PC_Input_Device_Error, "Input Device Error").
+-define(PC_Key_Expired, "Key Expired").
+-define(PC_LAN_Error, "LAN Error").
+-define(PC_Leak_Detection, "Leak Detection").
+-define(PC_Local_Node_Transmission_Error, "Local Node Transmission Error").
+-define(PC_Loss_Of_Frame, "Loss Of Frame").
+-define(PC_Loss_Of_Signal, "Loss Of Signal").
+-define(PC_Material_Supply_Exhausted, "Material Supply Exhausted").
+-define(PC_Non_repudiation_Failure, "Non-repudiation Failure").
+-define(PC_Out_Of_Hours_Activity, "Out Of Hours Activity").
+-define(PC_Out_Of_Memory, "Out Of Memory").
+-define(PC_Out_Of_Service, "Out Of Service").
+-define(PC_Output_Device_Error, "Output_Device_Error").
+-define(PC_Performance_Degraded, "Performance Degraded").
+-define(PC_Pressure_Unacceptable, "Pressure Unacceptable").
+-define(PC_Procedural_Error, "Procedural Error").
+-define(PC_Processor_Problem, "Processor Problem").
+-define(PC_Pump_Failure, "Pump Failure").
+-define(PC_Queue_Size_Exceeded, "Queue Size Exceeded").
+-define(PC_Receive_Failure, "Receive Failure").
+-define(PC_Receiver_Failure, "Receiver Failure").
+-define(PC_Remote_Node_Transmission_Error, "Remote Node Transmission Error").
+-define(PC_Resource_At_Or_Nearing_Capacity, "Resource At Or Nearing Capacity").
+-define(PC_Response_Time_Excessive, "Response Time Excessive").
+-define(PC_Re_Transmission_Rate_Excessive, "Re-transmission_Rate_Excessive").
+-define(PC_Software_Error, "Software Error").
+-define(PC_Software_Program_Abnormally_Terminated, "Software Program Abnormally Terminated").
+-define(PC_Software_Program_Error, "Software Program Error").
+-define(PC_Storage_Capacity_Problem, "Storage Capacity Problem").
+-define(PC_Temperature_Unacceptable, "Temperature Unacceptable").
+-define(PC_Threshold_Crossed, "Threshold Crossed").
+-define(PC_Timing_Problem, "Timing Problem").
+-define(PC_Toxic_Leak_Detected, "Toxic Leak Detected").
+-define(PCTransmit_Failure_, "Transmit Failure").
+-define(PC_Transmitter_Failure, "Transmitter Failure").
+-define(PC_Unauthorized_Access_Attempt, "Unauthorized Access Attempt").
+-define(PC_Underlying_Resource_Unavailable, "Underlying Resource Unavailable").
+-define(PC_Unexpected_Info, "Unexpected Information").
+-define(PC_Unspecified_Reason, "Unspecified Reason").
+-define(PC_Version_Mismatch, "Version Mismatch").
 
