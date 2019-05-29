@@ -88,7 +88,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 				{authenticated, _TargetName, _AgentName} ->
 					case catch snmp_pdus:dec_pdu(Data) of
 						#pdu{error_status = noError, varbinds = Varbinds, error_index = 0} ->
-							case handle_trap(Address, Port, {noError, 0, Varbinds}) of
+							case handle_trap(undefined, undefined, Address, Port, {noError, 0, Varbinds}) of
 								ignore ->
 									{stop, shutdown, StateData};
 								{error, Reason} ->
@@ -126,7 +126,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 									case snmp_collector_utils:security_params(EngineID, Address, UserName, MsgAuthenticationParams,
 											Packet, AuthPass, PrivPass) of
 										{ok, usmNoAuthProtocol, usmNoPrivProtocol} when Flag == 0 ->
-											case handle_trap(Address, Port, {noError, 0, Varbinds}) of
+											case handle_trap(undefined, undefined, Address, Port, {noError, 0, Varbinds}) of
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
@@ -140,7 +140,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
-											case handle_trap(Address, Port, {noError, 0, Data}) of
+											case handle_trap(undefined, undefined, Address, Port, {noError, 0, Data}) of
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
@@ -154,7 +154,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
-											case handle_trap(Address, Port, {noError, 0, Data}) of
+											case handle_trap(undefined, undefined, Address, Port, {noError, 0, Data}) of
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
@@ -181,7 +181,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 									case snmp_collector_utils:security_params(EngineID, Address, UserName, MsgAuthenticationParams,
 											Packet, AuthPass, PrivPass) of
 										{ok, usmNoAuthProtocol, usmNoPrivProtocol} when Flag == 0 ->
-											case handle_trap(Address, Port, {noError, 0, Data}) of
+											case handle_trap(undefined, undefined, Address, Port, {noError, 0, Data}) of
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
@@ -195,7 +195,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACMD5AuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
-											case handle_trap(Address, Port, {noError, 0, Data}) of
+											case handle_trap(undefined, undefined, Address, Port, {noError, 0, Data}) of
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
@@ -213,7 +213,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 											PrivKey = snmp_collector_usm:kul(md5, Ku, EngineID),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
-													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
+													case handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
@@ -242,7 +242,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 											PrivKey = snmp_collector_usm:kul(md5, Ku, EngineID),
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
-													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
+													case handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
@@ -267,7 +267,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														{stop, shutdown, StateData}
 											end;
 										{ok, usmHMACSHAAuthProtocol, usmNoPrivProtocol} when Flag == 1 ->
-											case handle_trap(Address, Port, {noError, 0, Data}) of
+											case handle_trap(undefined, undefined, Address, Port, {noError, 0, Data}) of
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
@@ -285,7 +285,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 											PrivKey = lists:sublist(snmp_collector_usm:kul(sha, Ku, EngineID), 16),
 											case dec_des(PrivKey, MsgPrivParams, PDU) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
-													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
+													case handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
@@ -314,7 +314,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 											PrivKey = lists:sublist(snmp_collector_usm:kul(sha, Ku, EngineID), 16),
 											case dec_aes(PrivKey, MsgPrivParams, PDU, EngineBoots, EngineTime) of
 												{ErrorStatus, ErrorIndex, Varbinds} ->
-													case handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
+													case handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbinds}) of
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
@@ -545,8 +545,10 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 			{error, Reason}
 	end.
 
--spec handle_trap(Address, Port, TrapInfo) -> Result
+-spec handle_trap(TargetName, AgentName, Address, Port, TrapInfo) -> Result
 	when
+		TargetName :: string() | undefined,
+		AgentName :: string() | undefined,
 		Address :: inet:ip_address(),
 		Port :: pos_integer(),
 		TrapInfo :: {ErrorStatus, ErrorIndex, Varbinds},
@@ -556,7 +558,7 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Send Varbinds to the associated trap handler modules.
-handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
+handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 		when ErrorStatus == noError ->
 	case snmp_collector_utils:agent_name(Address) of
 		{AgentName, TargetName, _} when is_list(AgentName), is_list(TargetName) ->
@@ -571,6 +573,15 @@ handle_trap(Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
 			{error, Reason}
+	end;
+handle_trap(TargetName, AgentName, Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
+		when ErrorStatus == noError ->
+	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
+		[[Module, UserData]] ->
+			Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
+		[] ->
+			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
+					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
 	end.
 
 -spec flag(Flag) -> Result
