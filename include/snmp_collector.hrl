@@ -23,6 +23,7 @@
 -define(ET_Physical_Violation, "Physical Violation").
 -define(ET_Security_Service_Or_Mechanism_Violation, "Security Service Or Mechanism Violation").
 -define(ET_Time_Domain_Violation, "Time Domain Violation").
+-define(ET_Relay_System, "Relay System").
 
 % Probable Causes 3GPP 32.111-2 Annex B
 
@@ -197,4 +198,21 @@
 -define(PC_Unexpected_Info, "Unexpected Information").
 -define(PC_Unspecified_Reason, "Unspecified Reason").
 -define(PC_Version_Mismatch, "Version Mismatch").
+
+% Perceived Severities 3GPP TS 32.111-2 Table 5.5.1
+-define(ES_CRITICAL, "CRITICAL").
+-define(ES_MAJOR, "MAJOR").
+-define(ES_MINOR, "MINOR").
+-define(ES_WARNING, "WARNING").
+-define(ES_INDETERMINATE, "INDETERMINATE").
+-define(ES_CLEARED, "CLEARED").
+
+% Event Names 3GPP TS 32.111-2 6.3.2.3
+-define(EN_NEW, notifyNewAlarm).
+-define(EN_CHANGED, notifyChangedAlarm).
+-define(EN_CLEARED, notifyClearedAlarm).
+
+% Alarm Ack States 3GPP TS 32.111-2 Table 5.5.1
+-define(ACK_Acknowledged, acknowledged).
+-define(ACK_Unacknowledged, unacknowledged).
 
