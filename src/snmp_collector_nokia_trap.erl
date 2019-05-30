@@ -19,6 +19,8 @@
 -module(snmp_collector_nokia_trap).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
+-include("snmp_collector.hrl").
+
 -behaviour(snmpm_user).
 
 %% export snmpm_user call backs.
@@ -176,11 +178,11 @@ event([{"nbiObjectInstance", Value} | T], Acc)
 	event(T, [{"objectInstance", Value} | Acc]);
 event([{"nbiSpecificProblem", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"alarmCondtion", "NEW"} | Acc]);
+	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
 event([{"nbiAckState", 1} | T], Acc) ->
-	event(T, [{"alarmAckState", "Acknowledged"} | Acc]);
+	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"nbiAckState", 2} | T], Acc) ->
-	event(T, [{"alarmAckState", "Unacknowledged"} | Acc]);
+	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 event([{"nbiAckTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmAckTime", Value} | Acc]);
@@ -188,26 +190,26 @@ event([{"nbiAlarmType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"nbiPerceivedSeverity", "3"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 event([{"nbiPerceivedSeverity", "4"} | T], Acc) ->
-	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
 event([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CLEARED"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
-	event(T, [{"eventSeverity", "INDETERMINATE"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
+event([{"snmpTrapOID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
-	event(T, [{"alarmCondtion", "NEW"},
-			{"eventName", "notifyNewAlarm"} | Acc]);
+	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	event(T, [{"alarmCondtion", "CLEARED"},
-			{"eventName", "notifyClearedAlarm"} | Acc]);
+	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
-	event(T, [{"alarmCondtion", "CHANGED"},
-			{"eventName", "notifyChangedAlarm"} | Acc]);
+	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
 event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);
@@ -224,15 +226,15 @@ event([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventComment", Value} | Acc]);
 event([{"nbiAlarmType", "1"} | T], Acc) ->
-	event(T, [{"eventType", "Communication System"} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"nbiAlarmType", "2"} | T], Acc) ->
-	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"nbiAlarmType", "3"} | T], Acc) ->
-	event(T, [{"eventType", "Processing error"} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"nbiAlarmType", "4"} | T], Acc) ->
-	event(T, [{"eventType", "Hardware System"} | Acc]);
+	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
 event([{"nbiAlarmType", "5"} | T], Acc) ->
-	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->

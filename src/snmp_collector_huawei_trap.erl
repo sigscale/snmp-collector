@@ -19,6 +19,8 @@
 -module(snmp_collector_huawei_trap).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
+-include("snmp_collector.hrl").
+
 -behaviour(snmpm_user).
 
 %% export snmpm_user call backs.
@@ -176,28 +178,31 @@ event([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
 	event(T, [{"objectInstance", Value}| Acc]);
 event([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"alarmCondtion", "NEW"} | Acc]);
+	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
 event([{"iMAPNorthboundAlarmNEType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "1"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "2"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "3"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
-	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
-	event(T, [{"eventSeverity", "INDETERMINATE"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "6"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CLEARED"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
+event([{"snmpTrapOID", Value } | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmCondition", Value } | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
-	event(T, [{"alarmCondition", "NEW"}, {"eventName", notifyNewAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CLEARED"}, {"eventName", notifyClearedAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CHANGED"} , {"eventName", notifyChangedAlarm}| Acc]);
+	event(T, [{"eventName", ?EN_CHANGED}| Acc]);
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmRestore", Value} | Acc]);
@@ -246,39 +251,39 @@ event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"probableCause", Value},
-		{"eventType", "Quality Of Service Alarm"} | Acc]);
+		{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
-	event(T, [{"eventType", "Power System"} | Acc]);
+	event(T, [{"eventType", ?ET_Power_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
-	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "3"} | T], Acc) ->
-	event(T, [{"eventType", "Signaling System"} | Acc]);
+	event(T, [{"eventType", ?ET_Signaling_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "4"} | T], Acc) ->
-	event(T, [{"eventType", "Trunk System"} | Acc]);
+	event(T, [{"eventType", ?ET_Trunk_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "5"} | T], Acc) ->
-	event(T, [{"eventType", "Hardware System"} | Acc]);
+	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "6"} | T], Acc) ->
-	event(T, [{"eventType", "Software System"} | Acc]);
+	event(T, [{"eventType", ?ET_Software_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "7"} | T], Acc) ->
-	event(T, [{"eventType", "Running System"} | Acc]);
+	event(T, [{"eventType", ?ET_Running_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "8"} | T], Acc) ->
-	event(T, [{"eventType", "Communication System"} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "9"} | T], Acc) ->
-	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "10"} | T], Acc) ->
-	event(T, [{"eventType", "Processing error"} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"iMAPNorthboundAlarmType", "11"} | T], Acc) ->
-	event(T, [{"eventType", "OMC"} | Acc]);
+	event(T, [{"eventType", ?ET_OMC} | Acc]);
 event([{"iMAPNorthboundAlarmType", "12"} | T], Acc) ->
-	event(T, [{"eventType", "Integrity Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
 event([{"iMAPNorthboundAlarmType", "13"} | T], Acc) ->
-	event(T, [{"eventType", "Operational Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Operational_Violation} | Acc]);
 event([{"iMAPNorthboundAlarmType", "14"} | T], Acc) ->
-	event(T, [{"eventType", "Physical Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Physical_Violation} | Acc]);
 event([{"iMAPNorthboundAlarmType", "15"} | T], Acc) ->
-	event(T, [{"eventType", "Security Service Or Mechanism Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
 event([{"iMAPNorthboundAlarmType", "16"} | T], Acc) ->
-	event(T, [{"eventType", "Time Domain Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 event([{"iMAPNorthboundAlarmProductID", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmProductID", Value} | Acc]);

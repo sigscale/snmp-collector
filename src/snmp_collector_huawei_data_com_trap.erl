@@ -19,6 +19,8 @@
 -module(snmp_collector_huawei_data_com_trap).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
+-include("snmp_collector.hrl").
+
 -behaviour(snmpm_user).
 
 %% export snmpm_user call backs.
@@ -173,26 +175,29 @@ event([{"hwNmNorthboundNEName", Value} | T], Acc)
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"alarmCondition", "NEW"} | Acc]);
+	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
+event([{"snmpTrapOID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"hwNmNorthboundSeverity", "Critical"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"hwNmNorthboundSeverity", "Major"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"hwNmNorthboundSeverity", "Minor"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 event([{"hwNmNorthboundSeverity", "Warning"} | T], Acc) ->
-	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
 event([{"hwNmNorthboundSeverity", "Indeterminate"} | T], Acc) ->
-	event(T, [{"eventSeverity", "INDETERMINATE"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
-	event(T, [{"alarmCondition", "NEW"}, {"eventName", notifyNewAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CHANGED"}, {"eventName", notifyChangedAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
 event([{"hwNmNorthboundRestoreStatus", "cleared"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CLEARED"}, {"eventName", notifyClearedAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"hwNmNorthboundEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);
@@ -205,27 +210,27 @@ event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
 event([{"hwNmNorthboundProbableCause", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"probableCause", Value},
-			{"eventType", "Quality Of Service Alarm"} | Acc]);
+			{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
-	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->
-	event(T, [{"eventType", "Communication System"} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Service"} | T], Acc) ->
-	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Processerror"} | T], Acc) ->
-	event(T, [{"eventType", "Processing error"} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"hwNmNorthboundEventType", "Hardware"} | T], Acc) ->
-	event(T, [{"eventType", "Hardware System"} | Acc]);
+	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Software"} | T], Acc) ->
-	event(T, [{"eventType", "Software System"} | Acc]);
+	event(T, [{"eventType", ?ET_Software_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Run"} | T], Acc) ->
-	event(T, [{"eventType", "Running System"} | Acc]);
+	event(T, [{"eventType", ?ET_Running_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Power"} | T], Acc) ->
-	event(T, [{"eventType", "Power System"} | Acc]);
+	event(T, [{"eventType", ?ET_Power_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Signal"} | T], Acc) ->
-	event(T, [{"eventType", "Signaling System"} | Acc]);
+	event(T, [{"eventType", ?ET_Signaling_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
-	event(T, [{"eventType", "Relay System"} | Acc]);
+	event(T, [{"eventType", ?ET_Relay_System} | Acc]);
 event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmDetails", Value} | Acc]);
@@ -262,9 +267,9 @@ event([{"hwNmNorthboundMaintainStatus", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"maintainStatus", Value} | Acc]);
 event([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
-	event(T, [{"alarmAckState", "Acknowledged"} | Acc]);
+	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"hwNmNorthboundConfirmStatus", 2} | T], Acc) ->
-	event(T, [{"alarmAckState", "Unacknowledged"} | Acc]);
+	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->

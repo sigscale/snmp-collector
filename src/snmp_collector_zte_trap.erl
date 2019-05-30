@@ -19,6 +19,8 @@
 -module(snmp_collector_zte_trap).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
+-include("snmp_collector.hrl").
+
 -behaviour(snmpm_user).
 
 %% export snmpm_user call backs.
@@ -173,28 +175,28 @@ event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"alarmCondtion", "NEW"} | Acc]);
+	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
 event([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
-	event(T, [{"eventSeverity", "INDETERMINATE"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CRITICAL"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"alarmPerceivedSeverity", "3"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MAJOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"alarmPerceivedSeverity", "4"} | T], Acc) ->
-	event(T, [{"eventSeverity", "MINOR"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 event([{"alarmPerceivedSeverity", "5"} | T], Acc) ->
-	event(T, [{"eventSeverity", "WARNING"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
 event([{"alarmPerceivedSeverity", "6"} | T], Acc) ->
-	event(T, [{"eventSeverity", "CLEARED"} | Acc]);
+	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
-	event(T, [{"alarmCondition", "NEW"}, {"eventName", notifyNewAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CLEARED"}, {"eventName", notifyClearedAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
-	event(T, [{"alarmCondition", "CHANGED"}, {"eventName", notifyChangedAlarm} | Acc]);
+	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
 event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);
@@ -202,27 +204,27 @@ event([{"alarmProbableCause", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"probableCause", Value} | Acc]);
 event([{"alarmEventType", "1"} | T], Acc) ->
-	event(T, [{"eventType", "Communication System"} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"alarmEventType", "2"} | T], Acc) ->
-	event(T, [{"eventType", "Processing error"} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"alarmEventType", "3"} | T], Acc) ->
-	event(T, [{"eventType", "Environmental Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"alarmEventType", "4"} | T], Acc) ->
-	event(T, [{"eventType", "Quality Of Service Alarm"} | Acc]);
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"alarmEventType", "5"} | T], Acc) ->
-	event(T, [{"eventType", "Hardware System"} | Acc]);
+	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
 event([{"alarmEventType", "6"} | T], Acc) ->
-	event(T, [{"eventType", "Integrity Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
 event([{"alarmEventType", "7"} | T], Acc) ->
-	event(T, [{"eventType", "Operational Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Operational_Violation} | Acc]);
 event([{"alarmEventType", "8"} | T], Acc) ->
-	event(T, [{"eventType", "Physical Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Physical_Violation} | Acc]);
 event([{"alarmEventType", "9"} | T], Acc) ->
-	event(T, [{"eventType", "Security Service Or Mechanism Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
 event([{"alarmEventType", "10"} | T], Acc) ->
-	event(T, [{"eventType", "Time Domain Violation"} | Acc]);
+	event(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 event([{"alarmEventType", "11"} | T], Acc) ->
-	event(T, [{"eventType", "OMC"} | Acc]);
+	event(T, [{"eventType", ?ET_OMC} | Acc]);
 event([{"alarmMocObjectInstance", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"objectInstance", Value} | Acc]);
@@ -230,9 +232,9 @@ event([{"alarmOtherInfo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmDetails", Value} | Acc]);
 event([{"alarmAck", 1} | T], Acc) ->
-	event(T, [{"alarmAckState", "Acknowledged"} | Acc]);
+	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"alarmAck", 2} | T], Acc) ->
-	event(T, [{"alarmAckState", "Unacknowledged"} | Acc]);
+	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 event([{"alarmSystemType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmSystemType", Value} | Acc]);
