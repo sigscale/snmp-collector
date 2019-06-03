@@ -6,7 +6,6 @@
 		privPass :: string() | undefined | '_'}).
 
 % Event Types [ITU-T X.733].
-
 -define(ET_Power_System, "Power System").
 -define(ET_Environmental_Alarm, "Environmental Alarm").
 -define(ET_Signaling_System, "Signaling System").
@@ -26,7 +25,6 @@
 -define(ET_Relay_System, "Relay System").
 
 % Probable Causes 3GPP 32.111-2 Annex B
-
 -define(PC_Indeterminate, "Indeterminate").
 -define(PC_Alarm_Indication_Signal, "Alarm Indication Signal").
 -define(PC_Broadcast_Channel_Failure, "Broadcast Channel Failure").
