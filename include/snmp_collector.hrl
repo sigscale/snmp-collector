@@ -5,7 +5,7 @@
 		authPass :: string() | undefined | '_',
 		privPass :: string() | undefined | '_'}).
 
-% Event Types [ITU-T X.733].
+% Event Types [ITU-T X.733]
 -define(ET_Power_System, "Power System").
 -define(ET_Environmental_Alarm, "Environmental Alarm").
 -define(ET_Signaling_System, "Signaling System").
@@ -24,7 +24,7 @@
 -define(ET_Time_Domain_Violation, "Time Domain Violation").
 -define(ET_Relay_System, "Relay System").
 
-% Probable Causes 3GPP 32.111-2 Annex B
+% Probable Causes [3GPP 32.111-2 Annex B]
 -define(PC_Indeterminate, "Indeterminate").
 -define(PC_Alarm_Indication_Signal, "Alarm Indication Signal").
 -define(PC_Broadcast_Channel_Failure, "Broadcast Channel Failure").
@@ -197,7 +197,7 @@
 -define(PC_Unspecified_Reason, "Unspecified Reason").
 -define(PC_Version_Mismatch, "Version Mismatch").
 
-% Perceived Severities 3GPP TS 32.111-2 Table 5.5.1
+% Perceived Severities [3GPP TS 32.111-2 Table 5.5.1]
 -define(ES_CRITICAL, "CRITICAL").
 -define(ES_MAJOR, "MAJOR").
 -define(ES_MINOR, "MINOR").
@@ -205,12 +205,12 @@
 -define(ES_INDETERMINATE, "INDETERMINATE").
 -define(ES_CLEARED, "CLEARED").
 
-% Event Names 3GPP TS 32.111-2 6.3.2.3
+% Event Names [3GPP TS 32.111-2 6.3.2.3]
 -define(EN_NEW, notifyNewAlarm).
 -define(EN_CHANGED, notifyChangedAlarm).
 -define(EN_CLEARED, notifyClearedAlarm).
 
-% Alarm Ack States 3GPP TS 32.111-2 Table 5.5.1
+% Alarm Ack States [3GPP TS 32.111-2 Table 5.5.1]
 -define(ACK_Acknowledged, acknowledged).
 -define(ACK_Unacknowledged, unacknowledged).
 
