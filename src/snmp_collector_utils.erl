@@ -554,10 +554,8 @@ log_events(CommonEventHeader, #{"eventSeverity" := EventSeverity} = FaultFields)
 	Node = node(),
 	Event = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
 	case disk_log:log(LogName, Event) of
-		ok when EventSeverity /= ?ES_INFORMATIONAL ->
-			post_event(CommonEventHeader, FaultFields, Url);
 		ok ->
-			ok;
+			post_event(CommonEventHeader, FaultFields, Url);
 		{error, Reason} ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
 					{timestamp, TimeStamp},
