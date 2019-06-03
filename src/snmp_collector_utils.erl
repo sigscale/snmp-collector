@@ -19,6 +19,8 @@
 -module(snmp_collector_utils).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
+-include("snmp_collector.hrl").
+
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
@@ -543,7 +545,7 @@ agent_name(Address) ->
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_events(CommonEventHeader, FaultFields)
+log_events(CommonEventHeader, #{"eventSeverity" := EventSeverity} = FaultFields)
 		when is_map(CommonEventHeader), is_map(FaultFields) ->
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	{ok, Url} = application:get_env(snmp_collector, ves_url),
@@ -552,8 +554,10 @@ log_events(CommonEventHeader, FaultFields)
 	Node = node(),
 	Event = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
 	case disk_log:log(LogName, Event) of
-		ok ->
+		ok when EventSeverity /= ?ES_INFORMATIONAL ->
 			post_event(CommonEventHeader, FaultFields, Url);
+		ok ->
+			ok;
 		{error, Reason} ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
 					{timestamp, TimeStamp},
