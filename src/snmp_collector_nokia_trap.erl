@@ -232,7 +232,7 @@ event([{"nbiAlarmType", "2"} | T], Acc) ->
 event([{"nbiAlarmType", "3"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"nbiAlarmType", "4"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
+	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"nbiAlarmType", "5"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([_H | T], Acc) ->

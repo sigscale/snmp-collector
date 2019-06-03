@@ -212,7 +212,7 @@ event([{"alarmEventType", "3"} | T], Acc) ->
 event([{"alarmEventType", "4"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"alarmEventType", "5"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
+	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"alarmEventType", "6"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
 event([{"alarmEventType", "7"} | T], Acc) ->
@@ -224,7 +224,7 @@ event([{"alarmEventType", "9"} | T], Acc) ->
 event([{"alarmEventType", "10"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 event([{"alarmEventType", "11"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_OMC} | Acc]);
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"alarmMocObjectInstance", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"objectInstance", Value} | Acc]);

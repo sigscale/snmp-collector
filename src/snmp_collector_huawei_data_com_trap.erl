@@ -220,17 +220,17 @@ event([{"hwNmNorthboundEventType", "Service"} | T], Acc) ->
 event([{"hwNmNorthboundEventType", "Processerror"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"hwNmNorthboundEventType", "Hardware"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
+	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Software"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Software_System} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"hwNmNorthboundEventType", "Run"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Running_System} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"hwNmNorthboundEventType", "Power"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Power_System} | Acc]);
+	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Signal"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Signaling_System} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Relay_System} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmDetails", Value} | Acc]);

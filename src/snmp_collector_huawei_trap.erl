@@ -253,19 +253,19 @@ event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
 	event(T, [{"probableCause", Value},
 		{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Power_System} | Acc]);
+	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "3"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Signaling_System} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "4"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Trunk_System} | Acc]);
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "5"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Hardware_System} | Acc]);
+	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "6"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Software_System} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"iMAPNorthboundAlarmType", "7"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Running_System} | Acc]);
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"iMAPNorthboundAlarmType", "8"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"iMAPNorthboundAlarmType", "9"} | T], Acc) ->
@@ -273,7 +273,7 @@ event([{"iMAPNorthboundAlarmType", "9"} | T], Acc) ->
 event([{"iMAPNorthboundAlarmType", "10"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 event([{"iMAPNorthboundAlarmType", "11"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_OMC} | Acc]);
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "12"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
 event([{"iMAPNorthboundAlarmType", "13"} | T], Acc) ->

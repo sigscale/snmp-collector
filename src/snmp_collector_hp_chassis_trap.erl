@@ -201,23 +201,23 @@ event([{"cpqHoTrapFlags", 4} | T], Acc) ->
 event([{"snmpTrapOID", "compaqq.[22001]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackNameChanged"},
 		{"probableCause", "Rack name changed"},
-		{"eventType", ?ET_Operational_Violation} ,
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Communication_System} ,
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22002]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureNameChanged"},
 		{"probableCause", "Enclosure name changed"},
-		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Communication_System},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22003]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureRemoved"},
 		{"probableCause", "Enclosure removed"},
-		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Physical_Violation},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22004]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureInserted"},
 		{"probableCause", "Enclosure inserted"},
-		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Physical_Violation},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22005]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureTempFailed"},
 		{"probableCause", "Enclosure temperature failed"},
@@ -233,9 +233,9 @@ event([{"snmpTrapOID", "compaqq.[22006]"} | T], Acc) ->
 				Ensure all fans are working properly and that air flow in the rack has not been blocked."} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22007]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureTempOk"},
-		{"probableCause", ?PC_Temperature_Acceptable},
+		{"probableCause", "Temperature Ok"},
 		{"eventType", ?ET_Environmental_Alarm} ,
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22008]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureFanFailed"},
 		{"probableCause", ?PC_Cooling_System_Failure},
@@ -252,7 +252,7 @@ event([{"snmpTrapOID", "compaqq.[22010]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureFanOk"},
 		{"probableCause", "Enclosure fan ok"},
 		{"eventType", ?ET_Environmental_Alarm} ,
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22011]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureFanRemoved"},
 		{"probableCause", "Enclosure fan removed"},
@@ -261,62 +261,62 @@ event([{"snmpTrapOID", "compaqq.[22011]"} | T], Acc) ->
 event([{"snmpTrapOID", "compaqq.[22012]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureFanInserted"},
 		{"probableCause", "Enclosure fan inserted"},
-		{"eventType", ?ET_Hardware_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Physical_Violation},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22013]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerSupply Failed"},
 		{"probableCause", ?PC_Power_Supply_Failure},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22014]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerSupplyDegraded"},
 		{"probableCause", ?PC_Power_Supply_Failure},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22015]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rack Power Supply Ok"},
 		{"probableCause", "Rack power supply ok"},
-		{"eventType", ?ET_Power_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Equipment_Alarm},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22016]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerSupplyRemoved"},
-		{"probableCause", ?ET_Power_System},
-		{"eventType", ?ET_Power_System},
+		{"probableCause", ?ET_Equipment_Alarm},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MINOR} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22017]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerSupplyInserted"},
 		{"probableCause", "Rack power supply inserted."},
-		{"eventType", ?ET_Power_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Equipment_Alarm},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22018]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerSubsystemNotRedundant"},
 		{"probableCause", "Rack power subsystem not redundant."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22019]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerSubsystemLineVoltageProblem"},
 		{"probableCause", "Rack power supply input voltage problem."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the power input for the power supply
 		or replace any failed power supplies as soon as possible"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22020]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerSubsystemOverloadCondition"},
 		{"probableCause", "The rack power subsystem overload condition."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Replace any failed power supplies as soon as possible"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22021]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerShedAutoShutdown"},
 		{"probableCause", "The server shutdown due to lack of power blade."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_CRITICAL},
 		{"proposedRepairActions", "Check the power connections for problems,
 		then add power supplies if necessary"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22022]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerPowerOnFailedNotRedundant"},
 		{"probableCause", "Server power on prevented to preserve redundancy in blade."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_CRITICAL},
 		{"proposedRepairActions", "Check the power connections for problems,
 		then add power supplies if necessary"} | Acc]);
@@ -325,19 +325,19 @@ event([{"snmpTrapOID", Value} | T], Acc)
 		Value == "compaqq.[22025]"->
 	event(T, [{"alarmCondition", "rackServerPowerOnFailedNotEnoughPower"},
 		{"probableCause", "Inadequate power to power on."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_CRITICAL},
 		{"proposedRepairActions", "Check the power connections for problems,
 		then add power supplies if necessary"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22026]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerPowerOnManualOverride"},
 		{"probableCause", "Server power On via manual override."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22027]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackFuseOpen"},
-		{"probableCause", ?PC_Fuse_Open},
-		{"eventType", ?ET_Power_System},
+		{"probableCause", "Fuse Open"},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the enclosure and blade power connections,
 		then reset the fuse"} | Acc]);
@@ -345,65 +345,65 @@ event([{"snmpTrapOID", Value} | T], Acc)
 		when Value == "compaqq.[22028]"; Value == "compaqq.[22050]"->
 	event(T, [{"alarmCondition", "rackServerBladeRemoved"},
 		{"probableCause", "Server blade removed."},
-		{"eventType", ?ET_Hardware_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Equipment_Alarm},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc)
 		when Value == "compaqq.[22029]"; Value == "compaqq.[22051]"->
 	event(T, [{"alarmCondition", "rackServerBladeInserted"},
 		{"probableCause", "Server blade inserted."},
-		{"eventType", ?ET_Hardware_System} ,
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Equipment_Alarm} ,
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22030]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerChassisDcPowerProblem"},
 		{"probableCause", "Power subsystem not load balanced."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the power enclosure and power supplies.
 		Replace any failed or degraded power supplies. Add additional power supplies if needed"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22031]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerChassisDcPowerProblem"},
 		{"probableCause", "Power subsystem DC power problem."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the power enclosure and power supplies.
 		Replace any failed or degraded power supplies"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22032]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerChassisAcFacilityPowerExceeded"},
 		{"probableCause", "Power subsystem AC facility input power exceeded."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the power enclosure and power supplies.
 		Replace any failed or degraded power supplies"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22033]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerUnknownPowerConsumption"},
 		{"probableCause", "Unknown power consumption."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the power enclosure and power supplies.
 		Replace any failed or degraded power supplies"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22034]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerChassisLoadBalancingWireMissing"},
 		{"probableCause", "Unknown power consumption."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the power enclosure and power supplies.
 		Replace any failed or degraded power supplies"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22035]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerChassisTooManyPowerChassis"},
 		{"probableCause", "Power subsystem has too may power enclosures."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Remove the extra power enclosure"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22036]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackPowerChassisConfigError"},
 		{"probableCause", "Power subsystem improperly configured."},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the cabling of the power enclosure"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22037]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureManagerDegraded"},
 		{"probableCause", ?PC_Power_Problem},
-		{"eventType", ?ET_Power_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "The following conditions can result in a degraded Onboard Administrator
 		1) one OA failed but the second OA is still operating,
@@ -416,7 +416,7 @@ event([{"snmpTrapOID", "compaqq.[22038]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureManagerOK"},
 		{"probableCause", "Onboard or management processor ok."},
 		{"eventType", ?ET_Quality_Of_Service_Alarm},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22039]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureManagerRemoved"},
 		{"probableCause", "Onboard Administrator removed."},
@@ -426,7 +426,7 @@ event([{"snmpTrapOID", "compaqq.[22040]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackEnclosureManagerInserted"},
 		{"probableCause", "The Onboard Administrator or other management processor has been inserted."},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22041]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackManagerPrimaryRole"},
 		{"probableCause", "The Onboard Administrator or other management processor has taken the role of primary."},
@@ -435,18 +435,18 @@ event([{"snmpTrapOID", "compaqq.[22041]"} | T], Acc) ->
 event([{"snmpTrapOID", "compaqq.[22042]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeEKeyingFailed"},
 		{"probableCause", "The server blade e-keying has failed."},
-		{"eventType", ?ET_Hardware_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Reconfigure the server blade mezz cards"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22043]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeEKeyingOK"},
 		{"probableCause", "Server Blade e-keying ok."},
-		{"eventType", ?ET_Hardware_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Equipment_Alarm},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22044]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackNetConnectorRemoved"},
 		{"probableCause", "Interconnect removed."},
-		{"eventType", ?ET_Hardware_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22045]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackNetConnectorInserted"},
@@ -469,116 +469,116 @@ event([{"snmpTrapOID", "compaqq.[22048]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackNetConnectorOk"},
 		{"probableCause", "The interconnect status has been set to ok."},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22049]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeToLowPower"},
 		{"probableCause", "Server Blade requested to low power."},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22052]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeStatusRepaired"},
 		{"probableCause", "Server blade repaired."},
-		{"eventType", ?ET_Hardware_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Equipment_Alarm},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22053]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeStatusDegraded"},
 		{"probableCause", "Server blade health status Degraded."},
-		{"eventType", ?ET_Hardware_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_MAJOR},
 		{"proposedRepairActions", "Check the blade server and enclosure SYSLOG"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22054]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeStatusCritical"},
 		{"probableCause", "Server blade health status Critical."},
-		{"eventType", ?ET_Hardware_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_CRITICAL},
 		{"proposedRepairActions", "Check the blade server and enclosure SYSLOG"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22055]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeGrpCapTimeout"},
 		{"probableCause", "The server blade is not responding to the group capper."},
-		{"eventType", ?ET_Hardware_System},
+		{"eventType", ?ET_Equipment_Alarm},
 		{"eventSeverity", ?ES_CRITICAL},
 		{"proposedRepairActions", "Reset the iLO management processor"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22056]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeUnexpectedShutdown"},
 		{"probableCause", "Server blade shutdown unexpectadly."},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL},
+		{"eventSeverity", ?ES_INDETERMINATE},
 		{"proposedRepairActions", "Check the blade server and enclosure SYSLOG"} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22057]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "Rack Server Blade Mangement Controller Firmware Updating"},
 		{"probableCause", "Server blade management controller firmware update started."},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22058]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeMangementControllerFirmwareUpdateComplete"},
 		{"probableCause", "Server blade management controller firmware update completed"},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ET_Software_System} | Acc]);
+		{"eventSeverity", ?ET_Communication_System} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22059]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeSystemBIOSFirmwareUpdating"},
 		{"probableCause", "Server blade's system BIOS firmware updating"},
-		{"eventType", ?ET_Software_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Communication_System},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22060]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeSystemBIOSFirmwareUpdateCompleted"},
 		{"probableCause", "Server blade's system BIOS firmware update complete"},
-		{"eventType", ?ET_Software_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Communication_System},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22061]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "serverBladeFrontIOBlankingActive"},
 		{"probableCause", "Server blade has disabled front IO ports"},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22062]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeRemoteFrontIOBlankingInactive"},
 		{"probableCause", "Server blade front IO blanking inactive"},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22063]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeDiagnosticAdaptorInserted"},
 		{"probableCause", "Server blade diagnostic adaptor inserted"},
-		{"eventType", ?ET_Hardware_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Physical_Violation},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22064]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeDiagnosticAdaptorRemoved"},
 		{"probableCause", "Server blade diagnostic adaptor removed"},
-		{"eventType", ?ET_Hardware_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Physical_Violation},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22065]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "Rack Server Blade Entered PXE BootMode"},
 		{"probableCause", "Server blade has entered PXE Boot Mode"},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22066]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeExitedPXEBootMode"},
 		{"probableCause", "Server blade has exited PXE Boot Mode"},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22067]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladeWarmReset"},
 		{"probableCause", ?ET_Quality_Of_Service_Alarm},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22068]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladePOSTCompleted"},
 		{"probableCause", "Server blade system BIOS POST complete"},
-		{"eventType", ?ET_Software_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Communication_System},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22069]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladePoweredOn"},
 		{"probableCause", "Server blade has powered on"},
-		{"eventType", ?ET_Software_System},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventType", ?ET_Communication_System},
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22070]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladePoweredOff"},
 		{"probableCause", "Server blade has powered off"},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "compaqq.[22078]"} | T], Acc) ->
 	event(T, [{"alarmCondition", "rackServerBladePartitionChange"},
 		{"probableCause", "Server Blade Partition Changed trap"},
 		{"eventType", ?ET_Operational_Violation},
-		{"eventSeverity", ?ES_INFORMATIONAL} | Acc]);
+		{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
