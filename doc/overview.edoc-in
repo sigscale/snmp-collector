@@ -6,12 +6,12 @@
 ==Introduction==
 
 ====TM Forum Open APIs and VES====
+The following table shows the mapping between the alarm attributes and VES attributes.
 
 <p><table id="mt">
    <thead>
       <tr id="mt">
          <th id="mt">3GPP 32.111-2</th>
-         <th id="mt">Alarm Table</th>
          <th id="mt">VNF Event Stream (VES)</th>
          <th id="mt">VES Value Type</th>
       </tr>
@@ -19,139 +19,116 @@
    <tbody>
        <tr id="mt">
          <td id="mt">alarmId</td>
-         <td id="mt">external_id</td>
          <td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">notificationId</td>
-         <td id="mt">notification_id</td>
          <td id="mt">commonEventHeader.eventId</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">notificatonType</td>
-         <td id="mt"></td>
          <td id="mt">commonEventHeader.eventName</td>
          <td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
       </tr>
        <tr id="mt">
          <td id="mt">alarmRaisedTime</td>
-         <td id="mt">raised_time</td>
          <td id="mt">commonEventHeader.startEpochMicrosec</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">alarmClearedTime</td>
-         <td id="mt"></td>
          <td id="mt">commonEventHeader.lastEpochMicrosec</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">alarmChangedTime</td>
-         <td id="mt">changed_time</td>
          <td id="mt">commonEventHeader.lastEpochMicrosec</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt"></td>
-         <td id="mt">condition</td>
          <td id="mt">faultsFields.alarmCondition</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">alarmType/eventType</td>
-         <td id="mt">alarm_type</td>
          <td id="mt">commonEventheader.eventType</td>
          <td id="mt">e.g. "Quality of Service Alarm"</td>
       </tr>
        <tr id="mt">
          <td id="mt">probableCause</td>
-         <td id="mt">probable_cause</td>
          <td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
          <td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)"</td>
       </tr>
        <tr id="mt">
          <td id="mt">perceivedSeverity</td>
-         <td id="mt">perceived_severity</td>
          <td id="mt">faultFields.eventSeverity</td>
          <td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
       </tr>
        <tr id="mt">
          <td id="mt">specificProblem</td>
-         <td id="mt">specific_problem</td>
          <td id="mt">faultFields.specificProblem</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">proposedRepairActions</td>
-         <td id="mt">proposed_repair_actions</td>
          <td id="mt">faultsFields.alarmAdditionalInformation.proposedRepairActions</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">additionalText</td>
-         <td id="mt">additional_text</td>
          <td id="mt">faultsFields.alarmAdditionalInformation.additionalText</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">additionalInformation</td>
-         <td id="mt">details</td>
          <td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">ackTime</td>
-         <td id="mt">ack_time</td>
          <td id="mt">faultsFields.alarmAdditionalInformation.alarmAckTime</td>
          <td id="mt"></td>
       </tr>
        <tr id="mt">
          <td id="mt">ackState</td>
-         <td id="mt">ackstate</td>
          <td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
          <td id="mt">acknowledged | unacknowledged</td>
       </tr>
        <tr id="mt">
          <td id="mt">objectClass</td>
-         <td id="mt">object_type</td>
          <td id="mt">faultsFields.eventSourceType</td>
          <td id="mt">Managed Object Class (MOC) name</td>
       </tr>
        <tr id="mt">
          <td id="mt">objectInstance</td>
-         <td id="mt">object_instance</td>
          <td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
          <td id="mt">Distinguished Name (DN)</td>
       </tr>
        <tr id="mt">
          <td id="mt"></td>
-         <td id="mt">source_system_id</td>
          <td id="mt">commonEventHeader.sourceId</td>
          <td id="mt">Distinguished Name (DN)</td>
       </tr>
        <tr id="mt">
          <td id="mt"></td>
-         <td id="mt">source_system_name</td>
          <td id="mt">commonEventHeader.sourceName</td>
          <td id="mt">String</td>
       </tr>
        <tr id="mt">
          <td id="mt"></td>
-         <td id="mt">reporting_entity_id</td>
          <td id="mt">commonEventHeader.reportingEntityId</td>
          <td id="mt">Distinguished Name (DN)</td>
       </tr>
        <tr id="mt">
          <td id="mt"></td>
-         <td id="mt">reporting_entity_name</td>
          <td id="mt">commonEventHeader.reportingEntityName</td>
          <td id="mt">String</td>
       </tr>
        <tr id="mt">
          <td id="mt"></td>
-         <td id="mt">state</td>
          <td id="mt">faultsFields.eventName</td>
          <td id="mt">String</td>
       </tr>
