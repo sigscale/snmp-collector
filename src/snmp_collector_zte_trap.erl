@@ -16,6 +16,128 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
+
+%% @doc This module normalizes traps received from CISCO agents.
+%%
+%% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
+%%
+%%	The following table shows the mapping between CISCO MIB attributes and VES attributes.
+%%
+%% <h3> MIB Values and VNF Event Stream (VES) </h3>
+%%
+%% <p><table id="mt">
+%% <thead>
+%% 	<tr id="mt">
+%% 		<th id="mt">MIB Values</th>
+%%			<th id="mt">VNF Event Stream (VES)</th>
+%%			<th id="mt">VES Value Type</th>
+%% 	</tr>
+%% </thead>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmEventType</td>
+%% 		<td id="mt">commonEventheader.eventType</td>
+%%			<td id="mt">e.g. "Quality of Service Alarm"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmProbableCause</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
+%%			<td id="mt">3GPP 32.111-2 Annex B e.g. "Alarm Indication Signal (AIS)"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmSpecificProblem</td>
+%% 		<td id="mt">faultFields.specificProblem</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmOtherInfo</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmId</td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmNeIP</td>
+%% 		<td id="mt">commonEventHeader.sourceId</td>
+%%			<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmManagedObjectInstanceName</td>
+%% 		<td id="mt">commonEventHeader.sourceName</td>
+%%			<td id="mt">commonEventHeader.sourceName</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmNetype</td>
+%% 		<td id="mt">faultsFields.eventSourceType</td>
+%%			<td id="mt">Managed Object Class (MOC) name</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmPerceivedSeverity</td>
+%% 		<td id="mt">faultFields.eventSeverity</td>
+%%			<td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">snmpTrapOID</td>
+%% 		<td id="mt">commonEventHeader.eventName</td>
+%%			<td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">snmpTrapOID</td>
+%% 		<td id="mt">faultsFields.alarmCondition</td>
+%%			<td id="mt">Short name of the alarm condition/problem, such as a trap name.
+%%					Should not have white space (e.g., tpLgCgiNotInConfig, BfdSessionDown, linkDown, etc…)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmEventTime</td>
+%% 		<td id="mt">commonEventHeader.startEpochMicrosec</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmMocObjectInstance</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
+%%			<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmAck</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
+%%			<td id="mt">acknowledged | unacknowledged</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmSystemType</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmSystemType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmNeIP</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmNeIP</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">timeZoneID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.timeZoneID</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmIRP</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmIRP</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmIndex</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmIndex</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmCodeName</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmCodeName</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% </table></p>
+
 -module(snmp_collector_zte_trap).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
@@ -36,6 +158,10 @@
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
+
+%%----------------------------------------------------------------------
+%%  The snmp_collector_zte_trap public API
+%%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
 	when
@@ -197,6 +323,8 @@ event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
+event([{"snmpTrapOID", Value} | T], Acc) ->
+	event(T, [{"alarmConditon", Value} | Acc]);
 event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"raisedTime", Value} | Acc]);

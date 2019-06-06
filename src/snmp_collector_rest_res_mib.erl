@@ -32,7 +32,7 @@
 %-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_rest_res)mib public API
+%%  The snmp_collector_rest_res_mib public API
 %%----------------------------------------------------------------------
 
 -spec content_types_accepted() -> ContentTypes

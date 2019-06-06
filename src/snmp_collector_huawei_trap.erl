@@ -16,6 +16,163 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
+
+%% @doc This module normalizes traps received from CISCO agents.
+%%
+%% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
+%%
+%%	The following table shows the mapping between CISCO MIB attributes and VES attributes.
+%%
+%% <h3> MIB Values and VNF Event Stream (VES) </h3>
+%%
+%% <p><table id="mt">
+%% <thead>
+%% 	<tr id="mt">
+%% 		<th id="mt">MIB Values</th>
+%%			<th id="mt">VNF Event Stream (VES)</th>
+%%			<th id="mt">VES Value Type</th>
+%% 	</tr>
+%% </thead>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmType</td>
+%% 		<td id="mt">commonEventheader.eventType</td>
+%%			<td id="mt">e.g. "Quality of Service Alarm"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmProbablecause</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
+%%			<td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmSpecificproblems</td>
+%% 		<td id="mt">faultFields.specificProblem</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmAdditionalInfo</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmID</td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmNEDevID</td>
+%% 		<td id="mt">commonEventHeader.sourceName</td>
+%%			<td id="mt">String</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmDevCsn</td>
+%% 		<td id="mt">commonEventHeader.sourceId</td>
+%%			<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmMOName</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
+%%			<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmNEType</td>
+%% 		<td id="mt">faultsFields.eventSourceType</td>
+%%			<td id="mt">Managed Object Class (MOC) name</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmLevel</td>
+%% 		<td id="mt">faultFields.eventSeverity</td>
+%%			<td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">snmpTrapOID</td>
+%% 		<td id="mt">faultsFields.alarmCondition</td>
+%%			<td id="mt">Short name of the alarm condition/problem, such as a trap name.
+%%					Should not have white space (e.g., tpLgCgiNotInConfig, BfdSessionDown, linkDown, etc…)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmCategory</td>
+%% 		<td id="mt">commonEventHeader.eventName</td>
+%%			<td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmRestore</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmRestore</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmOccurTime</td>
+%% 		<td id="mt">commonEventHeader.startEpochMicrosec</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmServiceAffectFlag</td>
+%% 		<td id="mt">serviceAffectFlag</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmClearType</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.clearType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmClearCategory</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.clearCategory</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmObjectInstanceType</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstanceType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmClearOperator</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.clearOperator</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmProposedrepairactions</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.proposedRepairActions</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmExtendInfo</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.extendInfo</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmOperator</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmOperator</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmRestoreTime</td>
+%% 		<td id="mt">rfaultsFields.alarmAdditionalInformation.restoreTime</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmAckTime</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckTime</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmConfirm</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
+%%			<td id="mt">acknowledged | unacknowledged</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmRestore</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmRestore</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmProductID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmProductID</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% </table></p>
+
 -module(snmp_collector_huawei_trap).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
@@ -36,6 +193,10 @@
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
+
+%%----------------------------------------------------------------------
+%%  The snmp_collector_huawei_trap public API
+%%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
 	when
@@ -211,7 +372,7 @@ event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
 	event(T, [{"raisedTime", Value} | Acc]);
 event([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"additionalInfo", Value} | Acc]);
+	event(T, [{"alarmDetailsadditionalInfo", Value} | Acc]);
 event([{"iMAPNorthboundAlarmServiceAffectFlag", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"serviceAffectFlag", Value} | Acc]);
@@ -229,7 +390,7 @@ event([{"iMAPNorthboundAlarmClearOperator", Value} | T], Acc)
 	event(T, [{"clearOperator", Value} | Acc]);
 event([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"proposedRepairactions", Value} | Acc]);
+	event(T, [{"proposedRepairActions", Value} | Acc]);
 event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"extendInfo", Value} | Acc]);
