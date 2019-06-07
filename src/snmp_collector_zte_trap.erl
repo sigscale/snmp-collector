@@ -235,7 +235,6 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
-erlang:display({?MODULE, ?LINE, NamesValues}),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
 				ok ->
@@ -252,7 +251,6 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
-erlang:display({?MODULE, ?LINE, NamesValues}),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
 				ok ->
