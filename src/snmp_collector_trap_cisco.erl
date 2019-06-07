@@ -1,4 +1,4 @@
-%%% snmp_collector_cisco_trap.erl
+%%% snmp_collector_trap_cisco.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2019 SigScale Global Inc.
@@ -42,7 +42,7 @@
 %% </tbody>
 %% </table></p>
 
--module(snmp_collector_cisco_trap).
+-module(snmp_collector_trap_cisco).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -behaviour(snmpm_user).
@@ -62,7 +62,7 @@
 -define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_cisco_trap public API
+%%  The snmp_collector_trap_cisco public API
 %%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()

@@ -1,4 +1,4 @@
-%%% snmp_collector_nokia_trap.erl
+%%% snmp_collector_trap_huawei_imap.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2019 SigScale Global Inc.
@@ -17,12 +17,12 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
-%% @doc This module normalizes traps received on NBI from Nokia EMS.
+%% @doc This module normalizes traps received on NBI from Huawei EMS.
 %%
 %% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
 %% and to VES attributes.
 %%
-%%	The following table shows the mapping between Nokia MIB attributes
+%%	The following table shows the mapping between Huawei MIB attributes
 %% and VES attributes.
 %%
 %% <h3> MIB Values and VNF Event Stream (VES) </h3>
@@ -37,67 +37,52 @@
 %% </thead>
 %% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiAlarmType</td>
+%% 		<td id="mt">iMAPNorthboundAlarmType</td>
 %% 		<td id="mt">commonEventheader.eventType</td>
 %%			<td id="mt">e.g. "Quality of Service Alarm"</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiProbableCause</td>
+%% 		<td id="mt">iMAPNorthboundAlarmProbablecause</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
 %%			<td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)"</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiSpecificProblem</td>
+%% 		<td id="mt">iMAPNorthboundAlarmSpecificproblems</td>
 %% 		<td id="mt">faultFields.specificProblem</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiAdditionalText</td>
+%% 		<td id="mt">iMAPNorthboundAlarmAdditionalInfo</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiAlarmId</td>
+%% 		<td id="mt">iMAPNorthboundAlarmID</td>
 %% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiOptionalInformation</td>
+%% 		<td id="mt">iMAPNorthboundAlarmNEDevID</td>
 %% 		<td id="mt">commonEventHeader.sourceName</td>
 %%			<td id="mt">String</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiSequenceId</td>
+%% 		<td id="mt">iMAPNorthboundAlarmDevCsn</td>
 %% 		<td id="mt">commonEventHeader.sourceId</td>
 %%			<td id="mt">Distinguished Name (DN)</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiObjectInstance</td>
+%% 		<td id="mt">iMAPNorthboundAlarmMOName</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
 %%			<td id="mt">Distinguished Name (DN)</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiAckState</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
-%%			<td id="mt">acknowledged | unacknowledged</td>
+%% 		<td id="mt">iMAPNorthboundAlarmNEType</td>
+%% 		<td id="mt">faultsFields.eventSourceType</td>
+%%			<td id="mt">Managed Object Class (MOC) name</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiAckSystemId</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckUserId</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">nbiAckTime</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckTime</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">nbiAckUser</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckUser</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">nbiPerceivedSeverity</td>
+%% 		<td id="mt">iMAPNorthboundAlarmLevel</td>
 %% 		<td id="mt">faultFields.eventSeverity</td>
 %%			<td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
 %% 	</tr>
@@ -108,29 +93,89 @@
 %%					Should not have white space (e.g., tpLgCgiNotInConfig, BfdSessionDown, linkDown, etc…)</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">snmpTrapOID</td>
+%% 		<td id="mt">iMAPNorthboundAlarmCategory</td>
 %% 		<td id="mt">commonEventHeader.eventName</td>
 %%			<td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiEventTime</td>
+%% 		<td id="mt">iMAPNorthboundAlarmRestore</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmRestore</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmOccurTime</td>
 %% 		<td id="mt">commonEventHeader.startEpochMicrosec</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiProposedRepairAction</td>
+%% 		<td id="mt">iMAPNorthboundAlarmServiceAffectFlag</td>
+%% 		<td id="mt">serviceAffectFlag</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmClearType</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.clearType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmClearCategory</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.clearCategory</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmObjectInstanceType</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstanceType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmClearOperator</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.clearOperator</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmProposedrepairactions</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.proposedRepairActions</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiCommentText</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.eventComment</td>
+%% 		<td id="mt">iMAPNorthboundAlarmExtendInfo</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.extendInfo</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmOperator</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmOperator</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmRestoreTime</td>
+%% 		<td id="mt">rfaultsFields.alarmAdditionalInformation.restoreTime</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmAckTime</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckTime</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmConfirm</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
+%%			<td id="mt">acknowledged | unacknowledged</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmRestore</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmRestore</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmProductID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmProductID</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %% </tbody>
 %% </table></p>
 
--module(snmp_collector_nokia_trap).
+-module(snmp_collector_trap_huawei_imap).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
@@ -139,8 +184,8 @@
 
 %% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
-    handle_pdu/4, handle_trap/3, handle_inform/3,
-    handle_report/3]).
+		handle_pdu/4, handle_trap/3, handle_inform/3,
+		handle_report/3]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -152,7 +197,7 @@
 -define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_nokia_trap public API
+%%  The snmp_collector_trap_huawei_imap public API
 %%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
@@ -282,84 +327,129 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
-event([{"nbiAlarmId", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
-event([{"nbiOptionalInformation", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmNEDevID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceName", Value} | Acc]);
-event([{"nbiSequenceId", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
-event([{"nbiObjectInstance", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"objectInstance", Value} | Acc]);
-event([{"nbiSpecificProblem", Value} | T], Acc)
+	event(T, [{"objectInstance", Value}| Acc]);
+event([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"specificProblem", Value} | Acc]);
-event([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
+	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
+event([{"iMAPNorthboundAlarmNEType", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"eventSourceType", Value} | Acc]);
+event([{"iMAPNorthboundAlarmLevel", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
-event([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
+event([{"iMAPNorthboundAlarmLevel", "2"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
-event([{"nbiPerceivedSeverity", "3"} | T], Acc) ->
+event([{"iMAPNorthboundAlarmLevel", "3"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
-event([{"nbiPerceivedSeverity", "4"} | T], Acc) ->
+event([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
-event([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
-	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
-event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
+event([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", "nbiAlarmNewNotification"} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "nbiAlarmClearedNotification"} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "nbiAlarmChangedNotification"} | Acc]);
-event([{"snmpTrapOID", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmLevel", "6"} | T], Acc) ->
+	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
+event([{"snmpTrapOID", Value } | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", Value} | Acc]);
-event([{"nbiEventTime", Value} | T], Acc)
+	event(T, [{"alarmCondition", Value } | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
+	event(T, [{"eventName", ?EN_NEW} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
+	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
+event([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
+	event(T, [{"eventName", ?EN_CHANGED}| Acc]);
+event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmRestore", Value} | Acc]);
+event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
-event([{"nbiProbableCause", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"probableCause", Value} | Acc]);
-event([{"nbiProposedRepairAction", Value} | T], Acc)
+	event(T, [{"alarmDetailsadditionalInfo", Value} | Acc]);
+event([{"iMAPNorthboundAlarmServiceAffectFlag", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"serviceAffectFlag", Value} | Acc]);
+event([{"iMAPNorthboundAlarmClearType", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"clearType", Value} | Acc]);
+event([{"iMAPNorthboundAlarmClearCategory", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"clearCategory", Value} | Acc]);
+event([{"iMAPNorthboundAlarmObjectInstanceType", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"objectInstanceType", Value} | Acc]);
+event([{"iMAPNorthboundAlarmClearOperator", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"clearOperator", Value} | Acc]);
+event([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"proposedRepairActions", Value} | Acc]);
-event([{"nbiAdditionalText", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmDetails", Value} | Acc]);
-event([{"nbiCommentText", Value} | T], Acc)
+	event(T, [{"extendInfo", Value} | Acc]);
+event([{"iMAPNorthboundAlarmOperator", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventComment", Value} | Acc]);
-event([{"nbiAlarmType", "1"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
-event([{"nbiAlarmType", "2"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-event([{"nbiAlarmType", "3"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-event([{"nbiAlarmType", "4"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
-event([{"nbiAlarmType", "5"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
-event([{"nbiAckState", "1"} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-event([{"nbiAckState", "2"} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
-event([{"nbiAckSystemId", Value} | T], Acc)
+	event(T, [{"alarmOperator", Value} | Acc]);
+event([{"iMAPNorthboundAlarmRestoreTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmAckUserId", Value} | Acc]);
-event([{"nbiAckTime", Value} | T], Acc)
+	event(T, [{"restoreTime", Value} | Acc]);
+event([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmAckTime", Value} | Acc]);
-event([{"nbiAckUser", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmAckUser", Value} | Acc]);
+	event(T, [{"alarmAckState", Value} | Acc]);
+event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmRestore", Value} | Acc]);
+event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"probableCause", Value},
+		{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+event([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
+event([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
+event([{"iMAPNorthboundAlarmType", "3"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
+event([{"iMAPNorthboundAlarmType", "4"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
+event([{"iMAPNorthboundAlarmType", "5"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
+event([{"iMAPNorthboundAlarmType", "6"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
+event([{"iMAPNorthboundAlarmType", "7"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
+event([{"iMAPNorthboundAlarmType", "8"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
+event([{"iMAPNorthboundAlarmType", "9"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+event([{"iMAPNorthboundAlarmType", "10"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
+event([{"iMAPNorthboundAlarmType", "11"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+event([{"iMAPNorthboundAlarmType", "12"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
+event([{"iMAPNorthboundAlarmType", "13"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Operational_Violation} | Acc]);
+event([{"iMAPNorthboundAlarmType", "14"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Physical_Violation} | Acc]);
+event([{"iMAPNorthboundAlarmType", "15"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
+event([{"iMAPNorthboundAlarmType", "16"} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
+event([{"iMAPNorthboundAlarmProductID", Value} | T], Acc)
+		when is_list(Value), length(Value) /= 0 ->
+	event(T, [{"alarmProductID", Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
@@ -371,18 +461,16 @@ event([], Acc) ->
 		Result :: true | false.
 %% @doc Verify if the event is a HeartBeat event or not.
 heartbeat(Varbinds) ->
-	case snmpm:name_to_oid(snmpTrapOID) of
+	case snmpm:name_to_oid(iMAPNorthboundHeartbeatTimeStamp) of
 		{ok, [HeartBeat]} ->
 			NewHeartBeat = lists:flatten(HeartBeat ++ [0]),
 			case lists:keyfind(NewHeartBeat, 2, Varbinds) of
-				{varbind, _, _, Value, _}
-						when Value == [1,3,6,1,4,1,28458,1,26,2,0,1,2]->
+				{varbind, _, _, _, _} ->
 					true;
-				{varbind, _, _, _Value, _} ->
-					false;
 				false ->
 					false
 			end;
 		{error, _Reason} ->
-			false
+				false
 	end.
+

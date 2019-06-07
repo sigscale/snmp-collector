@@ -8,13 +8,13 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_get_sup.html \
 			snmp_collector_server.html \
 			snmp_collector_get_fsm.html \
-			snmp_collector_huawei_trap.html \
-			snmp_collector_huawei_data_com_trap.html \
-			snmp_collector_nokia_trap.html \
-			snmp_collector_zte_trap.html \
-			snmp_collector_nec_trap.html \
-			snmp_collector_hp_chassis_trap.html \
-			snmp_collector_cisco_trap.html \
+			snmp_collector_trap_huawei_imap.html \
+			snmp_collector_trap_huawei_hw.html \
+			snmp_collector_trap_nokia.html \
+			snmp_collector_trap_zte.html \
+			snmp_collector_trap_nec.html \
+			snmp_collector_trap_hpe.html \
+			snmp_collector_trap_cisco.html \
 			snmp_collector_debug_sup.html \
 			snmp_collector_debug_fsm.html \
 			snmp_collector.html \

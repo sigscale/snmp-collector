@@ -1,4 +1,4 @@
-%%% snmp_collector_zte_trap.erl
+%%% snmp_collector_trap_zte.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2019 SigScale Global Inc.
@@ -145,7 +145,7 @@
 %% </tbody>
 %% </table></p>
 
--module(snmp_collector_zte_trap).
+-module(snmp_collector_trap_zte).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
@@ -167,7 +167,7 @@
 -define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_zte_trap public API
+%%  The snmp_collector_trap_zte public API
 %%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
