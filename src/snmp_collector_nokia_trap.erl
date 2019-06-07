@@ -17,11 +17,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
-%% @doc This module normalizes traps received from CISCO agents.
+%% @doc This module normalizes traps received from Nokia agents.
 %%
 %% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
 %%
-%%	The following table shows the mapping between CISCO MIB attributes and VES attributes.
+%%	The following table shows the mapping between Nokia MIB attributes and VES attributes.
 %%
 %% <h3> MIB Values and VNF Event Stream (VES) </h3>
 %%
@@ -138,7 +138,7 @@
 %% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
     handle_pdu/4, handle_trap/3, handle_inform/3,
-    handle_report/3, event/1]).
+    handle_report/3]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -219,7 +219,6 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-erlang:display({?MODULE, ?LINE, NamesValues}),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -236,7 +235,6 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-erlang:display({?MODULE, ?LINE, NamesValues}),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of

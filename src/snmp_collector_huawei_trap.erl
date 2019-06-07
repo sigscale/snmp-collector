@@ -17,11 +17,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
-%% @doc This module normalizes traps received from CISCO agents.
+%% @doc This module normalizes traps received from Huawei agents.
 %%
 %% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
 %%
-%%	The following table shows the mapping between CISCO MIB attributes and VES attributes.
+%%	The following table shows the mapping between Huawei MIB attributes and VES attributes.
 %%
 %% <h3> MIB Values and VNF Event Stream (VES) </h3>
 %%
@@ -326,22 +326,22 @@ event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
 event([{"iMAPNorthboundAlarmID", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
 event([{"iMAPNorthboundAlarmNEDevID", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
-		when is_list(Value), Value /= "0" ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
 event([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstance", Value}| Acc]);
 event([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
 event([{"iMAPNorthboundAlarmNEType", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
@@ -356,7 +356,7 @@ event([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
 event([{"iMAPNorthboundAlarmLevel", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"snmpTrapOID", Value } | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmCondition", Value } | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW} | Acc]);
@@ -365,52 +365,52 @@ event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
 event([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED}| Acc]);
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmRestore", Value} | Acc]);
 event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
 event([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmDetailsadditionalInfo", Value} | Acc]);
 event([{"iMAPNorthboundAlarmServiceAffectFlag", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"serviceAffectFlag", Value} | Acc]);
 event([{"iMAPNorthboundAlarmClearType", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"clearType", Value} | Acc]);
 event([{"iMAPNorthboundAlarmClearCategory", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"clearCategory", Value} | Acc]);
 event([{"iMAPNorthboundAlarmObjectInstanceType", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstanceType", Value} | Acc]);
 event([{"iMAPNorthboundAlarmClearOperator", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"clearOperator", Value} | Acc]);
 event([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"proposedRepairActions", Value} | Acc]);
 event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"extendInfo", Value} | Acc]);
 event([{"iMAPNorthboundAlarmOperator", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmOperator", Value} | Acc]);
 event([{"iMAPNorthboundAlarmRestoreTime", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"restoreTime", Value} | Acc]);
 event([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmAckTime", Value} | Acc]);
 event([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmAckState", Value} | Acc]);
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmRestore", Value} | Acc]);
 event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"probableCause", Value},
 		{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
@@ -446,7 +446,7 @@ event([{"iMAPNorthboundAlarmType", "15"} | T], Acc) ->
 event([{"iMAPNorthboundAlarmType", "16"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 event([{"iMAPNorthboundAlarmProductID", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) /= 0 ->
 	event(T, [{"alarmProductID", Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);

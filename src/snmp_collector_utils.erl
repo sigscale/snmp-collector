@@ -545,7 +545,7 @@ agent_name(Address) ->
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_events(CommonEventHeader, #{"eventSeverity" := EventSeverity} = FaultFields)
+log_events(CommonEventHeader, FaultFields)
 		when is_map(CommonEventHeader), is_map(FaultFields) ->
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	{ok, Url} = application:get_env(snmp_collector, ves_url),

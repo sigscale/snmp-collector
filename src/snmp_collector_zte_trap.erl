@@ -17,22 +17,23 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
-%% @doc This module normalizes traps received from CISCO agents.
+%% @doc This module normalizes traps received from ZTE agents.
 %%
 %% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
 %%
-%%	The following table shows the mapping between CISCO MIB attributes and VES attributes.
+%%	The following table shows the mapping between ZTE MIB attributes and VES attributes.
 %%
 %% <h3> MIB Values and VNF Event Stream (VES) </h3>
 %%
 %% <p><table id="mt">
 %% <thead>
 %% 	<tr id="mt">
-%% 		<th id="mt">MIB Values</th>
+%% 		<th id="mt">MIB </th>
 %%			<th id="mt">VNF Event Stream (VES)</th>
 %%			<th id="mt">VES Value Type</th>
 %% 	</tr>
 %% </thead>
+%% <tbody>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmEventType</td>
 %% 		<td id="mt">commonEventheader.eventType</td>
@@ -53,10 +54,14 @@
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% <tbody>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmId</td>
 %% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">systemDN</td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.reportingEntityID</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -71,8 +76,8 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmNetype</td>
-%% 		<td id="mt">faultsFields.eventSourceType</td>
-%%			<td id="mt">Managed Object Class (MOC) name</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.NeType</td>
+%%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmPerceivedSeverity</td>
@@ -148,7 +153,7 @@
 %% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
     handle_pdu/4, handle_trap/3, handle_inform/3,
-    handle_report/3]).
+    handle_report/3, event/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -230,6 +235,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
+erlang:display({?MODULE, ?LINE, NamesValues}),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
 				ok ->
@@ -246,6 +252,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
+erlang:display({?MODULE, ?LINE, NamesValues}),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
 				ok ->
@@ -291,20 +298,23 @@ event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
 event([{"alarmId", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
 event([{"alarmNeIP", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
 event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"sourceName", Value} | Acc]);
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"objectInstance", Value} | Acc]);
 event([{"alarmSpecificProblem", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"specificProblem", Value} | Acc]);
 event([{"alarmNetype", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventSourceType", Value} | Acc]);
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"Netype", Value} | Acc]);
+event([{"systemDN", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"reportingEntityID", Value} | Acc]);
 event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
@@ -326,10 +336,10 @@ event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
 event([{"snmpTrapOID", Value} | T], Acc) ->
 	event(T, [{"alarmConditon", Value} | Acc]);
 event([{"alarmEventTime", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
 event([{"alarmProbableCause", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"probableCause", Value} | Acc]);
 event([{"alarmEventType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
@@ -354,32 +364,32 @@ event([{"alarmEventType", "10"} | T], Acc) ->
 event([{"alarmEventType", "11"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"alarmMocObjectInstance", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"objectInstance", Value} | Acc]);
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"alarmOtherInfo", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmDetails", Value} | Acc]);
 event([{"alarmAck", 1} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"alarmAck", 2} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 event([{"alarmSystemType", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmSystemType", Value} | Acc]);
 event([{"alarmNeIP", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmNeIP", Value} | Acc]);
 event([{"timeZoneID", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"timeZoneID", Value} | Acc]);
 event([{"alarmIRP", Value} | T], Acc)
-		when is_list(Value), Value /= [] ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmIRP", Value} | Acc]);
 event([{"alarmIndex", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmIndex", Value} | Acc]);
 event([{"alarmCodeName", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmCodeName", Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
