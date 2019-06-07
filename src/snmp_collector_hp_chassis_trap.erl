@@ -17,11 +17,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
-%% @doc This module normalizes traps received from HP agents.
+%% @doc This module normalizes traps received from HPE agents.
 %%
-%% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
+%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
+%% and to VES attributes.
 %%
-%%	The following table shows the mapping between HP MIB attributes and VES attributes.
+%%	The following table shows the mapping between HPE MIB attributes
+%% and VES attributes.
 %%
 %% <h3> MIB Values and VNF Event Stream (VES) </h3>
 %%

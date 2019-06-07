@@ -17,11 +17,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 
-%% @doc This module normalizes traps received from ZTE agents.
+%% @doc This module normalizes traps received on NBI from ZTE EMS.
 %%
-%% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
+%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
+%% and to VES attributes.
 %%
-%%	The following table shows the mapping between ZTE MIB attributes and VES attributes.
+%%	The following table shows the mapping between ZTE MIB attributes
+%% and VES attributes.
 %%
 %% <h3> MIB Values and VNF Event Stream (VES) </h3>
 %%
