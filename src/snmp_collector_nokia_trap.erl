@@ -80,9 +80,19 @@
 %%			<td id="mt">acknowledged | unacknowledged</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">nbiAlarmType</td>
-%% 		<td id="mt">faultsFields.eventSourceType</td>
-%%			<td id="mt">Managed Object Class (MOC) name</td>
+%% 		<td id="mt">nbiAckSystemId</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckUserId</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">nbiAckTime</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckTime</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">nbiAckUser</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckUser</td>
+%%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">nbiPerceivedSeverity</td>
@@ -128,7 +138,7 @@
 %% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
     handle_pdu/4, handle_trap/3, handle_inform/3,
-    handle_report/3]).
+    handle_report/3, event/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -209,6 +219,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+erlang:display({?MODULE, ?LINE, NamesValues}),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -225,6 +236,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+erlang:display({?MODULE, ?LINE, NamesValues}),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -271,30 +283,20 @@ event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
 event([{"nbiAlarmId", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
 event([{"nbiOptionalInformation", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"nbiSequenceId", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
 event([{"nbiObjectInstance", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstance", Value} | Acc]);
 event([{"nbiSpecificProblem", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
-event([{"nbiAckState", 1} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-event([{"nbiAckState", 2} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
-event([{"nbiAckTime", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmAckTime", Value} | Acc]);
-event([{"nbiAlarmType", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventSourceType", Value} | Acc]);
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"specificProblem", Value} | Acc]);
 event([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
@@ -307,29 +309,33 @@ event([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
-event([{"snmpTrapOID", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_NEW} | Acc]);
+	event(T, [{"eventName", ?EN_NEW},
+			{"alarmCondition", "nbiAlarmNewNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
+	event(T, [{"eventName", ?EN_CLEARED},
+			{"alarmCondition", "nbiAlarmClearedNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
+	event(T, [{"eventName", ?EN_CHANGED},
+			{"alarmCondition", "nbiAlarmChangedNotification"} | Acc]);
+event([{"snmpTrapOID", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"eventName", ?EN_NEW},
+			{"alarmCondition", Value} | Acc]);
 event([{"nbiEventTime", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
 event([{"nbiProbableCause", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"probableCause", Value} | Acc]);
 event([{"nbiProposedRepairAction", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"proposedRepairActions", Value} | Acc]);
 event([{"nbiAdditionalText", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmDetails", Value} | Acc]);
 event([{"nbiCommentText", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventComment", Value} | Acc]);
 event([{"nbiAlarmType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
@@ -341,6 +347,19 @@ event([{"nbiAlarmType", "4"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"nbiAlarmType", "5"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
+event([{"nbiAckState", "1"} | T], Acc) ->
+	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+event([{"nbiAckState", "2"} | T], Acc) ->
+	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+event([{"nbiAckSystemId", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmAckUserId", Value} | Acc]);
+event([{"nbiAckTime", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmAckTime", Value} | Acc]);
+event([{"nbiAckUser", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmAckUser", Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
