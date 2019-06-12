@@ -72,9 +72,9 @@
 %%			<td id="mt">Distinguished Name (DN)</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">alarmManagedObjectInstanceName</td>
+%% 		<td id="mt"></td>
 %% 		<td id="mt">commonEventHeader.sourceName</td>
-%%			<td id="mt">commonEventHeader.sourceName</td>
+%%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmNetype</td>
@@ -104,6 +104,11 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmMocObjectInstance</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.eventSourceType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmManagedObjectInstanceName</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
 %%			<td id="mt">Distinguished Name (DN)</td>
 %% 	</tr>
@@ -290,9 +295,14 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(NameValuePair) -> NameValuePair
+-spec event(OidNameValuePair) -> VesNameValuePair
 	when
-		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
 %% @doc CODEC for event.
 event(NameValuePair) ->
 	event(NameValuePair, []).
@@ -302,7 +312,7 @@ event([{"alarmId", Value} | T], Acc)
 	event(T, [{"alarmId", Value} | Acc]);
 event([{"alarmNeIP", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"sourceId", Value} | Acc]);
+	event(T, [{"sourceId", Value}, {"sourceName", "Not Implemented"} | Acc]);
 event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstance", Value} | Acc]);

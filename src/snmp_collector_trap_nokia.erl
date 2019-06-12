@@ -275,9 +275,14 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(NameValuePair) -> NameValuePair
+-spec event(OidNameValuePair) -> VesNameValuePair
 	when
-		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
 %% @doc CODEC for event.
 event(NameValuePair) ->
 	event(NameValuePair, []).
@@ -314,7 +319,8 @@ event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
 			{"alarmCondition", "nbiAlarmNewNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "nbiAlarmClearedNotification"} | Acc]);
+			{"alarmCondition", "nbiAlarmClearedNotification"},
+			{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED},
 			{"alarmCondition", "nbiAlarmChangedNotification"} | Acc]);
