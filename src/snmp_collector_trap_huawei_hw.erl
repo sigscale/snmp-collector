@@ -387,7 +387,7 @@ event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"alarmDetails", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"hwNmNorthboundFaultFunction", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"faultFunction", Value} | Acc]);

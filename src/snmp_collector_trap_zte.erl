@@ -344,7 +344,7 @@ event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
 event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc) ->
-	event(T, [{"alarmConditon", Value} | Acc]);
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
@@ -378,7 +378,7 @@ event([{"alarmMocObjectInstance", Value} | T], Acc)
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"alarmOtherInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmDetails", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"alarmAck", 1} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"alarmAck", 2} | T], Acc) ->

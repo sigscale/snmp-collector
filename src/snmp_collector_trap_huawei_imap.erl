@@ -379,7 +379,7 @@ event([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
 	event(T, [{"raisedTime", Value} | Acc]);
 event([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmDetailsadditionalInfo", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"iMAPNorthboundAlarmServiceAffectFlag", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"serviceAffectFlag", Value} | Acc]);

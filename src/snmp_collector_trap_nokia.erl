@@ -214,6 +214,10 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
+handle_trap("nokia-oss", {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
+erlang:display({?MODULE, ?LINE, Varbinds});
+handle_trap("nokia-oss", {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
+erlang:display({?MODULE, ?LINE, Varbinds});
 handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 	case heartbeat(Varbinds) of
 		true ->
@@ -339,7 +343,7 @@ event([{"nbiProposedRepairAction", Value} | T], Acc)
 	event(T, [{"proposedRepairActions", Value} | Acc]);
 event([{"nbiAdditionalText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmDetails", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventComment", Value} | Acc]);
