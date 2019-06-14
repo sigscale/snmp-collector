@@ -214,10 +214,6 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap("nokia-oss", {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
-erlang:display({?MODULE, ?LINE, Varbinds});
-handle_trap("nokia-oss", {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
-erlang:display({?MODULE, ?LINE, Varbinds});
 handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 	case heartbeat(Varbinds) of
 		true ->
@@ -320,18 +316,17 @@ event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", "nbiAlarmNewNotification"} | Acc]);
+			{"alarmCondition", "alarmNewNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "nbiAlarmClearedNotification"},
+			{"alarmCondition", "alarmClearedNotification"},
 			{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "nbiAlarmChangedNotification"} | Acc]);
-event([{"snmpTrapOID", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", Value} | Acc]);
+			{"alarmCondition", "alarmChangedNotification"} | Acc]);
+event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
+	event(T, [{"eventName", ?ES_CLEARED},
+			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
 event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
