@@ -306,9 +306,14 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(NameValuePair) -> NameValuePair
+-spec event(OidNameValuePair) -> VesNameValuePair
 	when
-		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
 %% @doc CODEC for event.
 event(NameValuePair) ->
 	event(NameValuePair, []).
@@ -382,7 +387,7 @@ event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"alarmDetails", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"hwNmNorthboundFaultFunction", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"faultFunction", Value} | Acc]);

@@ -275,9 +275,14 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(NameValuePair) -> NameValuePair
+-spec event(OidNameValuePair) -> VesNameValuePair
 	when
-		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
 %% @doc CODEC for event.
 event(NameValuePair) ->
 	event(NameValuePair, []).
@@ -311,17 +316,17 @@ event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", "nbiAlarmNewNotification"} | Acc]);
+			{"alarmCondition", "alarmNewNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "nbiAlarmClearedNotification"} | Acc]);
+			{"alarmCondition", "alarmClearedNotification"},
+			{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "nbiAlarmChangedNotification"} | Acc]);
-event([{"snmpTrapOID", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", Value} | Acc]);
+			{"alarmCondition", "alarmChangedNotification"} | Acc]);
+event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
+	event(T, [{"eventName", ?ES_CLEARED},
+			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
 event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
@@ -333,7 +338,7 @@ event([{"nbiProposedRepairAction", Value} | T], Acc)
 	event(T, [{"proposedRepairActions", Value} | Acc]);
 event([{"nbiAdditionalText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmDetails", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventComment", Value} | Acc]);

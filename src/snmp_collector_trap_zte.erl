@@ -72,9 +72,9 @@
 %%			<td id="mt">Distinguished Name (DN)</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">alarmManagedObjectInstanceName</td>
+%% 		<td id="mt"></td>
 %% 		<td id="mt">commonEventHeader.sourceName</td>
-%%			<td id="mt">commonEventHeader.sourceName</td>
+%%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmNetype</td>
@@ -104,6 +104,11 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmMocObjectInstance</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.eventSourceType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmManagedObjectInstanceName</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
 %%			<td id="mt">Distinguished Name (DN)</td>
 %% 	</tr>
@@ -290,9 +295,14 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(NameValuePair) -> NameValuePair
+-spec event(OidNameValuePair) -> VesNameValuePair
 	when
-		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
 %% @doc CODEC for event.
 event(NameValuePair) ->
 	event(NameValuePair, []).
@@ -302,7 +312,7 @@ event([{"alarmId", Value} | T], Acc)
 	event(T, [{"alarmId", Value} | Acc]);
 event([{"alarmNeIP", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"sourceId", Value} | Acc]);
+	event(T, [{"sourceId", Value}, {"sourceName", "Not Implemented"} | Acc]);
 event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstance", Value} | Acc]);
@@ -334,7 +344,7 @@ event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
 event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc) ->
-	event(T, [{"alarmConditon", Value} | Acc]);
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
@@ -368,7 +378,7 @@ event([{"alarmMocObjectInstance", Value} | T], Acc)
 	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"alarmOtherInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmDetails", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"alarmAck", 1} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"alarmAck", 2} | T], Acc) ->

@@ -19,9 +19,11 @@
 
 %% @doc This module normalizes traps received from CISCO agents.
 %%
-%% Varbinds are mapped to alarm attributes, using the MIBs avaialable, and to VES attributes.
+%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
+%% and to VES attributes.
 %%
-%%	The following table shows the mapping between CISCO MIB attributes and VES attributes.
+%%	The following table shows the mapping between CISCO MIB attributes
+%%	and VES attributes.
 %%
 %% <h3> MIB Values and VNF Event Stream (VES) </h3>
 %%
