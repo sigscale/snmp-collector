@@ -139,7 +139,7 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">iMAPNorthboundAlarmExtendInfo</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.extendInfo</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.additionalText</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -400,7 +400,7 @@ event([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 	event(T, [{"proposedRepairActions", Value} | Acc]);
 event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"extendInfo", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"iMAPNorthboundAlarmOperator", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmOperator", Value} | Acc]);
