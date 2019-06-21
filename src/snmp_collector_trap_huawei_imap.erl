@@ -346,7 +346,7 @@ event([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
 	event(T, [{"objectInstance", Value}| Acc]);
 event([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
+	event(T, [{"specificProblem", Value} | Acc]);
 event([{"iMAPNorthboundAlarmNEType", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventSourceType", Value} | Acc]);
