@@ -301,7 +301,21 @@ event([{"nbiObjectInstance", Value} | T], Acc)
 	event(T, [{"objectInstance", Value} | Acc]);
 event([{"nbiSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"specificProblem", Value} | Acc]);
+	case catch string:tokens(Value, "|") of
+		[_, SpecificProblem] ->
+			case maps:get(SpecificProblem, probable_causes()) of
+				ProbableCause when is_list(ProbableCause) ->
+					event(T, [{"specificProblem", SpecificProblem},
+							{"probableCause", ProbableCause} | Acc]);
+				{badkey, _Key} ->
+					event(T, [{"specificProblem", SpecificProblem},
+							{"probableCause", ?PC_Indeterminate} | Acc]);
+				{badmap, _Map} ->
+					event(T, Acc)
+			end;
+		{'EXIT', _Reason} ->
+			event(T, Acc)
+	end;
 event([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
@@ -330,9 +344,6 @@ event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
 event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
-event([{"nbiProbableCause", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"probableCause", Value} | Acc]);
 event([{"nbiProposedRepairAction", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"proposedRepairActions", Value} | Acc]);
@@ -391,3 +402,52 @@ heartbeat(Varbinds) ->
 		{error, _Reason} ->
 			false
 	end.
+
+%% @hidden
+probable_causes() ->
+	#{"BASE STATION CONNECTIVITY DEGRADED" => ?PC_Degraded_Signal,
+			"LOW VOLTAGE" => ?PC_Power_Problem,
+			"ToP master service 10.40.61.86 unusable" => ?PC_Unavailable,
+			"Water Alarm" => ?PC_Low_Water,
+			"CRITICAL LIMIT IN SECURITY REPORTING REACHED" => ?PC_Reduced_Logging_Capability,
+			"CELL OPERATION DEGRADED" => ?PC_Performance_Degraded,
+			"BASE STATION NOTIFICATION" => ?PC_Alarm_Indication_Signal,
+			"FIRE" => ?PC_Fire,
+			"ASP ACTIVATION FAILED" => ?PC_CPU_Cycles_Limit_Exceeded,
+			"NE O&M CONNECTION FAILURE" => ?PC_Connection_Establishment_Error,
+			"AUTOMATIC RECOVERY ACTION" => ?PC_Reinitialized,
+			"WCDMA CELL OUT OF USE" => ?PC_Broadcast_Channel_Failure,
+			"WORKING STATE CHANGE" => ?PC_Alarm_Indication_Signal,
+			"D-CHANNEL FAILURE" => ?PC_LOS,
+			"Synchronization lost" => ?PC_Loss_Of_Synchronization,
+			"FAILURE IN D-CHANNEL ACTIVATION OR RESTORATION" => ?PC_Reinitialized,
+			"BASE STATION CONNECTIVITY PROBLEM" => ?PC_Connection_Establishment_Error,
+			"SIGNALING SERVICE INTERNAL FAILURE" => ?PC_LOS,
+			"TRX RESTARTED" => ?PC_Reinitialized,
+			"SCTP ASSOCIATION LOST" => ?PC_Communication_Protocol_Error,
+			"CONFUSION IN BSSMAP SIGNALING" => ?PC_Signal_Label_Mismatch,
+			"RECOVERY GROUP SWITCHOVER" => ?PC_Reinitialized,
+			"BCF INITIALIZATION" => ?PC_Reinitialized,
+			"MAINS FAIL" => ?PC_Power_Supply_Failure,
+			"INTRUDER" => ?PC_Unauthorized_Access_Attempt,
+			"BTS Configuration Synchronisation Problem Notification" =>
+					?PC_Configuration_Or_Customization_Error,
+			"BCCH MISSING" => ?PC_Power_Problem,
+			"NTP Server 10.10.27.121 unavailable" => ?PC_Unavailable,
+			"LOS on unit 0, Ethernet interface 1" => ?PC_LOS,
+			"RECTIFIER FAULT" => ?PC_Rectifier_Failure,
+			"ETHERNET LINK FAILURE" => ?PC_LAN_Error,
+			"CELL FAULTY" => ?PC_Processor_Problem,
+			"BASE STATION ANTENNA LINE PROBLEM" => ?PC_Antenna_Failure,
+			"SYSTEM CLOCK OUT-OF-SYNC WITH NTP SERVER" => ?PC_Real_Time_Clock_Failure,
+			"DATABASE DISK UPDATES ARE PREVENTED" => ?PC_Software_Download_Failure,
+			"HUMIDITY" => ?PC_Humidity_Unacceptable,
+			"HIGH TEMPERATURE" => ?PC_High_Temperature,
+			"UNIT RESTARTED" => ?PC_Reinitialized,
+			"BCCH IS NOT AT PREFERRED BCCH TRX" => ?PC_Power_Problem,
+			"PLAN BASED CONFIGURATION OPERATION ONGOING" => "Plan based configuration operation ongoing",
+			"ALARM DATABASE UPLOAD IN PROGRESS" => "Alarm Database upload in progress",
+			"MEAN HOLDING TIME ABOVE DEFINED THRESHOLD" => ?PC_Excessive_Rresponse_Time,
+			"SIGNALLING MEASUREMENT REPORT LOST" => ?PC_Resource_at_or_Nearing_Capacity,
+			"MANAGED OBJECT FAILED" => ?PC_Alarm_Indication_Signal}.
+
