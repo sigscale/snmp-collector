@@ -350,7 +350,7 @@ event([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
-event([{"hwNmNorthboundRestoreStatus", "cleared"} | T], Acc) ->
+event([{"hwNmNorthboundRestoreStatus", "Recovery"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"hwNmNorthboundEventTime", Value} | T], Acc)
 		when is_list(Value) ->
