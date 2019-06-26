@@ -439,6 +439,7 @@ probable_causes() ->
 			"ETHERNET LINK FAILURE" => ?PC_LAN_Error,
 			"CELL FAULTY" => ?PC_Processor_Problem,
 			"BASE STATION ANTENNA LINE PROBLEM" => ?PC_Antenna_Failure,
+			"BASE STATION OPERATION DEGRADED" => ?PC_Performance_Degraded,
 			"SYSTEM CLOCK OUT-OF-SYNC WITH NTP SERVER" => ?PC_Real_Time_Clock_Failure,
 			"DATABASE DISK UPDATES ARE PREVENTED" => ?PC_Software_Download_Failure,
 			"HUMIDITY" => ?PC_Humidity_Unacceptable,
