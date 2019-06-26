@@ -303,15 +303,13 @@ event([{"nbiSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	case catch string:tokens(Value, "|") of
 		[_, SpecificProblem] ->
-			case maps:get(SpecificProblem, probable_causes()) of
+			case maps:get(SpecificProblem, probable_causes(), ?PC_Indeterminate) of
 				ProbableCause when is_list(ProbableCause) ->
 					event(T, [{"specificProblem", SpecificProblem},
 							{"probableCause", ProbableCause} | Acc]);
-				{badkey, _Key} ->
-					event(T, [{"specificProblem", SpecificProblem},
-							{"probableCause", ?PC_Indeterminate} | Acc]);
 				{badmap, _Map} ->
-					event(T, Acc)
+					event(T, [{"specificProblem", SpecificProblem},
+							{"probableCause", ?PC_Indeterminate} | Acc])
 			end;
 		{'EXIT', _Reason} ->
 			event(T, Acc)
