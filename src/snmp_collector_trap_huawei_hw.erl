@@ -323,13 +323,13 @@ event([{"hwNmNorthboundSerialNo", Value} | T], Acc)
 	event(T, [{"alarmId", Value} | Acc]);
 event([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"sourceId", Value} | Acc]);
+	event(T, [{"resourceIDs", Value} | Acc]);
 event([{"hwNmNorthboundNEName", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"sourceName", Value} | Acc]);
 event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
+	event(T, [{"specificProblem", Value} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"alarmCondition", Value} | Acc]);
