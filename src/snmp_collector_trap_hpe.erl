@@ -734,7 +734,7 @@ event([{"snmpTrapOID", "compaqq.[22019]"}, {"sysName", SysName},
 		{"cpqRackPowerSupplyInputLineStatus", InputLineStatus},
 		{"cpqRackPowerSupplySparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
-		{"cpqRackCommonEnclosureTrapSequenceNum"}, RackTrapSequenceNum | T], Acc) ->
+		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
 	event(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
