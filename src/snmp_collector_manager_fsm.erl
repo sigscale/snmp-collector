@@ -85,7 +85,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 			case snmp_collector_utils:authenticate_v1_v2(Address, Community) of
 				{authenticated, _TargetName, _AgentName} ->
 					case catch snmp_pdus:dec_pdu(Data) of
-						#pdu{error_status = noError, varbinds = Varbinds, error_index = 0} ->
+						#trappdu{varbinds = Varbinds} ->
 							case handle_trap(undefined, undefined, Address, Port, {noError, 0, Varbinds}) of
 								ignore ->
 									{stop, shutdown, StateData};
