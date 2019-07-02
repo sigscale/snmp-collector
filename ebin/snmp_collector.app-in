@@ -13,6 +13,7 @@
 					snmp_collector_trap_nec,
 					snmp_collector_trap_hpe,
 					snmp_collector_trap_cisco,
+					snmp_collector_trap_emc,
 					snmp_collector,
 					snmp_collector_snmpm_user_default,
 					snmp_collector_rest,
