@@ -24,7 +24,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
-		authenticate_v2/2]).
+		authenticate_v1_v2/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -488,7 +488,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			{error, not_found}
 	end.
 
--spec authenticate_v2(Address, Community) -> Result
+-spec authenticate_v1_v2(Address, Community) -> Result
 	when
 		Address :: inet:ip_address(),
 		Community :: string(),
@@ -497,7 +497,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 		AgentName :: string(),
 		Reason :: term().
 %% @doc Authenticate SNMPv2 Packets.
-authenticate_v2(Address, Community) ->
+authenticate_v1_v2(Address, Community) ->
 	case agent_name(Address) of
 		{AgentName, TargetName, SecurityModel} when is_list(TargetName), SecurityModel == any;
 				SecurityModel == 2 ->
