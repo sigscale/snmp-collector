@@ -508,7 +508,7 @@ authenticate_v1_v2(Address, Community) ->
 					{authentication_failed, invalid_community}
 			end;
 		_ ->
-			{authentication_failed, Reason}
+			{authentication_failed, invalid_security_model}
 	end.
 
 -spec agent_name(Address) -> Result
