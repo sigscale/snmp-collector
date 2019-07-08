@@ -348,9 +348,15 @@ event([{"snmpTrapOID", Value} | T], Acc) ->
 event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
-event([{"alarmProbableCause", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"probableCause", Value} | Acc]);
+event([{"alarmProbableCause", Value} | T], Acc) ->
+	case Value of
+		Value when is_list(Value), length(Value) > 0 ->
+			event(T, [{"probableCause", Value},
+				{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+		Value ->
+			event(T, [{"probableCause", ?PC_Indeterminate},
+				{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc])
+	end;
 event([{"alarmEventType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"alarmEventType", "2"} | T], Acc) ->

@@ -306,10 +306,12 @@ event([{"nbiSpecificProblem", Value} | T], Acc)
 			case maps:get(SpecificProblem, probable_causes(), ?PC_Indeterminate) of
 				ProbableCause when is_list(ProbableCause) ->
 					event(T, [{"specificProblem", SpecificProblem},
-							{"probableCause", ProbableCause} | Acc]);
+							{"probableCause", ProbableCause} ,
+							{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 				{badmap, _Map} ->
 					event(T, [{"specificProblem", SpecificProblem},
-							{"probableCause", ?PC_Indeterminate} | Acc])
+							{"probableCause", ?PC_Indeterminate},
+							{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc])
 			end;
 		{'EXIT', _Reason} ->
 			event(T, Acc)

@@ -416,10 +416,15 @@ event([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
 event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmRestore", Value} | Acc]);
-event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"probableCause", Value},
-		{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+event([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc) ->
+	case Value of
+		Value when is_list(Value), length(Value) > 0 ->
+			event(T, [{"probableCause", Value},
+				{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+		Value ->
+			event(T, [{"probableCause", ?PC_Indeterminate},
+				{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc])
+	end;
 event([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->

@@ -361,10 +361,15 @@ event([{"hwNmNorthboundNEType", Value} | T], Acc)
 event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"objectInstance", Value} | Acc]);
-event([{"hwNmNorthboundProbableCause", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"probableCause", Value},
+event([{"hwNmNorthboundProbableCause", Value} | T], Acc) ->
+	case Value of
+		Value when is_list(Value), length(Value) > 0 ->
+			event(T, [{"probableCause", Value},
 			{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+		Value ->
+			event(T, [{"probableCause", ?PC_Indeterminate},
+					{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc])
+	end;
 event([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->
