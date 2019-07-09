@@ -394,19 +394,19 @@ fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
 	fault_fields(AlarmDetails, DefaultMap).
 %% @hidden
 fault_fields([{"alarmCondition", Value} | T], Acc) ->
-	fault_fields(T, maps:put("alarmCondition", Value, Acc));
+	fault_fields(T, Acc#{"alarmCondition" => Value});
 fault_fields([{"eventCategory", Value} | T], Acc) ->
-	fault_fields(T, maps:put("eventCategory", Value, Acc));
+	fault_fields(T, Acc#{"eventCategory" => Value});
 fault_fields([{"eventSeverity", Value} | T], Acc) ->
-	fault_fields(T, maps:put("eventSeverity", Value, Acc));
+	fault_fields(T, Acc#{"eventSeverity" => Value});
 fault_fields([{"eventSourceType", Value} | T], Acc) ->
-	fault_fields(T, maps:put("eventSourceType", Value, Acc));
+	fault_fields(T, Acc#{"eventSourceType" => Value});
 fault_fields([{"specificProblem", Value} | T], Acc) ->
-	fault_fields(T, maps:put("specificProblem", Value, Acc));
+	fault_fields(T, Acc#{"specificProblem" => Value});
 fault_fields([{Name, Value} | T],
 		#{"alarmAdditionalInformation" := AI} = Acc) ->
 	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	fault_fields(T, maps:put("alarmAdditionalInformation", NewAI, Acc));
+	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
 fault_fields([], Acc) ->
 	Acc.
 
