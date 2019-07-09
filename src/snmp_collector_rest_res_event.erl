@@ -418,12 +418,12 @@ event5(Header, Fields, Acc) ->
 %% @hidden
 event6(#{"reportingEntityName" := ReportEntity} = Header, Fields, Acc)
 		when is_list(ReportEntity) ->
-	event7(Header, Fields, Acc#{"reportingEntityName" => ReportEntity}).
+	event7(Header, Fields, Acc#{"reportingEntityName" => ReportEntity});
 event6(Header, Fields, Acc) ->
 	event7(Header, Fields, Acc).
 %% @hidden
 event7(#{"lastEpochMicrosec" := LastEpoch} = Header, Fields, Acc) ->
-	event8(Header, Fields, Acc#"timeStatusChanged" => snmp_collector_log:iso8601(LastEpoch)}).
+	event8(Header, Fields, Acc#{"timeStatusChanged" => snmp_collector_log:iso8601(LastEpoch)});
 event7(Header, Fields, Acc) ->
 	event8(Header, Fields, Acc).
 %% @hidden
