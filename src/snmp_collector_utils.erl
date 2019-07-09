@@ -832,9 +832,9 @@ check_response({_RequestId, {error, Reason}}) ->
 check_response({_RequestId, {{"HTTP/1.1",400, _BadRequest},_ , _}}) ->
 			error_logger:info_report(["SNMP Manager POST Failed",
 					{error, "400, bad_request"}]);
-check_response({_RequestId, {{"HTTP/1.1",500, _InternalError},_ , _}} = A) ->
+check_response({_RequestId, {{"HTTP/1.1",500, _InternalError},_ , _}}) ->
 			error_logger:info_report(["SNMP Manager POST Failed",
-					{error, "500, internal_server_error", A}]);
+					{error, "500, internal_server_error"}]);
 check_response({_RequestId, {{"HTTP/1.1",502, _GateWayError},_ , _}}) ->
 			error_logger:info_report(["SNMP Manager POST Failed",
 					{error, "502, bad_gateway"}]);
