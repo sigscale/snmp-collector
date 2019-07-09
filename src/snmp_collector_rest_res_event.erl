@@ -388,31 +388,44 @@ event({Timestamp, N, _Node, Header, Fields}) ->
 %% @hidden
 event1(#{"sourceName" := SourceName} = Header, Fields, Acc)
 		when is_list(SourceName) ->
-	event2(Header, Fields, maps:put("sourceSystem", SourceName, Acc)).
+	event2(Header, Fields, Acc#{"sourceSystem" => SourceName});
+event1(Header, Fields, Acc) ->
+	event2(Header, Fields, Acc).
 %% @hidden
 event2(#{"sourceId" := SourceId} = Header, Fields, Acc)
 		when is_list(SourceId) ->
-	event3(Header, Fields, maps:put("sourceSystemId", SourceId, Acc)).
+	event3(Header, Fields, Acc#{"sourceSystemId" => SourceId});
+event2(Header, Fields, Acc) ->
+	event3(Header, Fields, Acc).
 %% @hidden
 event3(#{"eventId" := EventId} = Header, Fields, Acc)
 		when is_list(EventId) ->
-	event4(Header, Fields, maps:put("eventId", EventId, Acc)).
+	event4(Header, Fields, Acc#{"eventId" => EventId});
+event3(Header, Fields, Acc) ->
+	event4(Header, Fields, Acc).
 %% @hidden
 event4(#{"eventName" := EventName} = Header, Fields, Acc)
 		when is_list(EventName) ->
-	event5(Header, Fields, maps:put("eventName", EventName, Acc)).
+	event5(Header, Fields, Acc#{"eventName" => EventName});
+event4(Header, Fields, Acc) ->
+	event5(Header, Fields, Acc).
 %% @hidden
 event5(#{"priority" := Priority} = Header, Fields, Acc)
 		when is_list(Priority) ->
-	event6(Header, Fields, maps:put("significance", Priority, Acc)).
+	event6(Header, Fields, Acc#{"significance" => Priority});
+event5(Header, Fields, Acc) ->
+	event6(Header, Fields, Acc).
 %% @hidden
 event6(#{"reportingEntityName" := ReportEntity} = Header, Fields, Acc)
 		when is_list(ReportEntity) ->
-	event7(Header, Fields, maps:put("reportingEntityName", ReportEntity, Acc)).
+	event7(Header, Fields, Acc#{"reportingEntityName" => ReportEntity}).
+event6(Header, Fields, Acc) ->
+	event7(Header, Fields, Acc).
 %% @hidden
 event7(#{"lastEpochMicrosec" := LastEpoch} = Header, Fields, Acc) ->
-	LastEpoch1 = snmp_collector_log:iso8601(LastEpoch),
-	event8(Header, Fields, maps:put("timeStatusChanged", LastEpoch1, Acc)).
+	event8(Header, Fields, Acc#"timeStatusChanged" => snmp_collector_log:iso8601(LastEpoch)}).
+event7(Header, Fields, Acc) ->
+	event8(Header, Fields, Acc).
 %% @hidden
 event8(_Header, Fields, Acc) ->
 	maps:put("eventCharacteristic", maps:fold(fun fields/3, [], Fields), Acc).
