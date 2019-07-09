@@ -361,21 +361,21 @@ common_event_header(TargetName, AlarmDetails)
 	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
 %% @hidden
 common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("eventName", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
 common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("sourceId", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"sourceId" => Value}, AD);
 common_event_header([{"sourceName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("sourceName", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"sourceName" => Value}, AD);
 common_event_header([{"priority", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("priority", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"priority" => Value}, AD);
 common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("sequence", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"sequence" => Value}, AD);
 common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("version", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"version" => Value}, AD);
 common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("eventType", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
 common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("startEpochMicrosec", iso8601(Value), CH), AD);
+	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => iso8601(Value)}, AD);
 common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
 common_event_header([], _TargetName, CH, AD) ->
