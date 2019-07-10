@@ -334,12 +334,12 @@ event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED},
 			{"alarmCondition", "alarmClearedNotification"},
-			{"eventSeverity", ?ES_CLEARED} | Acc]);
+			{"eventSeverity", ?EN_CLEARED} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED},
 			{"alarmCondition", "alarmChangedNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?ES_CLEARED},
+	event(T, [{"eventName", ?EN_CLEARED},
 			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
 event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
