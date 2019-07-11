@@ -53,7 +53,7 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">hwNmNorthboundAdditionalInfo</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.additionalText</td>
 %%		 	<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -319,24 +319,30 @@ event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
 event([{"hwNmNorthboundSerialNo", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
+event([{"hwNmNorthboundEventTime", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"raisedTime", Value} | Acc]);
 event([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
 event([{"hwNmNorthboundNEName", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceName", Value} | Acc]);
+event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"eventSourceType", Value} | Acc]);
+event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"objectInstance", Value} | Acc]);
 event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"specificProblem", Value} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmCondition", Value}, 
-			{"eventName", ?EN_NEW} | Acc]);
-event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"eventSourceType", Value} | Acc]);
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"eventType", ?ET_Communication_System},
+			{"alarmCondition", Value} | Acc]);
 event([{"hwNmNorthboundSeverity", "Critical"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"hwNmNorthboundSeverity", "Major"} | T], Acc) ->
@@ -345,32 +351,17 @@ event([{"hwNmNorthboundSeverity", "Minor"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 event([{"hwNmNorthboundSeverity", "Warning"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
+event([{"hwNmNorthboundSeverity", "Cleared"} | T], Acc) ->
+	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"hwNmNorthboundSeverity", "Indeterminate"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
-event([{"hwNmNorthboundRestoreStatus", "Recovery"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
-event([{"hwNmNorthboundEventTime", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"raisedTime", Value} | Acc]);
-event([{"hwNmNorthboundNEType", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"networkElementType", Value} | Acc]);
-event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"objectInstance", Value} | Acc]);
-event([{"hwNmNorthboundProbableCause", Value} | T], Acc) ->
-	case Value of
-		Value when is_list(Value), length(Value) > 0 ->
-			event(T, [{"probableCause", Value},
-			{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-		Value ->
-			event(T, [{"probableCause", ?PC_Indeterminate},
-					{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc])
-	end;
+event([{"hwNmNorthboundFaultFlag", "Recovery"} | T], Acc) ->
+	NewAcc = lists:keyreplace("eventSeverity", 1, Acc, {"eventSeverity", ?ES_CLEARED}),
+	event(T, NewAcc);
 event([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->
@@ -391,6 +382,19 @@ event([{"hwNmNorthboundEventType", "Signal"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
+event([{"hwNmNorthboundProbableCause", Value} | T], Acc) 
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"probableCause", Value} | Acc]);
+event([{"hwNmNorthboundProbableRepair", Value} | T], Acc) 
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"proposedRepairActions", Value} | Acc]);
+event([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
+	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+event([{"hwNmNorthboundConfirmStatus", 2} | T], Acc) ->
+	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+event([{"hwNmNorthboundNEType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"networkElementType", Value} | Acc]);
 event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"additionalText", Value} | Acc]);
@@ -400,33 +404,27 @@ event([{"hwNmNorthboundFaultFunction", Value} | T], Acc)
 event([{"hwNmNorthboundDeviceIP", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"deviceIP", Value} | Acc]);
-event([{"hwNmNorthboundProbableRepair", Value} | T], Acc) ->
-	event(T, [{"proposedRepairActions", Value} | Acc]);
-event([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
+event([{"hwNmNorthboundResourceIds", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"resourceIDs", Value} | Acc]);
-event([{"hwNmNorthboundReasonID", Value} | T], Acc)
+	event(T, [{"resourceIds", Value} | Acc]);
+event([{"hwNmNorthboundReasonId", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"resonID", Value} | Acc]);
-event([{"hwNmNorthboundFaultID", Value} | T], Acc)
+	event(T, [{"reasonId", Value} | Acc]);
+event([{"hwNmNorthboundFaultId", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"faultID", Value} | Acc]);
+	event(T, [{"faultId", Value} | Acc]);
 event([{"hwNmNorthboundTrailName", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"trailName", Value} | Acc]);
 event([{"hwNmNorthboundRootAlarm", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"rootAlarm", Value} | Acc]);
-event([{"hwNmNorthboundGroupID", Value} | T], Acc)
+event([{"hwNmNorthboundGroupId", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"groupID", Value} | Acc]);
+	event(T, [{"groupId", Value} | Acc]);
 event([{"hwNmNorthboundMaintainStatus", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"maintainStatus", Value} | Acc]);
-event([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-event([{"hwNmNorthboundConfirmStatus", 2} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
