@@ -332,7 +332,8 @@ event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 	event(T, [{"specificProblem", Value} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"alarmCondition", Value} | Acc]);
+	event(T, [{"alarmCondition", Value}, 
+			{"eventName", ?EN_NEW} | Acc]);
 event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"eventSourceType", Value} | Acc]);

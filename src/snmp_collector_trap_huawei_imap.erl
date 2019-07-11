@@ -364,7 +364,8 @@ event([{"iMAPNorthboundAlarmLevel", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"snmpTrapOID", Value } | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmCondition", Value } | Acc]);
+	event(T, [{"alarmCondition", Value },
+			{"eventName", ?EN_NEW} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
