@@ -495,7 +495,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 		Result :: {authenticated, TargetName, AgentName} | {authentication_failed, Reason},
 		TargetName :: string(),
 		AgentName :: string(),
-		Reason :: term().
+		Reason :: invalid_community | invalid_security_model.
 %% @doc Authenticate SNMPv2 Packets.
 authenticate_v1_v2(Address, Community) ->
 	case agent_name(Address) of
