@@ -358,8 +358,7 @@ event([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
 	event(T, [{"specificProblem", Value} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [ {"eventType", ?ET_Communication_System},
-			{"alarmCondition", Value} | Acc]);
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"iMAPNorthboundAlarmLevel", "2"} | T], Acc) ->

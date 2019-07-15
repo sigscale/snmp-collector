@@ -330,10 +330,7 @@ event([{"alarmSpecificProblem", Value} | T], Acc)
 	event(T, [{"specificProblem", Value} | Acc]);
 event([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventName", ?EN_NEW},
-			{"eventSeverity", ?ES_MINOR},
-			{"eventType", ?ET_Communication_System},
-			{"alarmCondition", Value} | Acc]);
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->

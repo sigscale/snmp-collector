@@ -319,23 +319,15 @@ event([{"nbiSpecificProblem", Value} | T], Acc)
 	end;
 event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW},
-			{"eventSeverity", ?ES_MINOR},
-			{"eventType", ?ET_Communication_System},
 			{"alarmCondition", "alarmNewNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED},
-			{"eventSeverity", ?ES_CLEARED},
-			{"eventType", ?ET_Communication_System},
 			{"alarmCondition", "alarmClearedNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED},
-			{"eventSeverity", ?ES_MINOR},
-			{"eventType", ?ET_Communication_System},
 			{"alarmCondition", "alarmChangedNotification"} | Acc]);
 event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED},
-			{"eventSeverity", ?ES_CLEARED},
-			{"eventType", ?ET_Communication_System},
 			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
 event([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
