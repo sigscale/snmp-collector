@@ -24,7 +24,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
-		authenticate_v1_v2/2]).
+		authenticate_v1_v2/2, check_fields/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -339,7 +339,37 @@ generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 %% @doc Generate the Common event header and Fault Fields maps.
 generate_maps(TargetName, AlarmDetails) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails),
-	{CommonEventHeader, fault_fields(Remainder)}.
+	FaultFields = fault_fields(Remainder),
+	{check_fields(CommonEventHeader), check_fields(FaultFields)}.
+
+-spec check_fields(VesMap) -> Result
+	when
+		VesMap :: map(),
+		Result :: map().
+%% @doc Check and replace empty values in mandatory fields.
+check_fields(#{"eventName" := Value} = VesMap)
+		when is_atom(Value), length(Value) > 0 ->
+	check_fields1(VesMap);
+check_fields(VesMap) ->
+	check_fields1(VesMap#{"eventName" => ?EN_NEW}).
+%% @hidden
+check_fields1(#{"eventSeverity" := Value} = VesMap)
+		when is_list(Value), length(Value) > 0 ->
+	check_fields2(VesMap);
+check_fields1(VesMap) ->
+	check_fields2(VesMap#{"eventSeverity" => ?ES_INDETERMINATE}).
+%% @hidden
+check_fields2(#{"probableCause" := Value} = VesMap)
+		when is_list(Value), length(Value) > 0 ->
+	check_fields3(VesMap);
+check_fields2(VesMap) ->
+	check_fields3(VesMap#{"probableCause" => ?PC_Indeterminate}).
+%% @hidden
+check_fields3(#{"eventType" := Value} = VesMap)
+		when is_list(Value), length(Value) > 0 ->
+	VesMap;
+check_fields3(VesMap) ->
+	VesMap#{"eventType" => ?ET_Communication_System}.
 
 -spec common_event_header(TargetName, AlarmDetails) -> Result
 	when
