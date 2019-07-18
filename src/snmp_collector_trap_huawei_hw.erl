@@ -359,8 +359,7 @@ event([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
 event([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Recovery"} | T], Acc) ->
-	NewAcc = lists:keyreplace("eventSeverity", 1, Acc, {"eventSeverity", ?ES_CLEARED}),
-	event(T, NewAcc);
+	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->

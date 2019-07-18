@@ -374,8 +374,7 @@ event([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
 event([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED}| Acc]);
 event([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
-	NewAcc = lists:keyreplace("eventSeverity", 1, Acc, {"eventSeverity", ?ES_CLEARED}),
-	event(T, NewAcc);
+	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
