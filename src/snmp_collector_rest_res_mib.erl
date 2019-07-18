@@ -229,7 +229,7 @@ delete_mib(ID) ->
 %% @hidden
 query_start(Method, Query, Filters, RangeStart, RangeEnd) ->
 	try
-		CountOnly = case Method of
+		_CountOnly = case Method of
 			"GET" ->
 				false;
 			"HEAD" ->
@@ -239,7 +239,7 @@ query_start(Method, Query, Filters, RangeStart, RangeEnd) ->
 			{_, StringF} ->
 				{ok, Tokens, _} = snmp_collector_rest_query_scanner:string(StringF),
 				case snmp_collector_rest_query_parser:parse(Tokens) of
-					{ok, [{array, [{complex, Filter}]}]} ->
+					{ok, [{array, [{complex, _Filter}]}]} ->
 						['_'] %% @todo Build MatchSpecs from Filters
 				end;
 			false ->
@@ -438,7 +438,6 @@ trap([trapname | T], #trap{trapname = TrapName} = N, Acc)
 	trap(T, N, Acc#{"trapname" => atom_to_list(TrapName)});
 trap([trapname | T], #notification{trapname = TrapName} = N, Acc)
 		when is_atom(trapname), TrapName /= undefined ->
-	TrapNameList1 = atom_to_list(TrapName),
 	trap(T, N, Acc#{"trapname" => atom_to_list(TrapName)});
 trap([oidobjects | T], #trap{oidobjects = OidObjects} = N, Acc)
 		when is_list(OidObjects), length(OidObjects) > 0 ->
