@@ -182,7 +182,7 @@ post_user(RequestBody) ->
 				{error, 400}
 		end
 	catch
-		_:_Reason1 ->
+		_:_ ->
 			{error, 400}
 	end.
 
@@ -294,7 +294,7 @@ query_start(Query, Filters, RangeStart, RangeEnd) ->
 					{error, 500}
 			end
 	catch
-		_ ->
+		_:_ ->
 			{error, 400}
 	end.
 
