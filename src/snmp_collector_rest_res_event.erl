@@ -208,8 +208,8 @@ query_start1(Query, Filters, RangeStart, RangeEnd, DateStart, DateEnd) ->
 				end
 		end
 	catch
-	_ ->
-		{error, 400}
+		_:_ ->
+			{error, 400}
 	end.
 %% display here for Token error
 %% @hidden
