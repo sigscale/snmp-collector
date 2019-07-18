@@ -328,9 +328,6 @@ event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 event([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"specificProblem", Value} | Acc]);
-event([{"snmpTrapOID", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
@@ -344,11 +341,14 @@ event([{"alarmPerceivedSeverity", "5"} | T], Acc) ->
 event([{"alarmPerceivedSeverity", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_NEW} | Acc]);
+	event(T, [{"eventName", ?EN_NEW}, {"alarmCondition", "alarmNew"} | Acc]);
 event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
+	event(T, [{"eventName", ?EN_CLEARED}, {"alarmCondition", "alarmCleared"} | Acc]);
 event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
+	event(T, [{"eventName", ?EN_CHANGED}, {"alarmCondition", "alarmAckChange"} | Acc]);
+event([{"snmpTrapOID", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"alarmEventType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"alarmEventType", "2"} | T], Acc) ->
