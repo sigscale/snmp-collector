@@ -1,4 +1,4 @@
-%%% snmp_collector_huawei_data_com_trap.erl
+%%% snmp_collector_trap_huawei_hw.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2019 SigScale Global Inc.
@@ -16,7 +16,152 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(snmp_collector_huawei_data_com_trap).
+
+%% @doc This module normalizes traps received from Huawei (IT) agents.
+%%
+%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
+%% and to VES attributes.
+%%
+%%	The following table shows the mapping between Huawei MIB attributes
+%% and VES attributes.
+%%
+%% <h3> MIB Values and VNF Event Stream (VES) </h3>
+%%
+%% <p><table id="mt">
+%% <thead>
+%% 	<tr id="mt">
+%% 		<th id="mt">MIB Values</th>
+%%			<th id="mt">VNF Event Stream (VES)</th>
+%%			<th id="mt">VES Value Type</th>
+%% 	</tr>
+%% </thead>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundEventType</td>
+%% 		<td id="mt">commonEventheader.eventType</td>
+%%		 	<td id="mt">e.g. "Quality of Service Alarm"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundProbableCause</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
+%%		 	<td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundEventDetail</td>
+%% 		<td id="mt">faultFields.specificProblem</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundAdditionalInfo</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.additionalText</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundSerialNo</td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundResourceIDs</td>
+%% 		<td id="mt">commonEventHeader.sourceId</td>
+%%		 	<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundNEName</td>
+%% 		<td id="mt">commonEventHeader.sourceName</td>
+%%		 	<td id="mt">String</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">snmpTrapOID</td>
+%% 		<td id="mt">faultsFields.alarmCondition</td>
+%%		 	<td id="mt">Short name of the alarm condition/problem,
+%%		 			such as a trap name. Should not have white space
+%%		 			(e.g., tpLgCgiNotInConfig, BfdSessionDown, linkDown, etc…)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundDeviceType</td>
+%% 		<td id="mt">faultsFields.eventSourceType</td>
+%%		 	<td id="mt"> Managed Object Class (MOC) name</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundSeverity</td>
+%% 		<td id="mt">faultFields.eventSeverity</td>
+%%		 	<td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundFaultFlag</td>
+%% 		<td id="mt">commonEventHeader.eventName</td>
+%%		 	<td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundEventTime</td>
+%% 		<td id="mt">commonEventHeader.startEpochMicrosec</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundNEType</td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.networkElementType</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundObjectInstance</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
+%%		 	<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundFaultFunction</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.faultFunction</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundDeviceIP</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.deviceIP</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundProbableRepair</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.proposedRepairActions</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundReasonID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.reasonID</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundFaultID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.faultID</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundTrailName</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.trailName</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundRootAlarm</td>
+%% 		<td id="mt">aultsFields.alarmAdditionalInformation.rootAlarm</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundGroupID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.groupID</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundMaintainStatus</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.maintainStatus</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundConfirmStatus</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
+%%		 	<td id="mt">acknowledged | unacknowledged</td>
+%% 	</tr>
+%% </tbody>
+%% </table></p>
+
+-module(snmp_collector_trap_huawei_hw).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
@@ -36,6 +181,10 @@
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
+
+%%----------------------------------------------------------------------
+%%  The snmp_collector_trap_huawei_hw public API
+%%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
 	when
@@ -157,31 +306,42 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(NameValuePair) -> NameValuePair
+-spec event(OidNameValuePair) -> VesNameValuePair
 	when
-		NameValuePair :: [{Name, Value}] | [{Name, Value}].
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
 %% @doc CODEC for event.
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
 event([{"hwNmNorthboundSerialNo", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
+event([{"hwNmNorthboundEventTime", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"raisedTime", Value} | Acc]);
 event([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
 event([{"hwNmNorthboundNEName", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceName", Value} | Acc]);
-event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"specificProblem", Value}, {"eventName", ?EN_NEW} | Acc]);
-event([{"snmpTrapOID", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"hwNmNorthboundDeviceType", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventSourceType", Value} | Acc]);
+event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"objectInstance", Value} | Acc]);
+event([{"hwNmNorthboundEventDetail", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"specificProblem", Value} | Acc]);
+event([{"snmpTrapOID", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"hwNmNorthboundSeverity", "Critical"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"hwNmNorthboundSeverity", "Major"} | T], Acc) ->
@@ -190,27 +350,17 @@ event([{"hwNmNorthboundSeverity", "Minor"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 event([{"hwNmNorthboundSeverity", "Warning"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
+event([{"hwNmNorthboundSeverity", "Cleared"} | T], Acc) ->
+	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"hwNmNorthboundSeverity", "Indeterminate"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW} | Acc]);
 event([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
-event([{"hwNmNorthboundRestoreStatus", "cleared"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
-event([{"hwNmNorthboundEventTime", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"raisedTime", Value} | Acc]);
-event([{"hwNmNorthboundNEType", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"networkElementType", Value} | Acc]);
-event([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"objectInstance", Value} | Acc]);
-event([{"hwNmNorthboundProbableCause", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"probableCause", Value},
-			{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+event([{"hwNmNorthboundFaultFlag", "Recovery"} | T], Acc) ->
+	NewAcc = lists:keyreplace("eventSeverity", 1, Acc, {"eventSeverity", ?ES_CLEARED}),
+	event(T, NewAcc);
 event([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 event([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->
@@ -231,45 +381,49 @@ event([{"hwNmNorthboundEventType", "Signal"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
+event([{"hwNmNorthboundProbableCause", Value} | T], Acc) 
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"probableCause", Value} | Acc]);
+event([{"hwNmNorthboundProbableRepair", Value} | T], Acc) 
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"proposedRepairActions", Value} | Acc]);
+event([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
+	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+event([{"hwNmNorthboundConfirmStatus", 2} | T], Acc) ->
+	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+event([{"hwNmNorthboundNEType", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"networkElementType", Value} | Acc]);
 event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"alarmDetails", Value} | Acc]);
-event([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
-		when is_list(Value) ->
-	event(T, [{"additionalInformation", Value} | Acc]);
+	event(T, [{"additionalText", Value} | Acc]);
 event([{"hwNmNorthboundFaultFunction", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"faultFunction", Value} | Acc]);
 event([{"hwNmNorthboundDeviceIP", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"deviceIP", Value} | Acc]);
-event([{"hwNmNorthboundProbableRepair", Value} | T], Acc) ->
-	event(T, [{"proposedRepairactions", Value} | Acc]);
-event([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
+event([{"hwNmNorthboundResourceIds", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"resourceIDs", Value} | Acc]);
-event([{"hwNmNorthboundReasonID", Value} | T], Acc)
+	event(T, [{"resourceIds", Value} | Acc]);
+event([{"hwNmNorthboundReasonId", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"resonID", Value} | Acc]);
-event([{"hwNmNorthboundFaultID", Value} | T], Acc)
+	event(T, [{"reasonId", Value} | Acc]);
+event([{"hwNmNorthboundFaultId", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"faultID", Value} | Acc]);
+	event(T, [{"faultId", Value} | Acc]);
 event([{"hwNmNorthboundTrailName", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"trailName", Value} | Acc]);
 event([{"hwNmNorthboundRootAlarm", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"rootAlarm", Value} | Acc]);
-event([{"hwNmNorthboundGroupID", Value} | T], Acc)
+event([{"hwNmNorthboundGroupId", Value} | T], Acc)
 		when is_list(Value) ->
-	event(T, [{"groupID", Value} | Acc]);
+	event(T, [{"groupId", Value} | Acc]);
 event([{"hwNmNorthboundMaintainStatus", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"maintainStatus", Value} | Acc]);
-event([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-event([{"hwNmNorthboundConfirmStatus", 2} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->

@@ -32,7 +32,7 @@
 %-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_rest_res)mib public API
+%%  The snmp_collector_rest_res_mib public API
 %%----------------------------------------------------------------------
 
 -spec content_types_accepted() -> ContentTypes
@@ -432,24 +432,23 @@ trap([], Acc) ->
 %% @hidden
 trap([enterpriseoid| T], #trap{enterpriseoid = OID} = N, Acc)
 		when is_list(OID), length(OID) > 0 ->
-	trap(T, N, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
+	trap(T, N, Acc#{"oid" => lists:flatten(io_lib:write(OID))});
 trap([trapname | T], #trap{trapname = TrapName} = N, Acc)
 		when is_atom(trapname), TrapName /= undefined ->
-	TrapNameList = atom_to_list(TrapName),
-	trap(T, N, maps:put("trapname", TrapNameList, Acc));
+	trap(T, N, Acc#{"trapname" => atom_to_list(TrapName)});
 trap([trapname | T], #notification{trapname = TrapName} = N, Acc)
 		when is_atom(trapname), TrapName /= undefined ->
 	TrapNameList1 = atom_to_list(TrapName),
-	trap(T, N, maps:put("trapname", TrapNameList1, Acc));
+	trap(T, N, Acc#{"trapname" => atom_to_list(TrapName)});
 trap([oidobjects | T], #trap{oidobjects = OidObjects} = N, Acc)
 		when is_list(OidObjects), length(OidObjects) > 0 ->
-	trap(T, N, maps:put("objects", oidobjects(OidObjects, []), Acc));
+	trap(T, N, Acc#{"objects" => oidobjects(OidObjects, [])});
 trap([oid | T], #notification{oid = OID} = N, Acc)
 		when is_list(OID), length(OID) > 0 ->
-	trap(T, N, maps:put("oid", lists:flatten(io_lib:write(OID)), Acc));
+	trap(T, N, Acc#{"oid" => lists:flatten(io_lib:write(OID))});
 trap([oidobjects | T], #notification{oidobjects = OidObjects} = N, Acc)
 		when is_list(OidObjects), length(OidObjects) > 0 ->
-	trap(T, N, maps:put("objects", oidobjects(OidObjects, []), Acc));
+	trap(T, N, Acc#{"objects" => oidobjects(OidObjects, [])});
 trap([_H | T], N, Acc) ->
 	trap(T, N, Acc);
 trap([], _N, Acc) ->

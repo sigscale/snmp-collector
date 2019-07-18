@@ -1,4 +1,4 @@
-%%% snmp_collector_nec_trap.erl
+%%% snmp_collector_trap_nec.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2019 SigScale Global Inc.
@@ -16,7 +16,35 @@
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
--module(snmp_collector_nec_trap).
+
+%% @doc This module normalizes traps received on NBI from NEC EMS.
+%%
+%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
+%% and to VES attributes.
+%%
+%%	The following table shows the mapping between NEC MIB attributes
+%% and VES attributes.
+%%
+%% <h3> MIB Values and VNF Event Stream (VES) </h3>
+%%
+%% <p><table id="mt">
+%% <thead>
+%% 	<tr id="mt">
+%% 		<th id="mt">MIB Values</th>
+%%			<th id="mt">VNF Event Stream (VES)</th>
+%%			<th id="mt">VES Value Type</th>
+%% 	</tr>
+%% </thead>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% </table></p>
+
+-module(snmp_collector_trap_nec).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -behaviour(snmpm_user).
@@ -34,6 +62,10 @@
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
+
+%%----------------------------------------------------------------------
+%%  The snmp_collector_trap_nec public API
+%%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
 	when

@@ -189,7 +189,7 @@ config_change(_Changed, _New, _Removed) ->
 	ok.
 
 %%----------------------------------------------------------------------
-%%  internal functions
+%%  Internal functions
 %%----------------------------------------------------------------------
 
 -spec install() -> Result
