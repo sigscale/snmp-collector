@@ -24,7 +24,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
-		authenticate_v1_v2/2, check_fields/1]).
+		authenticate_v1_v2/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -340,36 +340,7 @@ generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 generate_maps(TargetName, AlarmDetails) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails),
 	FaultFields = fault_fields(Remainder),
-	{check_fields(CommonEventHeader), check_fields(FaultFields)}.
-
--spec check_fields(VesMap) -> Result
-	when
-		VesMap :: map(),
-		Result :: map().
-%% @doc Check and replace empty values in mandatory fields.
-check_fields(#{"eventName" := Value} = VesMap)
-		when is_atom(Value), length(Value) > 0 ->
-	check_fields1(VesMap);
-check_fields(VesMap) ->
-	check_fields1(VesMap#{"eventName" => ?EN_NEW}).
-%% @hidden
-check_fields1(#{"eventSeverity" := Value} = VesMap)
-		when is_list(Value), length(Value) > 0 ->
-	check_fields2(VesMap);
-check_fields1(VesMap) ->
-	check_fields2(VesMap#{"eventSeverity" => ?ES_INDETERMINATE}).
-%% @hidden
-check_fields2(#{"probableCause" := Value} = VesMap)
-		when is_list(Value), length(Value) > 0 ->
-	check_fields3(VesMap);
-check_fields2(VesMap) ->
-	check_fields3(VesMap#{"probableCause" => ?PC_Indeterminate}).
-%% @hidden
-check_fields3(#{"eventType" := Value} = VesMap)
-		when is_list(Value), length(Value) > 0 ->
-	VesMap;
-check_fields3(VesMap) ->
-	VesMap#{"eventType" => ?ET_Communication_System}.
+	check_fields(CommonEventHeader, FaultFields).
 
 -spec common_event_header(TargetName, AlarmDetails) -> Result
 	when
@@ -870,6 +841,48 @@ check_response({_RequestId, {{"HTTP/1.1",502, _GateWayError},_ , _}}) ->
 					{error, "502, bad_gateway"}]);
 check_response({_RequestId, {{"HTTP/1.1",201, _Created},_ , _}}) ->
 	void.
+
+-spec check_fields(CommonEventHeader, FaultFields) -> Result
+	when
+		CommonEventHeader :: map(),
+		FaultFields :: map(),
+		Result :: {NewCommonEventHeader, NewFaultFields},
+		NewCommonEventHeader :: map(),
+		NewFaultFields :: map().
+%% @doc Normalize mandatory fields.
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+	check_fields1(CH, FF);
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
+check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF)
+		when is_atom(EventName), EventName /= undefined ->
+	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
+check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_atom(EventName), EventName /= undefined, is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH, FF);
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, FF) ->
+	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
+check_fields(#{"eventName" := EventName} = CH, FF)
+		when is_atom(EventName), EventName /= undefined ->
+	check_fields1(CH, FF);
+check_fields(CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
+check_fields(CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
+%% @hidden
+check_fields1(#{"eventType" := EventType} = CH, FF)
+		when is_list(EventType), length(EventType) > 0 ->
+	check_fields2(CH, FF);
+check_fields1(CH, FF) ->
+	check_fields2(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
+%% @hidden
+check_fields2(#{"probableCause" := ProbableCause} = CH, FF)
+		when is_list(ProbableCause), length(ProbableCause) > 0 ->
+	{CH, FF};
+check_fields2(CH, FF) ->
+	{CH#{"probableCause" => ?ET_Quality_Of_Service_Alarm}, FF}.
 
 -spec strip_name(Name) -> Name
 	when
