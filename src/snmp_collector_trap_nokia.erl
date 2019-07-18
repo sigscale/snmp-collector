@@ -290,12 +290,15 @@ event(NameValuePair) ->
 event([{"nbiAlarmId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
-event([{"nbiOptionalInformation", Value} | T], Acc)
+event([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"sourceName", Value} | Acc]);
+	event(T, [{"raisedTime", Value} | Acc]);
 event([{"nbiSequenceId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
+event([{"nbiOptionalInformation", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"sourceName", Value} | Acc]);
 event([{"nbiObjectInstance", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstance", Value} | Acc]);
@@ -314,6 +317,18 @@ event([{"nbiSpecificProblem", Value} | T], Acc)
 		{'EXIT', _Reason} ->
 			event(T, Acc)
 	end;
+event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
+	event(T, [{"eventName", ?EN_NEW},
+			{"alarmCondition", "alarmNewNotification"} | Acc]);
+event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
+	event(T, [{"eventName", ?EN_CLEARED},
+			{"alarmCondition", "alarmClearedNotification"} | Acc]);
+event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
+	event(T, [{"eventName", ?EN_CHANGED},
+			{"alarmCondition", "alarmChangedNotification"} | Acc]);
+event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
+	event(T, [{"eventName", ?EN_CLEARED},
+			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
 event([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 event([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
@@ -326,31 +341,6 @@ event([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", "alarmNewNotification"} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "alarmClearedNotification"},
-			{"eventSeverity", ?ES_CLEARED} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "alarmChangedNotification"} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?ES_CLEARED},
-			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
-event([{"nbiEventTime", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"raisedTime", Value} | Acc]);
-event([{"nbiProposedRepairAction", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"proposedRepairActions", Value} | Acc]);
-event([{"nbiAdditionalText", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"additionalText", Value} | Acc]);
-event([{"nbiCommentText", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventComment", Value} | Acc]);
 event([{"nbiAlarmType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"nbiAlarmType", "2"} | T], Acc) ->
@@ -361,6 +351,9 @@ event([{"nbiAlarmType", "4"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 event([{"nbiAlarmType", "5"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
+event([{"nbiProposedRepairAction", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"proposedRepairActions", Value} | Acc]);
 event([{"nbiAckState", "1"} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"nbiAckState", "2"} | T], Acc) ->
@@ -374,6 +367,12 @@ event([{"nbiAckTime", Value} | T], Acc)
 event([{"nbiAckUser", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmAckUser", Value} | Acc]);
+event([{"nbiAdditionalText", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"additionalText", Value} | Acc]);
+event([{"nbiCommentText", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"eventComment", Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->

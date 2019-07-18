@@ -310,21 +310,27 @@ event(NameValuePair) ->
 event([{"alarmId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
+event([{"alarmEventTime", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"raisedTime", Value} | Acc]);
 event([{"alarmNeIP", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"sourceId", Value}, {"sourceName", "Not Implemented"} | Acc]);
+	event(T, [{"sourceId", Value} | Acc]);
+event([{"systemDN", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"reportingEntityID", Value} | Acc]);
+event([{"alarmMocObjectInstance", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"eventSourceType", Value} | Acc]);
 event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstance", Value} | Acc]);
 event([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"specificProblem", Value} | Acc]);
-event([{"alarmNetype", Value} | T], Acc)
+event([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"Netype", Value} | Acc]);
-event([{"systemDN", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"reportingEntityID", Value} | Acc]);
+	event(T, [{"alarmCondition", Value} | Acc]);
 event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
@@ -343,14 +349,6 @@ event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED} | Acc]);
 event([{"snmpTrapOID", "alarmAckChange"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED} | Acc]);
-event([{"snmpTrapOID", Value} | T], Acc) ->
-	event(T, [{"alarmCondition", Value} | Acc]);
-event([{"alarmEventTime", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"raisedTime", Value} | Acc]);
-event([{"alarmProbableCause", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"probableCause", Value} | Acc]);
 event([{"alarmEventType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"alarmEventType", "2"} | T], Acc) ->
@@ -373,16 +371,18 @@ event([{"alarmEventType", "10"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 event([{"alarmEventType", "11"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-event([{"alarmMocObjectInstance", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventSourceType", Value} | Acc]);
-event([{"alarmOtherInfo", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"additionalText", Value} | Acc]);
+event([{"alarmProbableCause", Value} | T], Acc) ->
+	event(T, [{"probableCause", Value} | Acc]);
 event([{"alarmAck", 1} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 event([{"alarmAck", 2} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+event([{"alarmOtherInfo", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"additionalText", Value} | Acc]);
+event([{"alarmNetype", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"Netype", Value} | Acc]);
 event([{"alarmSystemType", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmSystemType", Value} | Acc]);

@@ -81,10 +81,37 @@ init([Socket, Address, Port, Packet]) ->
 handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 		port = Port, packet = Packet} = StateData) ->
 	case catch snmp_pdus:dec_message_only(Packet) of
-		#message{version = 'version-1'} ->
-			{stop, shutdown, StateData};
+		#message{version = 'version-1', data = Data, vsn_hdr = Community} ->
+			case snmp_collector_utils:authenticate_v1_v2(Address, Community) of
+				{authenticated, _TargetName, _AgentName} ->
+					case catch snmp_pdus:dec_pdu(Data) of
+						#trappdu{varbinds = Varbinds} ->
+							case handle_trap(undefined, undefined, Address, Port, {noError, 0, Varbinds}) of
+								ignore ->
+									{stop, shutdown, StateData};
+								{error, Reason} ->
+									error_logger:info_report(["SNMP Manager SNMPv1 Trap Handler Failed",
+											{error, Reason},
+											{port, Port},
+											{address, Address}]),
+								{stop, shutdown, StateData}
+							end;
+						{'EXIT', Reason} ->
+							error_logger:error_report(["SNMP Manager Decoding SNMPv1 Failed",
+									{error, Reason},
+									{port, Port},
+									{address, Address}]),
+							{stop, shutdown, StateData}
+					end;
+				{authentication_failed, Reason} ->
+					error_logger:error_report(["SNMP Manager SNMPv1 Authentication Failed",
+							{error, Reason},
+							{port, Port},
+							{address, Address}]),
+					{stop, shutdown, StateData}
+			end;
 		#message{version = 'version-2', data = Data, vsn_hdr = Community} ->
-			case snmp_collector_utils:authenticate_v2(Address, Community) of
+			case snmp_collector_utils:authenticate_v1_v2(Address, Community) of
 				{authenticated, _TargetName, _AgentName} ->
 					case catch snmp_pdus:dec_pdu(Data) of
 						#pdu{error_status = noError, varbinds = Varbinds, error_index = 0} ->

@@ -66,4 +66,5 @@ supervisor(StartMod) ->
 server(StartMod, Args) ->
 	StartArgs = [{local, StartMod}, StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
-	{StartMod, StartFunc, transient, 4000, worker, [StartMod]}.
+	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
+

@@ -24,7 +24,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
-		authenticate_v2/2]).
+		authenticate_v1_v2/2, check_fields/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -339,7 +339,37 @@ generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 %% @doc Generate the Common event header and Fault Fields maps.
 generate_maps(TargetName, AlarmDetails) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails),
-	{CommonEventHeader, fault_fields(Remainder)}.
+	FaultFields = fault_fields(Remainder),
+	{check_fields(CommonEventHeader), check_fields(FaultFields)}.
+
+-spec check_fields(VesMap) -> Result
+	when
+		VesMap :: map(),
+		Result :: map().
+%% @doc Check and replace empty values in mandatory fields.
+check_fields(#{"eventName" := Value} = VesMap)
+		when is_atom(Value), length(Value) > 0 ->
+	check_fields1(VesMap);
+check_fields(VesMap) ->
+	check_fields1(VesMap#{"eventName" => ?EN_NEW}).
+%% @hidden
+check_fields1(#{"eventSeverity" := Value} = VesMap)
+		when is_list(Value), length(Value) > 0 ->
+	check_fields2(VesMap);
+check_fields1(VesMap) ->
+	check_fields2(VesMap#{"eventSeverity" => ?ES_INDETERMINATE}).
+%% @hidden
+check_fields2(#{"probableCause" := Value} = VesMap)
+		when is_list(Value), length(Value) > 0 ->
+	check_fields3(VesMap);
+check_fields2(VesMap) ->
+	check_fields3(VesMap#{"probableCause" => ?PC_Indeterminate}).
+%% @hidden
+check_fields3(#{"eventType" := Value} = VesMap)
+		when is_list(Value), length(Value) > 0 ->
+	VesMap;
+check_fields3(VesMap) ->
+	VesMap#{"eventType" => ?ET_Communication_System}.
 
 -spec common_event_header(TargetName, AlarmDetails) -> Result
 	when
@@ -361,21 +391,21 @@ common_event_header(TargetName, AlarmDetails)
 	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
 %% @hidden
 common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("eventName", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
 common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("sourceId", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"sourceId" => Value}, AD);
 common_event_header([{"sourceName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("sourceName", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"sourceName" => Value}, AD);
 common_event_header([{"priority", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("priority", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"priority" => Value}, AD);
 common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("sequence", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"sequence" => Value}, AD);
 common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("version", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"version" => Value}, AD);
 common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("eventType", Value, CH), AD);
+	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
 common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, maps:put("startEpochMicrosec", iso8601(Value), CH), AD);
+	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => iso8601(Value)}, AD);
 common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
 common_event_header([], _TargetName, CH, AD) ->
@@ -394,19 +424,19 @@ fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
 	fault_fields(AlarmDetails, DefaultMap).
 %% @hidden
 fault_fields([{"alarmCondition", Value} | T], Acc) ->
-	fault_fields(T, maps:put("alarmCondition", Value, Acc));
+	fault_fields(T, Acc#{"alarmCondition" => Value});
 fault_fields([{"eventCategory", Value} | T], Acc) ->
-	fault_fields(T, maps:put("eventCategory", Value, Acc));
+	fault_fields(T, Acc#{"eventCategory" => Value});
 fault_fields([{"eventSeverity", Value} | T], Acc) ->
-	fault_fields(T, maps:put("eventSeverity", Value, Acc));
+	fault_fields(T, Acc#{"eventSeverity" => Value});
 fault_fields([{"eventSourceType", Value} | T], Acc) ->
-	fault_fields(T, maps:put("eventSourceType", Value, Acc));
+	fault_fields(T, Acc#{"eventSourceType" => Value});
 fault_fields([{"specificProblem", Value} | T], Acc) ->
-	fault_fields(T, maps:put("specificProblem", Value, Acc));
+	fault_fields(T, Acc#{"specificProblem" => Value});
 fault_fields([{Name, Value} | T],
 		#{"alarmAdditionalInformation" := AI} = Acc) ->
 	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	fault_fields(T, maps:put("alarmAdditionalInformation", NewAI, Acc));
+	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
 fault_fields([], Acc) ->
 	Acc.
 
@@ -488,16 +518,16 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			{error, not_found}
 	end.
 
--spec authenticate_v2(Address, Community) -> Result
+-spec authenticate_v1_v2(Address, Community) -> Result
 	when
 		Address :: inet:ip_address(),
 		Community :: string(),
 		Result :: {authenticated, TargetName, AgentName} | {authentication_failed, Reason},
 		TargetName :: string(),
 		AgentName :: string(),
-		Reason :: term().
+		Reason :: invalid_community | invalid_security_model.
 %% @doc Authenticate SNMPv2 Packets.
-authenticate_v2(Address, Community) ->
+authenticate_v1_v2(Address, Community) ->
 	case agent_name(Address) of
 		{AgentName, TargetName, SecurityModel} when is_list(TargetName), SecurityModel == any;
 				SecurityModel == 2 ->
@@ -507,8 +537,8 @@ authenticate_v2(Address, Community) ->
 				[] ->
 					{authentication_failed, invalid_community}
 			end;
-		{error, Reason} ->
-			{authentication_failed, Reason}
+		_ ->
+			{authentication_failed, invalid_security_model}
 	end.
 
 -spec agent_name(Address) -> Result
