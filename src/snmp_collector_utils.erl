@@ -871,6 +871,14 @@ check_fields(CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
 check_fields(CH, #{"eventSeverity" := EventSeverity} = FF)
 		when is_list(EventSeverity), length(EventSeverity) > 0 ->
 	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
+check_fields(CH, FF) ->
+	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
+%% @hidden
+check_fields1(CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields2(CH, FF);
+check_fields1(CH, FF) ->
+	check_fields2(CH#{"eventSeverity" => ?ES_MINOR}, FF).
 %% @hidden
 check_fields1(#{"eventType" := EventType} = CH, FF)
 		when is_list(EventType), length(EventType) > 0 ->
