@@ -126,12 +126,8 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 %% @doc Handle a trap/notification message from an agent.
 %% @private
 handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
-erlang:display({?MODULE, ?LINE, TargetName}),
-erlang:display({?MODULE, ?LINE, Varbinds}),
 	ignore;
 handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
-erlang:display({?MODULE, ?LINE, TargetName}),
-erlang:display({?MODULE, ?LINE, Varbinds}),
 	ignore.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply

@@ -125,9 +125,9 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(_TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
+handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 	ignore;
-handle_trap(_TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
+handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
 	ignore.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
