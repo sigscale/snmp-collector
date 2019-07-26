@@ -245,7 +245,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, both, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -261,7 +261,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, both, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -312,107 +312,107 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% @hidden
-event([{"alarmId", _, Value} | T], Acc)
+event([{"alarmId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmId", Value} | Acc]);
-event([{"alarmEventTime", _, Value} | T], Acc)
+event([{"alarmEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"raisedTime", Value} | Acc]);
-event([{"alarmNeIP", _, Value} | T], Acc)
+event([{"alarmNeIP", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"sourceId", Value} | Acc]);
-event([{"systemDN", _, Value} | T], Acc)
+event([{"systemDN", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"reportingEntityID", Value} | Acc]);
-event([{"alarmMocObjectInstance", _, Value} | T], Acc)
+event([{"alarmMocObjectInstance", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventSourceType", Value} | Acc]);
-event([{"alarmManagedObjectInstanceName", _, Value} | T], Acc)
+event([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"objectInstance", Value} | Acc]);
-event([{"alarmSpecificProblem", _, Value} | T], Acc)
+event([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"specificProblem", Value} | Acc]);
-event([{"alarmPerceivedSeverity", _, "1"} | T], Acc) ->
+event([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
-event([{"alarmPerceivedSeverity", _, "2"} | T], Acc) ->
+event([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
-event([{"alarmPerceivedSeverity", _, "3"} | T], Acc) ->
+event([{"alarmPerceivedSeverity", "3"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
-event([{"alarmPerceivedSeverity", _, "4"} | T], Acc) ->
+event([{"alarmPerceivedSeverity", "4"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
-event([{"alarmPerceivedSeverity", _, "5"} | T], Acc) ->
+event([{"alarmPerceivedSeverity", "5"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
-event([{"alarmPerceivedSeverity", _, "6"} | T], Acc) ->
+event([{"alarmPerceivedSeverity", "6"} | T], Acc) ->
 	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
-event([{"snmpTrapOID", _, "alarmNew"} | T], Acc) ->
+event([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_NEW}, {"alarmCondition", "alarmNew"} | Acc]);
-event([{"snmpTrapOID", _, "alarmCleared"} | T], Acc) ->
+event([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CLEARED}, {"alarmCondition", "alarmCleared"} | Acc]);
-event([{"snmpTrapOID", _, "alarmAckChange"} | T], Acc) ->
+event([{"snmpTrapOID",  "alarmAckChange"} | T], Acc) ->
 	event(T, [{"eventName", ?EN_CHANGED}, {"alarmCondition", "alarmAckChange"} | Acc]);
-event([{"snmpTrapOID", _, Value} | T], Acc)
+event([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmCondition", Value} | Acc]);
-event([{"alarmEventType", _, "1"} | T], Acc) ->
+event([{"alarmEventType", "1"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
-event([{"alarmEventType", _, "2"} | T], Acc) ->
+event([{"alarmEventType", "2"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-event([{"alarmEventType", _, "3"} | T], Acc) ->
+event([{"alarmEventType", "3"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
-event([{"alarmEventType", _, "4"} | T], Acc) ->
+event([{"alarmEventType", "4"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-event([{"alarmEventType", _, "5"} | T], Acc) ->
+event([{"alarmEventType", "5"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
-event([{"alarmEventType", _, "6"} | T], Acc) ->
+event([{"alarmEventType", "6"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
-event([{"alarmEventType", _, "7"} | T], Acc) ->
+event([{"alarmEventType", "7"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Operational_Violation} | Acc]);
-event([{"alarmEventType", _, "8"} | T], Acc) ->
+event([{"alarmEventType", "8"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Physical_Violation} | Acc]);
-event([{"alarmEventType", _, "9"} | T], Acc) ->
+event([{"alarmEventType", "9"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
-event([{"alarmEventType", _, "10"} | T], Acc) ->
+event([{"alarmEventType", "10"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
-event([{"alarmEventType", _, "11"} | T], Acc) ->
+event([{"alarmEventType", "11"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-event([{"alarmProbableCause", _, Value} | T], Acc) ->
+event([{"alarmProbableCause", Value} | T], Acc) ->
 	event(T, [{"probableCause", Value} | Acc]);
-event([{"alarmAck", _, "1"} | T], Acc) ->
+event([{"alarmAck", "1"} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-event([{"alarmAck", _, "2"} | T], Acc) ->
+event([{"alarmAck", "2"} | T], Acc) ->
 	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
-event([{"alarmOtherInfo", _, Value} | T], Acc)
+event([{"alarmOtherInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"additionalText", Value} | Acc]);
-event([{"alarmNetype", _, Value} | T], Acc)
+event([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"Netype", Value} | Acc]);
-event([{"alarmSystemType", _, Value} | T], Acc)
+event([{"alarmSystemType", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmSystemType", Value} | Acc]);
-event([{"alarmNeIP", _, Value} | T], Acc)
+event([{"alarmNeIP", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmNeIP", Value} | Acc]);
-event([{"timeZoneID", _, Value} | T], Acc)
+event([{"timeZoneID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"timeZoneID", Value} | Acc]);
-event([{"alarmIndex", _, Value} | T], Acc)
+event([{"alarmIndex", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmIndex", Value} | Acc]);
-event([{"alarmCodeName", _, Value} | T], Acc)
+event([{"alarmCodeName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmCodeName", Value} | Acc]);
-event([{"alarmCode", _, Value} | T], Acc)
+event([{"alarmCode", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmCode", Value} | Acc]);
-event([{"aid", _, Value} | T], Acc)
+event([{"aid", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmAID", Value} | Acc]);
 event([{"alarmAdditionalText", _, Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmAdditionalText", Value} | Acc]);
-event([{_, Name, Value} | T], Acc)
+event([{Name, Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{Name, Value} | Acc]);
 event([_H | T], Acc) ->

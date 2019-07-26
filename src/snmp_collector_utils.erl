@@ -643,31 +643,21 @@ arrange_list([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok ,NewAcc}.
 
--spec oids_to_names(OIDsValues, Option, Acc) -> Result
+-spec oids_to_names(OIDsValues, Acc) -> Result
 	when
 		OIDsValues :: [{OID, Value}],
-		Option :: stripped | unstripped | both,
 		Acc :: list(),
 		OID :: list(),
 		Value :: string() | integer(),
-		Result :: {ok, [{StrippedName, Value}]} |  {ok, [{Name, Value}]} |
-				{ok, [{StrippedName, Name, Value}]},
+		Result :: {ok, [{StrippedName, Value}]},
 		StrippedName :: string(),
 		Name :: string().
 %% @doc Convert OIDs to valid names.
-oids_to_names([{OID, Value} | T], stripped, Acc)
+oids_to_names([{OID, Value} | T], Acc)
 		when is_list(OID) ->
 	Name = oid_to_name(OID),
-	oids_to_names(T, stripped, [{strip_name(Name), Value} | Acc]);
-oids_to_names([{OID, Value} | T], unstripped, Acc)
-		when is_list(OID) ->
-	Name = oid_to_name(OID),
-	oids_to_names(T, unstripped, [{Name, Value} | Acc]);
-oids_to_names([{OID, Value} | T], both, Acc)
-		when is_list(OID) ->
-	Name = oid_to_name(OID),
-	oids_to_names(T, both, [{strip_name(Name), Name, Value} | Acc]);
-oids_to_names([], _Option, Acc) ->
+	oids_to_names(T, , [{strip_name(Name), Value} | Acc]);
+oids_to_names([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
 
