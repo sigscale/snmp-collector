@@ -56,6 +56,7 @@
 				{ves_url, ""},
 				{ves_username, "admin"},
 				{ves_password, "admin"},
+                                {ves_options, []},
 				{rest_page_size, 1000},
 				{rest_page_timeout, 60000},
 				{sock_opts, []}]},
