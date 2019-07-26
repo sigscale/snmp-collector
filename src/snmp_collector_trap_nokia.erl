@@ -220,7 +220,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, stripped, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -236,7 +236,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, stripped, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -373,6 +373,9 @@ event([{"nbiAdditionalText", Value} | T], Acc)
 event([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"eventComment", Value} | Acc]);
+event([{Name, Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{Name, Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->

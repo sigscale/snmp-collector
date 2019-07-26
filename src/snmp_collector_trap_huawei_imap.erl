@@ -172,6 +172,16 @@
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmProductID</td>
 %%			<td id="mt"></td>
 %% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmCSN</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmSerialNumber</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">iMAPNorthboundAlarmClearType</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmClearType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
 %% </tbody>
 %% </table></p>
 
@@ -265,7 +275,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, stripped, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -281,7 +291,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, stripped, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -419,9 +429,14 @@ event([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
 event([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmAckState", Value} | Acc]);
-event([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], Acc)
+event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"additionalText", Value} | Acc]);
+event([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmDetails", Value} | Acc]);
+event([{"iMAPNorthboundAlarmClearType", "0"} | T], Acc) ->
+	event(T, Acc);
 event([{"iMAPNorthboundAlarmClearType", "1"} | T], Acc) ->
 	event(T, [{"clearType", "Normal Clear"} | Acc]);
 event([{"iMAPNorthboundAlarmClearType", "2"} | T], Acc) ->
@@ -455,8 +470,17 @@ event([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmRestore", Value} | Acc]);
 event([{"iMAPNorthboundAlarmProductID", Value} | T], Acc)
-		when is_list(Value), length(Value) /= 0 ->
+		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"alarmProductID", Value} | Acc]);
+event([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmSerialNumber", Value} | Acc]);
+event([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{"alarmSerialNumber", Value} | Acc]);
+event([{Name, Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{Name, Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->

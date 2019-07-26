@@ -158,6 +158,26 @@
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
 %%		 	<td id="mt">acknowledged | unacknowledged</td>
 %% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundEventName</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmEventName</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundFaultID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.faultId</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundGroupID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.groupId</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">hwNmNorthboundReasonID</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.reasonId</td>
+%%		 	<td id="mt"></td>
+%% 	</tr>
 %% </tbody>
 %% </table></p>
 
@@ -251,7 +271,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, stripped, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -267,7 +287,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 			ignore;
 		false ->
 			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, stripped, []),
 			AlarmDetails = event(NamesValues),
 			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
 			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
@@ -380,6 +400,8 @@ event([{"hwNmNorthboundEventType", "Signal"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
 event([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
 	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
+event([{"hwNmNorthboundEventType", _} | T], Acc) ->
+	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 event([{"hwNmNorthboundProbableCause", Value} | T], Acc) 
 		when is_list(Value), length(Value) > 0 ->
 	event(T, [{"probableCause", Value} | Acc]);
@@ -423,6 +445,21 @@ event([{"hwNmNorthboundGroupId", Value} | T], Acc)
 event([{"hwNmNorthboundMaintainStatus", Value} | T], Acc)
 		when is_list(Value) ->
 	event(T, [{"maintainStatus", Value} | Acc]);
+event([{"hwNmNorthboundEventName", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"alarmEventName", Value} | Acc]);
+event([{"hwNmNorthboundFaultID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"faultId", Value} | Acc]);
+event([{"hwNmNorthboundGroupID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"groupId", Value} | Acc]);
+event([{"hwNmNorthboundReasonID", Value} | T], Acc)
+		when is_list(Value) ->
+	event(T, [{"reasonId", Value} | Acc]);
+event([{Name, Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	event(T, [{Name, Value} | Acc]);
 event([_H | T], Acc) ->
 	event(T, Acc);
 event([], Acc) ->
