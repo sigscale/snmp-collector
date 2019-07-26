@@ -23,7 +23,7 @@
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
-		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
+		agent_name/1, oids_to_names/3, generate_maps/2, engine_id/0,
 		authenticate_v1_v2/2]).
 
 %% support deprecated_time_unit()
@@ -585,8 +585,7 @@ post_event(CommonEventHeader, FaultFields, Url)
 	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields}},
 	RequestBody = zj:encode(Event),
 	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
-	case httpc:request(post, Request, [],
-		[{sync, false}, {receiver, fun check_response/1}]) of
+	case httpc:request(post, Request, [], [{sync, false}, {receiver, fun check_response/1}]) of
 			{error, Reason} ->
 				error_logger:info_report(["SNMP Manager POST Failed",
 						{error, Reason}]);
@@ -644,22 +643,34 @@ arrange_list([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok ,NewAcc}.
 
--spec oids_to_names(OIDsValues, Acc) -> Result
+-spec oids_to_names(OIDsValues, Option, Acc) -> Result
 	when
 		OIDsValues :: [{OID, Value}],
+		Option :: stripped | unstripped | both,
 		Acc :: list(),
 		OID :: list(),
 		Value :: string() | integer(),
-		Result :: {ok, [{Name, Value}]},
+		Result :: {ok, [{StrippedName, Value}]} |  {ok, [{Name, Value}]} |
+				{ok, [{StrippedName, Name, Value}]},
+		StrippedName :: string(),
 		Name :: string().
 %% @doc Convert OIDs to valid names.
-oids_to_names([{OID, Value} | T], Acc)
+oids_to_names([{OID, Value} | T], stripped, Acc)
 		when is_list(OID) ->
 	Name = oid_to_name(OID),
-	oids_to_names(T, [{strip_name(Name), Value} | Acc]);
-oids_to_names([], Acc) ->
+	oids_to_names(T, stripped, [{strip_name(Name), Value} | Acc]);
+oids_to_names([{OID, Value} | T], unstripped, Acc)
+		when is_list(OID) ->
+	Name = oid_to_name(OID),
+	oids_to_names(T, unstripped, [{Name, Value} | Acc]);
+oids_to_names([{OID, Value} | T], both, Acc)
+		when is_list(OID) ->
+	Name = oid_to_name(OID),
+	oids_to_names(T, both, [{strip_name(Name), Name, Value} | Acc]);
+oids_to_names([], _Option, Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
+
 
 -spec stringify(String) -> String
 	when
