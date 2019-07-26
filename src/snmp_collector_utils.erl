@@ -578,6 +578,7 @@ post_event(CommonEventHeader, FaultFields, Url)
 		when is_map(CommonEventHeader), is_map(FaultFields), is_list(Url) ->
 	{ok, UserName } = application:get_env(snmp_collector, ves_username),
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
+	{ok, Options} = application:get_env(snmp_collector, ves_options),
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
@@ -585,7 +586,8 @@ post_event(CommonEventHeader, FaultFields, Url)
 	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields}},
 	RequestBody = zj:encode(Event),
 	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
-	case httpc:request(post, Request, [], [{sync, false}, {receiver, fun check_response/1}]) of
+	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
+	case httpc:request(post, Request, [], NewOptions) of
 			{error, Reason} ->
 				error_logger:info_report(["SNMP Manager POST Failed",
 						{error, Reason}]);
@@ -659,7 +661,6 @@ oids_to_names([{OID, Value} | T], Acc)
 oids_to_names([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
-
 
 -spec stringify(String) -> String
 	when
