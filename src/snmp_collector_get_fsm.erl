@@ -73,27 +73,19 @@ init([]) ->
 %% @private
 %%
 get(timeout, StateData) ->
-	case get_values() of
-		{ok, NewAcc1, NewAcc2} when length(NewAcc1) > 0,
-				length(NewAcc2) > 0 ->
-			case get_varbinds(NewAcc1, undefined, NewAcc2, []) of
-				{ok, Objects, Acc2, Value} ->
-					case print_varbinds(Objects, Acc2, Value, []) of
-						{ok, JSON} ->
-							case disk_log:log(fault, JSON) of
-								ok ->
-									{next_state, get, StateData, 3000000};
-								{error, Reason} ->
-									{error, Reason}
-							end;
-						{error, Reason} ->
-							{stop, Reason, StateData}
-					end;
-				{error, Reason} ->
-					{error, Reason}
-			end;
-		_ ->
-			{stop, not_implemented, StateData}
+	try
+		{NameResponseOID, QueryOID} = get_oids(oid_list(), [], []),
+		{ok ,Objects, Acc2, Value} = get_varbinds(NameResponseOID, undefined, QueryOID, []),
+		{ok, JSON} = print_varbinds(Objects, Acc2, Value, []),
+		disk_log:log(fault, JSON)
+	of
+		ok ->
+			{next_state, get, StateData, 3000000};
+		{error, Reason} ->
+			{stop, Reason, StateData}
+	catch
+		_:Reason ->
+			{stop, Reason, StateData}
 	end.
 
 -spec handle_event(Event, StateName, StateData) -> Result
@@ -190,24 +182,24 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec get_values() -> Result
+-spec oid_list() -> OIDList
 	when
-		Result :: {ok, Acc, EngineID} | {error, Reason},
-		Acc :: list(),
-		EngineID :: list(),
-		Reason :: term().
+		OIDList :: list().
 %% @doc Provides the list of varbinds for snmp-get-bulk.
 %% @hidden
-get_values() ->
-	OidList = [],
-	get_oids(OidList, [], []).
+oid_list() ->
+	[[{"sysContact", [1,3,6,1,2,1,1,4,0], [1,3,6,1,2,1,1,5,0]},
+			{"sysName", [1,3,6,1,2,1,1,5,0], [1,3,6,1,2,1,1,6,0]},
+			{"sysLocation", [1,3,6,1,2,1,1,6,0], [1,3,6,1,2,1,1,7,0]},
+			{"sysServices", [1,3,6,1,2,1,1,7,0], [1,3,6,1,2,1,1,8,0]},
+			{"sysORLastChange", [1,3,6,1,2,1,1,8,0], [1,3,6,1,2,1,1,9,0]}]].
 
 -spec get_oids(Varbinds, Acc1, Acc2) -> Result
 	when
 		Varbinds :: list(),
 		Acc1 :: list(),
 		Acc2 :: list(),
-		Result :: {ok, NewAcc1, NewAcc2},
+		Result :: {NewAcc1, NewAcc2},
 		NewAcc1 :: list(),
 		NewAcc2 :: list().
 %% @doc Seperate the name, reponse OID and the query OID.
@@ -219,7 +211,7 @@ get_oids([H | T], Acc1, Acc2) ->
 get_oids([], Acc1 ,Acc2) ->
 	NewAcc1 = lists:reverse(Acc1),
 	NewAcc2 = lists:flatten(lists:reverse(Acc2)),
-	{ok, NewAcc1, NewAcc2}.
+	{NewAcc1, NewAcc2}.
 
 -spec get_varbinds(QueryOID, EngineId, Objects, Acc) -> Result
 	when
@@ -235,20 +227,20 @@ get_oids([], Acc1 ,Acc2) ->
 %% @doc Peforms snmp-get on the whole list of oids.
 %% @hidden
 get_varbinds([H | T], EngineId, Objects, Acc) ->
-	{ok, UserName} = application:get_evnv(snmp_collector, snmp_get_usermame),
+	{ok, UserName} = application:get_env(snmp_collector, snmp_get_username),
 	OIDs = case EngineId of
 		undefined ->
-			[[1,3,6,1,6,3,10,2,1,1] | H];
+			[[128,0,196,210,3,66,1,10,140,0,5] | H];
 		EngineId ->
 			H
 	end,
 	case snmpm:sync_get_bulk("simple_user", UserName, length(OIDs), 0, OIDs, 15000) of
 		{ok,{noError, _, VarBinds}, _} ->
-			NewEngineID = case lists:keyfind([1,3,6,1,6,3,10,2,1,1,0], 2, VarBinds) of
+			NewEngineID = case lists:keyfind([128,0,196,210,3,66,1,10,140,0,5], 2, VarBinds) of
 				{_, _, _, EID, _} ->
 					EID;
 				false ->
-				EngineId
+					EngineId
 			end,
 			get_varbinds(T, NewEngineID, Objects, [VarBinds | Acc]);
 		{error, Reason} ->
