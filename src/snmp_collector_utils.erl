@@ -23,7 +23,7 @@
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/2, security_params/7,
-		agent_name/1, oids_to_names/3, generate_maps/2, engine_id/0,
+		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
 		authenticate_v1_v2/2]).
 
 %% support deprecated_time_unit()
@@ -650,13 +650,12 @@ arrange_list([], Acc) ->
 		OID :: list(),
 		Value :: string() | integer(),
 		Result :: {ok, [{StrippedName, Value}]},
-		StrippedName :: string(),
-		Name :: string().
+		StrippedName :: string().
 %% @doc Convert OIDs to valid names.
 oids_to_names([{OID, Value} | T], Acc)
 		when is_list(OID) ->
 	Name = oid_to_name(OID),
-	oids_to_names(T, , [{strip_name(Name), Value} | Acc]);
+	oids_to_names(T, [{strip_name(Name), Value} | Acc]);
 oids_to_names([], Acc) ->
 	NewAcc = lists:reverse(Acc),
 	{ok, NewAcc}.
