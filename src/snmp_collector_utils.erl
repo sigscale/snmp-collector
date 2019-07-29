@@ -893,10 +893,10 @@ check_fields3(#{"raisedTime" := RaisedTime} = CH, FF)
 check_fields3(CH, FF) ->
 	check_fields4(CH#{"eventType" => erlang:system_time(?MILLISECOND)}, FF).
 %% @hidden
-check_fields3(#{"probableCause" := ProbableCause} = CH, FF)
+check_fields4(#{"probableCause" := ProbableCause} = CH, FF)
 		when is_list(ProbableCause), length(ProbableCause) > 0 ->
 	{CH, FF};
-check_fields3(CH, FF) ->
+check_fields4(CH, FF) ->
 	{CH#{"probableCause" => ?ET_Quality_Of_Service_Alarm}, FF}.
 
 -spec strip_name(Name) -> Name
