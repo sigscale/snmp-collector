@@ -887,6 +887,12 @@ check_fields2(#{"eventType" := EventType} = CH, FF)
 check_fields2(CH, FF) ->
 	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
 %% @hidden
+check_fields3(#{"raisedTime" := RaisedTime} = CH, FF)
+		when is_list(RaisedTime), length(RaisedTime) > 0 ->
+	check_fields4(CH, FF);
+check_fields3(CH, FF) ->
+	check_fields4(CH#{"eventType" => erlang:system_time(?MILLISECOND)}, FF).
+%% @hidden
 check_fields3(#{"probableCause" := ProbableCause} = CH, FF)
 		when is_list(ProbableCause), length(ProbableCause) > 0 ->
 	{CH, FF};
