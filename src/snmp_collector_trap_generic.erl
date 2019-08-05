@@ -200,15 +200,6 @@ handle_report(TargetName, SnmpReport, UserData) ->
 event(NameValuePair) ->
 	event(NameValuePair, []).
 %% hidden
-event([{"snmpTrapOID", "clogMessageGenerated"}, {"clogHistFacility", FacilityName},
-		{"clogHistSeverity", SysLogSeverity}, {"clogHistMsgName", MessageName},
-		{"clogHistMsgText", MessageText}, {"clogHistTimestamp", TimeStamp} | T], Acc) ->
-	event(T, [{"sysSourceType", FacilityName},
-			{"eventFieldsVersion", 1},
-			{"syslogMsg", MessageText},
-			{"syslogSev", syslog_severity(SysLogSeverity)},
-			{"syslogTag", MessageName},
-			{"raisedTime", TimeStamp} | Acc]);
 event([{"snmpTrapOID", "authenticationFailure"}, {"authAddar", AuthAddress},
 		{"cExtSnmpTargetAuthInetType", AuthAddressType},
 		{"cExtSnmpTargetAuthInetAddr", HostAddress} | T], Acc) ->
