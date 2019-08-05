@@ -22,7 +22,7 @@
 -include("snmp_collector.hrl").
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
-		arrange_list/1, stringify/1, log_events/2, security_params/7,
+		arrange_list/1, stringify/1, log_events/1, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
 		authenticate_v1_v2/2]).
 
@@ -333,14 +333,17 @@ generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 		AlarmDetails :: [{Name, Value}],
 		Name :: list(),
 		Value :: list(),
-		Result :: {CommonEventHeader, FaultFields},
+		Result :: {CommonEventHeader, FaultFields, SysLog},
 		CommonEventHeader :: map(),
-		FaultFields :: map().
+		FaultFields :: map(),
+		SysLog :: map().
 %% @doc Generate the Common event header and Fault Fields maps.
 generate_maps(TargetName, AlarmDetails) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails),
-	FaultFields = fault_fields(Remainder),
-	check_fields(CommonEventHeader, FaultFields).
+	{SysLog, Remainder1} = syslog_fields(Remainder),
+	FaultFields = fault_fields(Remainder1),
+	{NewCommonEventHeader, NewFaultFields} = check_fields(CommonEventHeader, FaultFields),
+	{NewCommonEventHeader, NewFaultFields, SysLog}.
 
 -spec common_event_header(TargetName, AlarmDetails) -> Result
 	when
@@ -381,6 +384,33 @@ common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
 common_event_header([], _TargetName, CH, AD) ->
 	{CH, AD}.
+
+-spec syslog_fields(AlarmDetails) -> Result
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		Result :: {SysLogFields, AlarmDetails},
+		SysLogFields :: map().
+%% @doc Create the fault fields map.
+syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"syslogFieldsVersion" => 1},
+	syslog_fields(AlarmDetails, DefaultMap, []).
+%% @hidden
+syslog_fields([{"sysSourceType", Value} | T], Acc, AD) ->
+	syslog_fields(T, Acc#{"eventSourceType" => Value}, AD);
+syslog_fields([{"sysSourceHost", Value} | T], Acc, AD) ->
+	syslog_fields(T, Acc#{"eventSourceHost" => Value}, AD);
+syslog_fields([{"syslogMsg", Value} | T], Acc, AD) ->
+	syslog_fields(T, Acc#{"syslogMsg" => Value}, AD);
+syslog_fields([{"syslogSev", Value} | T], Acc, AD) ->
+	syslog_fields(T, Acc#{"syslogSev" => Value}, AD);
+syslog_fields([{"syslogTag", Value} | T], Acc, AD) ->
+	syslog_fields(T, Acc#{"syslogTag" => Value}, AD);
+syslog_fields([H | T], Acc, AD) ->
+	syslog_fields(T, Acc, [H | AD]);
+syslog_fields([], Acc, AD) ->
+	{Acc, AD}.
 
 -spec fault_fields(AlarmDetails) -> FaultFields
 	when
@@ -539,24 +569,27 @@ agent_name(Address) ->
 			{error, target_name_not_found}
 	end.
 
--spec log_events(CommonEventHeader, FaultFields) -> Result
+-spec log_events(Maps) -> Result
    when
-		CommonEventHeader :: map(), FaultFields :: map(),
+		Maps :: {CommonEventHeader, FaultFields, SysLog},
+		CommonEventHeader :: map(),
+		FaultFields :: map(),
+		SysLog :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_events(CommonEventHeader, FaultFields)
-		when is_map(CommonEventHeader), is_map(FaultFields) ->
-	{ok, LogName} = application:get_env(snmp_collector, queue_name),
-	{ok, Url} = application:get_env(snmp_collector, ves_url),
+log_events({CommonEventHeader, FaultFields, SysLog}) ->
 	TimeStamp = erlang:system_time(milli_seconds),
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
-	Event = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields},
+	Event = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields, SysLog},
+	{ok, Url} = application:get_env(snmp_collector, ves_url),
+	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	case disk_log:log(LogName, Event) of
 		ok ->
-			post_event(CommonEventHeader, FaultFields, Url);
+			Event1 = {CommonEventHeader, FaultFields, SysLog},
+			post_event(Event1, Url);
 		{error, Reason} ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
 					{timestamp, TimeStamp},
@@ -566,15 +599,17 @@ log_events(CommonEventHeader, FaultFields)
 			{error, Reason}
 	end.
 
--spec post_event(CommonEventHeader, FaultFields, Url) -> ok
+-spec post_event(Event, Url) -> ok
    when
+		Event :: {CommonEventHeader, FaultFields, SysLog},
 		CommonEventHeader :: map(),
 		FaultFields :: map(),
+		SysLog :: map(),
 		Url :: inet:ip_address() | [].
 %% @doc Log the event to disk.
-post_event(_CommonEventHeader, _FaultFields, []) ->
+post_event(_Event, []) ->
 	ok;
-post_event(CommonEventHeader, FaultFields, Url)
+post_event({CommonEventHeader, FaultFields, SysLog}, Url)
 		when is_map(CommonEventHeader), is_map(FaultFields), is_list(Url) ->
 	{ok, UserName } = application:get_env(snmp_collector, ves_username),
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
@@ -583,7 +618,8 @@ post_event(CommonEventHeader, FaultFields, Url)
 	Accept = {"accept", "application/json"},
 	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
 	Authentication = {"authorization", EncodeKey},
-	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields}},
+	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields,
+			"syslogFields" => SysLog}},
 	RequestBody = zj:encode(Event),
 	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
 	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
@@ -887,16 +923,10 @@ check_fields2(#{"eventType" := EventType} = CH, FF)
 check_fields2(CH, FF) ->
 	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
 %% @hidden
-check_fields3(#{"raisedTime" := RaisedTime} = CH, FF)
-		when is_list(RaisedTime), length(RaisedTime) > 0 ->
-	check_fields4(CH, FF);
-check_fields3(CH, FF) ->
-	check_fields4(CH#{"eventType" => erlang:system_time(?MILLISECOND)}, FF).
-%% @hidden
-check_fields4(#{"probableCause" := ProbableCause} = CH, FF)
+check_fields3(#{"probableCause" := ProbableCause} = CH, FF)
 		when is_list(ProbableCause), length(ProbableCause) > 0 ->
 	{CH, FF};
-check_fields4(CH, FF) ->
+check_fields3(CH, FF) ->
 	{CH#{"probableCause" => ?ET_Quality_Of_Service_Alarm}, FF}.
 
 -spec strip_name(Name) -> Name
