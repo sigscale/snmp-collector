@@ -186,6 +186,15 @@
 -define(ES_INDETERMINATE, "INDETERMINATE").
 -define(ES_CLEARED, "CLEARED").
 
+% Syslog Severities [RFC 5424 Table 2]
+-define(SYS_EMERGENCY, "EMERGENCY").
+-define(SYS_ALERT, "ALERT").
+-define(SYS_CRITICAL, "CRITICAL").
+-define(SYS_ERROR, "ERROR").
+-define(SYS_WARNING, "WARNING").
+-define(SYS_NOTICE, "NOTICE").
+-define(SYS_DEBUG, "DEBUG").
+
 % Event Names [3GPP TS 32.111-2 6.3.2.3]
 -define(EN_NEW, notifyNewAlarm).
 -define(EN_CHANGED, notifyChangedAlarm).
