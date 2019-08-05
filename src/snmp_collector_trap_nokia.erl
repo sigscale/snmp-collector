@@ -214,37 +214,25 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
-	case heartbeat(Varbinds) of
-		true ->
+handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
+					ErrorIndex, Varbinds}, UserData);
+		heartbeat ->
 			ignore;
-		false ->
-			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-			AlarmDetails = event(NamesValues),
-			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
-			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
-				ok ->
-					ignore;
-				{error, Reason} ->
-					{error, Reason}
-			end
+		fault ->
+			handle_fault(TargetName, Varbinds)
 	end;
-handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
-	case heartbeat(Varbinds) of
-		true ->
+handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName,
+					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
+		heartbeat ->
 			ignore;
-		false ->
-			{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-			{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-			AlarmDetails = event(NamesValues),
-			{CommonEventHeader, FaultFields} = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
-			case snmp_collector_utils:log_events(CommonEventHeader, FaultFields) of
-				ok ->
-					ignore;
-				{error, Reason} ->
-					{error, Reason}
-			end
+		fault ->
+			handle_fault(TargetName, Varbinds)
 	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
@@ -275,7 +263,31 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(OidNameValuePair) -> VesNameValuePair
+-spec handle_fault(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a fault fault.
+handle_fault(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = fault(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec fault(OidNameValuePair) -> VesNameValuePair
 	when
 		OidNameValuePair :: [{OidName, OidValue}],
 		OidName :: string(),
@@ -283,125 +295,130 @@ handle_report(TargetName, SnmpReport, UserData) ->
 		VesNameValuePair :: [{VesName, VesValue}],
 		VesName :: string(),
 		VesValue :: string().
-%% @doc CODEC for event.
-event(NameValuePair) ->
-	event(NameValuePair, []).
+%% @doc CODEC for fault.
+fault(NameValuePair) ->
+	fault(NameValuePair, []).
 %% @hidden
-event([{"nbiAlarmId", Value} | T], Acc)
+fault([{"nbiAlarmId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmId", Value} | Acc]);
-event([{"nbiEventTime", Value} | T], Acc)
+	fault(T, [{"alarmId", Value} | Acc]);
+fault([{"nbiEventTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"raisedTime", Value} | Acc]);
-event([{"nbiSequenceId", Value} | T], Acc)
+	fault(T, [{"raisedTime", Value} | Acc]);
+fault([{"nbiSequenceId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"sourceId", Value} | Acc]);
-event([{"nbiOptionalInformation", Value} | T], Acc)
+	fault(T, [{"sourceId", Value} | Acc]);
+fault([{"nbiOptionalInformation", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"sourceName", Value} | Acc]);
-event([{"nbiObjectInstance", Value} | T], Acc)
+	fault(T, [{"sourceName", Value} | Acc]);
+fault([{"nbiObjectInstance", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"objectInstance", Value} | Acc]);
-event([{"nbiSpecificProblem", Value} | T], Acc)
+	fault(T, [{"objectInstance", Value} | Acc]);
+fault([{"nbiSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	case catch string:tokens(Value, "|") of
 		[_, SpecificProblem] ->
 			case maps:get(SpecificProblem, probable_causes(), ?PC_Indeterminate) of
 				ProbableCause when is_list(ProbableCause) ->
-					event(T, [{"specificProblem", SpecificProblem},
+					fault(T, [{"specificProblem", SpecificProblem},
 							{"probableCause", ProbableCause} | Acc]);
 				{badmap, _Map} ->
-					event(T, [{"specificProblem", SpecificProblem},
+					fault(T, [{"specificProblem", SpecificProblem},
 							{"probableCause", ?PC_Indeterminate} | Acc])
 			end;
 		{'EXIT', _Reason} ->
-			event(T, Acc)
+			fault(T, Acc)
 	end;
-event([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_NEW},
+fault([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
+	fault(T, [{"faultName", ?EN_NEW},
 			{"alarmCondition", "alarmNewNotification"} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED},
+fault([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
+	fault(T, [{"faultName", ?EN_CLEARED},
 			{"alarmCondition", "alarmClearedNotification"} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CHANGED},
+fault([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
+	fault(T, [{"faultName", ?EN_CHANGED},
 			{"alarmCondition", "alarmChangedNotification"} | Acc]);
-event([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
-	event(T, [{"eventName", ?EN_CLEARED},
+fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
+	fault(T, [{"faultName", ?EN_CLEARED},
 			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
-event([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
-	event(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
-event([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
-	event(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
-event([{"nbiPerceivedSeverity", "3"} | T], Acc) ->
-	event(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
-event([{"nbiPerceivedSeverity", "4"} | T], Acc) ->
-	event(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
-event([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
-	event(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
-event([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
-	event(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
-event([{"nbiAlarmType", "1"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Communication_System} | Acc]);
-event([{"nbiAlarmType", "2"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-event([{"nbiAlarmType", "3"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-event([{"nbiAlarmType", "4"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
-event([{"nbiAlarmType", "5"} | T], Acc) ->
-	event(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
-event([{"nbiProposedRepairAction", Value} | T], Acc)
+fault([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
+	fault(T, [{"faultSeverity", ?ES_CRITICAL} | Acc]);
+fault([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
+	fault(T, [{"faultSeverity", ?ES_MAJOR} | Acc]);
+fault([{"nbiPerceivedSeverity", "3"} | T], Acc) ->
+	fault(T, [{"faultSeverity", ?ES_MINOR} | Acc]);
+fault([{"nbiPerceivedSeverity", "4"} | T], Acc) ->
+	fault(T, [{"faultSeverity", ?ES_WARNING} | Acc]);
+fault([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
+	fault(T, [{"faultSeverity", ?ES_CLEARED} | Acc]);
+fault([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
+	fault(T, [{"faultSeverity", ?ES_INDETERMINATE} | Acc]);
+fault([{"nbiAlarmType", "1"} | T], Acc) ->
+	fault(T, [{"faultType", ?ET_Communication_System} | Acc]);
+fault([{"nbiAlarmType", "2"} | T], Acc) ->
+	fault(T, [{"faultType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+fault([{"nbiAlarmType", "3"} | T], Acc) ->
+	fault(T, [{"faultType", ?ET_Processing_Error} | Acc]);
+fault([{"nbiAlarmType", "4"} | T], Acc) ->
+	fault(T, [{"faultType", ?ET_Equipment_Alarm} | Acc]);
+fault([{"nbiAlarmType", "5"} | T], Acc) ->
+	fault(T, [{"faultType", ?ET_Environmental_Alarm} | Acc]);
+fault([{"nbiProposedRepairAction", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"proposedRepairActions", Value} | Acc]);
-event([{"nbiAckState", "1"} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-event([{"nbiAckState", "2"} | T], Acc) ->
-	event(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
-event([{"nbiAckSystemId", Value} | T], Acc)
+	fault(T, [{"proposedRepairActions", Value} | Acc]);
+fault([{"nbiAckState", "1"} | T], Acc) ->
+	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+fault([{"nbiAckState", "2"} | T], Acc) ->
+	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+fault([{"nbiAckSystemId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmAckUserId", Value} | Acc]);
-event([{"nbiAckTime", Value} | T], Acc)
+	fault(T, [{"alarmAckUserId", Value} | Acc]);
+fault([{"nbiAckTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmAckTime", Value} | Acc]);
-event([{"nbiAckUser", Value} | T], Acc)
+	fault(T, [{"alarmAckTime", Value} | Acc]);
+fault([{"nbiAckUser", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"alarmAckUser", Value} | Acc]);
-event([{"nbiAdditionalText", Value} | T], Acc)
+	fault(T, [{"alarmAckUser", Value} | Acc]);
+fault([{"nbiAdditionalText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"additionalText", Value} | Acc]);
-event([{"nbiCommentText", Value} | T], Acc)
+	fault(T, [{"additionalText", Value} | Acc]);
+fault([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{"eventComment", Value} | Acc]);
-event([{Name, Value} | T], Acc)
+	fault(T, [{"faultComment", Value} | Acc]);
+fault([{Name, Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	event(T, [{Name, Value} | Acc]);
-event([_H | T], Acc) ->
-	event(T, Acc);
-event([], Acc) ->
+	fault(T, [{Name, Value} | Acc]);
+fault([_H | T], Acc) ->
+	fault(T, Acc);
+fault([], Acc) ->
 	Acc.
 
--spec heartbeat(Varbinds) -> Result
+-spec domain(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
-		Result :: true | false.
-%% @doc Verify if the event is a HeartBeat event or not.
-heartbeat(Varbinds) ->
-	case snmpm:name_to_oid(snmpTrapOID) of
-		{ok, [HeartBeat]} ->
-			NewHeartBeat = lists:flatten(HeartBeat ++ [0]),
-			case lists:keyfind(NewHeartBeat, 2, Varbinds) of
-				{varbind, _, _, Value, _}
-						when Value == [1,3,6,1,4,1,28458,1,26,2,0,1,2]->
-					true;
-				{varbind, _, _, _Value, _} ->
-					false;
-				false ->
-					false
-			end;
-		{error, _Reason} ->
-			false
-	end.
+		Result :: fault | heartbeat | other.
+%% @doc Check the domain of the event.
+domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
+	domain1(snmp_collector_utils:oid_to_name(TrapName)).
+%% @hidden
+domain1("nbiAlarmChangedNotification") ->
+	fault;
+domain1("nbiAlarmCommentNotification") ->
+	fault;
+domain1("nbiAlarmClearedNotification") ->
+	fault;
+domain1("nbiAlarmSyncNotification") ->
+	fault;
+domain1("nbiAlarmSummaryNotification") ->
+	fault;
+domain1("nbiAlarmNewNotification") ->
+	fault;
+domain1("nbiAlarmAckChangedNotification") ->
+	fault;
+domain1("nbiHeartbeatNotification") ->
+	heartbeat;
+domain1(_) ->
+	other.
 
 %% @hidden
 probable_causes() ->
