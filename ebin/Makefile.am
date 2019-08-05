@@ -20,6 +20,7 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_trap_hpe.beam \
 			snmp_collector_trap_cisco.beam \
 			snmp_collector_trap_emc.beam \
+			snmp_collector_trap_generic.beam \
 			snmp_collector_debug_sup.beam \
 			snmp_collector_debug_fsm.beam \
 			snmp_collector.beam \
