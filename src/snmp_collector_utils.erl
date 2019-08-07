@@ -23,7 +23,7 @@
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/1, security_params/7,
-		agent_name/1, oids_to_names/2, generate_maps/2, engine_id/0,
+		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
 		authenticate_v1_v2/2]).
 
 %% support deprecated_time_unit()
@@ -327,35 +327,45 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
--spec generate_maps(TargetName, AlarmDetails) -> Result
+-spec generate_maps(TargetName, AlarmDetails, Domain) -> Result
 	when
 		TargetName :: list(),
 		AlarmDetails :: [{Name, Value}],
+		Domain :: fault | syslog | notification,
 		Name :: list(),
 		Value :: list(),
-		Result :: {CommonEventHeader, FaultFields, SysLog},
+		Result :: {CommonEventHeader, OtherFields},
 		CommonEventHeader :: map(),
-		FaultFields :: map(),
-		SysLog :: map().
+		OtherFields :: map().
 %% @doc Generate the Common event header and Fault Fields maps.
-generate_maps(TargetName, AlarmDetails) ->
-	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails),
-	{SysLog, Remainder1} = syslog_fields(Remainder),
-	FaultFields = fault_fields(Remainder1),
+generate_maps(TargetName, AlarmDetails, fault) ->
+	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "fault"),
+	FaultFields = fault_fields(Remainder),
 	{NewCommonEventHeader, NewFaultFields} = check_fields(CommonEventHeader, FaultFields),
-	{NewCommonEventHeader, NewFaultFields, SysLog}.
+	{NewCommonEventHeader, NewFaultFields};
+generate_maps(TargetName, AlarmDetails, syslog) ->
+	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "syslog"),
+	SyslogFields = syslog_fields(Remainder),
+	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
+	{NewCommonEventHeader, SyslogFields};
+generate_maps(TargetName, AlarmDetails, notification) ->
+	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notificaion"),
+	NotificaitonFields = notification_fields(Remainder),
+	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
+	{NewCommonEventHeader, NotificaitonFields}.
 
--spec common_event_header(TargetName, AlarmDetails) -> Result
+-spec common_event_header(TargetName, AlarmDetails, Domain) -> Result
 	when
 		AlarmDetails :: [{Name, Value}],
 		Name :: list(),
 		TargetName :: string(),
+		Domain :: string(),
 		Value :: list(),
 		Result :: {map(), AlarmDetails}.
 %% @doc Create the VES common event header map.
-common_event_header(TargetName, AlarmDetails)
+common_event_header(TargetName, AlarmDetails, Domain)
 		when is_list(TargetName), is_list(AlarmDetails) ->
-	DefaultMap = #{"domain" => "fault",
+	DefaultMap = #{"domain" => Domain,
 			"eventId" => event_id(),
 			"lastEpochMicrosec" => timestamp(),
 			"priority" => "Normal",
@@ -385,32 +395,69 @@ common_event_header([H | T], TargetName, CH, AD) ->
 common_event_header([], _TargetName, CH, AD) ->
 	{CH, AD}.
 
--spec syslog_fields(AlarmDetails) -> Result
+-spec notification_fields(AlarmDetails) -> NotificationFields
 	when
 		AlarmDetails :: [{Name, Value}],
 		Name :: list(),
 		Value :: list(),
-		Result :: {SysLogFields, AlarmDetails},
+		NotificationFields :: map().
+%% @doc Create the fault fields map.
+notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"syslogFieldsVersion" => 1},
+	notification_fields(AlarmDetails, DefaultMap).
+%% @hidden
+notification_fields([{"id", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"description", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"status", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"name", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"priority", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"eventType", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"stateInterface", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"changeType", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+notification_fields([], Acc) ->
+	Acc.
+
+-spec syslog_fields(AlarmDetails) -> SysLogFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
 		SysLogFields :: map().
 %% @doc Create the fault fields map.
 syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"syslogFieldsVersion" => 1},
-	syslog_fields(AlarmDetails, DefaultMap, []).
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"syslogFieldsVersion" => 1},
+	syslog_fields(AlarmDetails, DefaultMap).
 %% @hidden
-syslog_fields([{"sysSourceType", Value} | T], Acc, AD) ->
-	syslog_fields(T, Acc#{"eventSourceType" => Value}, AD);
-syslog_fields([{"sysSourceHost", Value} | T], Acc, AD) ->
-	syslog_fields(T, Acc#{"eventSourceHost" => Value}, AD);
-syslog_fields([{"syslogMsg", Value} | T], Acc, AD) ->
-	syslog_fields(T, Acc#{"syslogMsg" => Value}, AD);
-syslog_fields([{"syslogSev", Value} | T], Acc, AD) ->
-	syslog_fields(T, Acc#{"syslogSev" => Value}, AD);
-syslog_fields([{"syslogTag", Value} | T], Acc, AD) ->
-	syslog_fields(T, Acc#{"syslogTag" => Value}, AD);
-syslog_fields([H | T], Acc, AD) ->
-	syslog_fields(T, Acc, [H | AD]);
-syslog_fields([], Acc, AD) ->
-	{Acc, AD}.
+syslog_fields([{"sysSourceType", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"eventSourceType" => Value});
+syslog_fields([{"sysSourceHost", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"eventSourceHost" => Value});
+syslog_fields([{"syslogMsg", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogMsg" => Value});
+syslog_fields([{"syslogSev", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogSev" => Value});
+syslog_fields([{"syslogTag", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogTag" => Value});
+syslog_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+syslog_fields([], Acc) ->
+	Acc.
 
 -spec fault_fields(AlarmDetails) -> FaultFields
 	when
@@ -571,24 +618,23 @@ agent_name(Address) ->
 
 -spec log_events(Maps) -> Result
    when
-		Maps :: {CommonEventHeader, FaultFields, SysLog},
+		Maps :: {CommonEventHeader, OtherFields},
 		CommonEventHeader :: map(),
-		FaultFields :: map(),
-		SysLog :: map(),
+		OtherFields :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_events({CommonEventHeader, FaultFields, SysLog}) ->
+log_events({CommonEventHeader, OtherFields}) ->
 	TimeStamp = erlang:system_time(milli_seconds),
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
-	Event = {TimeStamp, Identifer, Node, CommonEventHeader, FaultFields, SysLog},
+	Event = {TimeStamp, Identifer, Node, CommonEventHeader, OtherFields},
 	{ok, Url} = application:get_env(snmp_collector, ves_url),
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	case disk_log:log(LogName, Event) of
 		ok ->
-			Event1 = {CommonEventHeader, FaultFields, SysLog},
+			Event1 = {CommonEventHeader, OtherFields},
 			post_event(Event1, Url);
 		{error, Reason} ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
@@ -601,16 +647,15 @@ log_events({CommonEventHeader, FaultFields, SysLog}) ->
 
 -spec post_event(Event, Url) -> ok
    when
-		Event :: {CommonEventHeader, FaultFields, SysLog},
+		Event :: {CommonEventHeader, OtherFields},
 		CommonEventHeader :: map(),
-		FaultFields :: map(),
-		SysLog :: map(),
+		OtherFields :: map(),
 		Url :: inet:ip_address() | [].
 %% @doc Log the event to disk.
 post_event(_Event, []) ->
 	ok;
-post_event({CommonEventHeader, FaultFields, SysLog}, Url)
-		when is_map(CommonEventHeader), is_map(FaultFields), is_list(Url) ->
+post_event({#{"domain" := Domain} = CommonEventHeader, OtherFields}, Url)
+		when is_map(CommonEventHeader), is_map(OtherFields), is_list(Url) ->
 	{ok, UserName } = application:get_env(snmp_collector, ves_username),
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
 	{ok, Options} = application:get_env(snmp_collector, ves_options),
@@ -618,8 +663,7 @@ post_event({CommonEventHeader, FaultFields, SysLog}, Url)
 	Accept = {"accept", "application/json"},
 	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
 	Authentication = {"authorization", EncodeKey},
-	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, "faultFields" => FaultFields,
-			"syslogFields" => SysLog}},
+	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, Domain ++ "Fields" => OtherFields}},
 	RequestBody = zj:encode(Event),
 	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
 	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
