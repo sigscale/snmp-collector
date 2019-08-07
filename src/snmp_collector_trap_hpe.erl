@@ -223,7 +223,7 @@ handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = event(NamesValues),
-		Event  = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+		Event  = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_events(Event)
 	of
 		ok ->
@@ -239,7 +239,7 @@ handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _Us
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = event(NamesValues),
-		Event  = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+		Event  = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_events(Event)
 	of
 		ok ->

@@ -326,7 +326,7 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_events(Event)
 	of
 		ok ->
