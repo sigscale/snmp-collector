@@ -45,7 +45,10 @@
 %% </table></p>
 
 -module(snmp_collector_trap_cisco).
+
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
+
+-include("snmp_collector.hrl").
 
 -behaviour(snmpm_user).
 
@@ -103,7 +106,7 @@ handle_agent(Domain, Address, Type, {ErrorStatus, ErrorIndex, Varbind}, UserData
 			Address , Type, {ErrorStatus, ErrorIndex, Varbind},
 			UserData);
 handle_agent(Domain, Address, Type, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
-	snmp_collector_snmpm_user_default:handle_agent(Domain, Address, Type, 
+	snmp_collector_snmpm_user_default:handle_agent(Domain, Address, Type,
 			{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData).
 
 -spec handle_pdu(TargetName, ReqId, SnmpPduInfo, UserData) -> snmp:void()
@@ -125,10 +128,26 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(_TargetName, {_ErrorStatus, _ErrorIndex, _Varbinds}, _UserData) ->
-	ignore;
-handle_trap(_TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, _Varbinds}, _UserData) ->
-	ignore.
+handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
+					ErrorIndex, Varbinds}, UserData);
+		fault ->
+			handle_fault(TargetName, Varbinds);
+		syslog ->
+			handle_syslog(TargetName, Varbinds)
+	end;
+handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName,
+					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
+		fault ->
+			handle_fault(TargetName, Varbinds);
+		syslog ->
+			handle_syslog(TargetName, Varbinds)
+	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
 	when
@@ -158,3 +177,319 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
+-spec handle_fault(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a fault event.
+handle_fault(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = fault(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec fault(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for fault.
+fault(NameValuePair) ->
+	fault(NameValuePair, []).
+%% @hidden
+fault([{"snmpTrapOID", "cefcPowerSupplyOutputChange"},
+		{"entPhysicalName", PhysicalName}, {"entPhysicalModelName", ModelName},
+		{"cefcPSOutputModeCurrent", OutputModeCurrent} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceName", PhysicalName},
+			{"modelName", ModelName},
+			{"outputModeCurrent", OutputModeCurrent},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerSupplyOutputChange"},
+			{"probableCause", ?PC_Power_Problem},
+			{"eventType", ?ET_Equipment_Alarm} ,
+			{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"snmpTrapOID", "ciscoEnvMonSuppStatusChangeNotif"},
+		{"ciscoEnvMonSupplyStatusDescr", StatusDescription},
+		{"ciscoEnvMonSupplyState", SupplyState} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerSupplyOutputChange"},
+			{"probableCause", ?PC_Power_Problem},
+			{"eventType", ?ET_Environmental_Alarm} ,
+			{"specificProblem", StatusDescription},
+			{"powerSupplyState", SupplyState},
+			{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"snmpTrapOID", "ciscoEnvMonShutdownNotification"} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "envMonShutdownNotification"},
+			{"probableCause", ?ET_Environmental_Alarm},
+			{"specificProblem", "environmental monitor detected a testpoint reaching a
+					critical state and is about to initiate a shutdown"},
+			{"eventSeverity", ?ES_CRITICAL} | Acc]);
+fault([{"snmpTrapOID", "ciscoEnvMonTempStatusChangeNotif"},
+		{"ciscoEnvMonTemperatureStatusDescr", StatusDescription},
+		{"ciscoEnvMonTemperatureStatusValue", StatusValue},
+		{"ciscoEnvMonTemperatureState", TempState} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "envMonTempStatusChangeNotif"},
+			{"probableCause", ?PC_Temperature_Unacceptable},
+			{"eventType", ?ET_Environmental_Alarm} ,
+			{"specificProblem", StatusDescription},
+			{"envMonTempStatysValue", StatusValue},
+			{"powerSupplyState", TempState},
+			{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"snmpTrapOID", "ciscoEnvMonVoltStatusChangeNotif"},
+		{"ciscoEnvMonVoltageStatusDescr", StatusDescription},
+		{"ciscoEnvMonVoltageStatusValue", StatusValue},
+		{"ciscoEnvMonVoltageState", VoltageState} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "envMonVoltStatusChangeNotif"},
+			{"probableCause", ?PC_Rectifier_High_Voltage},
+			{"eventType", ?ET_Environmental_Alarm} ,
+			{"specificProblem", StatusDescription},
+			{"envMonTempStatysValue", StatusValue},
+			{"volatageState", VoltageState},
+			{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"snmpTrapOID", "ciscoEnvMonFanStatusChangeNotif"},
+		{"ciscoEnvMonFanStatusDescr", StatusDescription},
+		{"ciscoEnvMonFanState", FanState} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "envMonFanStatusChangeNotif"},
+			{"probableCause", ?PC_Threshold_Crossed},
+			{"eventType", ?ET_Environmental_Alarm} ,
+			{"specificProblem", StatusDescription},
+			{"fanState", FanState},
+			{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"snmpTrapOID", "cErrDisableInterfaceEventRev1"},
+		{"cErrDisableIfStatusCause", SpecificProblem} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "errDisableInterfaceEvent"},
+			{"probableCause", "Interface Error-Disabled"},
+			{"eventType", ?ET_Operational_Violation} ,
+			{"specificProblem", SpecificProblem},
+			{"eventSeverity", ?ES_CRITICAL} | Acc]);
+fault([{"snmpTrapOID", "ciscoMemoryPoolLowMemoryNotif"},
+		{"ciscoMemoryPoolName", MemoryPoolName},
+		{"ciscoMemoryPoolUsed", MemoryPoolUsed} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceName", MemoryPoolName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "memoryPoolLowMemoryNotif"},
+			{"probableCause", ?PC_Out_Of_Memory},
+			{"memoryUsed", MemoryPoolUsed},
+			{"eventType", ?ET_Operational_Violation} ,
+			{"specificProblem", "Available memory in the system has fallen the below threshold"},
+			{"eventSeverity", ?ES_MAJOR} | Acc]);
+fault([{"snmpTrapOID", "ciscoMemoryPoolLowMemoryRecoveryNotif"},
+		{"ciscoMemoryPoolName", MemoryPoolName},
+		{"ciscoMemoryPoolUsed", MemoryPoolUsed} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_CLEARED},
+			{"sourceName", MemoryPoolName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "memoryPoolLowMemoryNotif"},
+			{"probableCause", "Memory Pool Recovered"},
+			{"memoryUsed", MemoryPoolUsed},
+			{"eventType", ?ET_Operational_Violation} ,
+			{"specificProblem", "Recovered from low memory levels"},
+			{"eventSeverity", ?ES_CLEARED} | Acc]);
+fault([{"snmpTrapOID", "cswStackPowerInsufficientPower"},
+		{"cswStackPowerName", StackPowerName} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceName", StackPowerName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "stackPowerInsufficientPower"},
+			{"probableCause", ?PC_Power_Problem},
+			{"eventType", ?ET_Equipment_Alarm} ,
+			{"specificProblem", "The switch's power stack does not have enough power
+					to bring up all the switches in the power stack"},
+			{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"snmpTrapOID", "cswStackPowerInvalidInputCurrent"},
+		{"cswSwitchNumCurrent", SwitchNum},
+		{"cswStackPowerPortOverCurrentThreshold", ExceededCurrentThreshold},
+		{"cswStackPowerPortName", PortName} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceId", SwitchNum},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "stackPowerInvalidInputCurrent"},
+			{"probableCause", ?PC_Power_Problem},
+			{"eventType", ?ET_Equipment_Alarm} ,
+			{"exceededThreadholdValue", ExceededCurrentThreshold},
+			{"portName", PortName},
+			{"specificProblem", "Input current in the
+					stack power cable is over the limit of the threshold"},
+			{"proposedRepairActions", "The user should add a power supply to the system whose
+					switch number is generated with this alarm"},
+			{"eventSeverity", ?ES_MINOR} | Acc]);
+fault([{"snmpTrapOID", "cswStackPowerInvalidOutputCurrent"},
+		{"cswSwitchNumCurrent", SwitchNum},
+		{"cswStackPowerPortOverCurrentThreshold", ExceededCurrentThreshold},
+		{"cswStackPowerPortName", PortName} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceId", SwitchNum},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "stackPowerInvalidOutputCurrent"},
+			{"probableCause", ?PC_Power_Problem},
+			{"eventType", ?ET_Equipment_Alarm} ,
+			{"exceededThreadholdValue", ExceededCurrentThreshold},
+			{"portName", PortName},
+			{"specificProblem", "Output current in the
+					stack power cable is over the limit of the threshold"},
+			{"proposedRepairActions", "The user should remove a power supply from the system whose
+					switch number is generated with this alarm"},
+			{"eventSeverity", ?ES_MINOR} | Acc]);
+fault([{"snmpTrapOID", "cswStackPowerPriorityConflict"},
+		{"cswStackPowerName", StackPowerName} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceName", StackPowerName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "stackPowerPriorityConflict"},
+			{"probableCause", ?PC_Power_Problem},
+			{"eventType", ?ET_Equipment_Alarm} ,
+			{"specificProblem", "The switch's power priorities are conflicting with
+					power priorities of another switch in the same power stack"},
+			{"eventSeverity", ?ES_MINOR} | Acc]);
+fault([{"snmpTrapOID", "cswStackPowerUnbalancedPowerSupplies"},
+		{"cswStackPowerName", StackPowerName} | T], Acc) ->
+	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceName", StackPowerName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "stackPowerUnbalancedPowerSupplies"},
+			{"probableCause", ?PC_Power_Problem},
+			{"eventType", ?ET_Equipment_Alarm} ,
+			{"specificProblem", "The switch has no power supply but another switch
+					in the same stack has more than one power supply"},
+			{"eventSeverity", ?ES_MINOR} | Acc]);
+fault([_H | T], Acc) ->
+	fault(T, Acc);
+fault([], Acc) ->
+	Acc.
+
+-spec handle_syslog(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a syslog event.
+handle_syslog(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = syslog(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, syslog),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec syslog(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for syslog.
+syslog(NameValuePair) ->
+	syslog(NameValuePair, []).
+%% @hidden
+syslog([{"snmpTrapOID", "clogMessageGenerated"},
+		{"clogHistFacility", FacilityName},
+		{"clogHistSeverity", SysLogSeverity}, {"clogHistMsgName", MessageName},
+		{"clogHistMsgText", MessageText}, {"clogHistTimestamp", TimeStamp} | T], Acc) ->
+	syslog(T, [{"sysSourceType", FacilityName},
+			{"eventFieldsVersion", 1},
+			{"syslogMsg", MessageText},
+			{"syslogSev", snmp_collector_trap_generic:syslog_severity(SysLogSeverity)},
+			{"syslogTag", MessageName},
+			{"raisedTime", TimeStamp} | Acc]);
+syslog([_H | T], Acc) ->
+	syslog(T, Acc);
+syslog([], Acc) ->
+	Acc.
+
+-spec domain(Varbinds) -> Result
+	when
+		Varbinds :: [snmp:varbinds()],
+		Result :: fault | syslog | heartbeat | other.
+%% @doc Verify if the domain of the event.
+domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
+	domain1(snmp_collector_utils:oid_to_name(TrapName)).
+%% @hidden
+%%
+domain1("cefcPowerSupplyOutputChange") ->
+	fault;
+domain1("ciscoEnvMonSuppStatusChangeNotif") ->
+	fault;
+domain1("ciscoEnvMonShutdownNotification") ->
+	fault;
+domain1("ciscoEnvMonTempStatusChangeNotif") ->
+	fault;
+domain1("ciscoEnvMonVoltStatusChangeNotif") ->
+	fault;
+domain1("ciscoEnvMonFanStatusChangeNotif") ->
+	fault;
+domain1("cErrDisableInterfaceEventRev1") ->
+	fault;
+domain1("ciscoMemoryPoolLowMemoryNotif") ->
+	fault;
+domain1("ciscoMemoryPoolLowMemoryRecoveryNotif") ->
+	fault;
+domain1("cswStackPowerInsufficientPower") ->
+	fault;
+domain1("cswStackPowerInvalidInputCurrent") ->
+	fault;
+domain1("cswStackPowerInvalidOutputCurrent") ->
+	fault;
+domain1("cswStackPowerPriorityConflict") ->
+	fault;
+domain1("cswStackPowerUnbalancedPowerSupplies") ->
+	fault;
+domain1("clogMessageGenerated") ->
+	syslog;
+domain1(_) ->
+	other.
+	
