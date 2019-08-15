@@ -320,7 +320,7 @@ handle_fault(TargetName, Varbinds) ->
 		VesNameValuePair :: [{VesName, VesValue}],
 		VesName :: string(),
 		VesValue :: string().
-%% @doc CODEC for fault.
+%% @doc CODEC for event.
 fault(NameValuePair) ->
 	fault(NameValuePair, []).
 %% @hidden
@@ -338,7 +338,7 @@ fault([{"systemDN", Value} | T], Acc)
 	fault(T, [{"reportingEntityID", Value} | Acc]);
 fault([{"alarmMocObjectInstance", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"faultSourceType", Value} | Acc]);
+	fault(T, [{"eventSourceType", Value} | Acc]);
 fault([{"alarmManagedObjectInstanceName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"objectInstance", Value} | Acc]);
@@ -346,48 +346,48 @@ fault([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"specificProblem", Value} | Acc]);
 fault([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_INDETERMINATE} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 fault([{"alarmPerceivedSeverity", "2"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_CRITICAL} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 fault([{"alarmPerceivedSeverity", "3"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_MAJOR} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
 fault([{"alarmPerceivedSeverity", "4"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_MINOR} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 fault([{"alarmPerceivedSeverity", "5"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_WARNING} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
 fault([{"alarmPerceivedSeverity", "6"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_CLEARED} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
-	fault(T, [{"faultName", ?EN_NEW}, {"alarmCondition", "alarmNew"} | Acc]);
+	fault(T, [{"eventName", ?EN_NEW}, {"alarmCondition", "alarmNew"} | Acc]);
 fault([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
-	fault(T, [{"faultName", ?EN_CLEARED}, {"alarmCondition", "alarmCleared"} | Acc]);
+	fault(T, [{"eventName", ?EN_CLEARED}, {"alarmCondition", "alarmCleared"} | Acc]);
 fault([{"snmpTrapOID",  "alarmAckChange"} | T], Acc) ->
-	fault(T, [{"faultName", ?EN_CHANGED}, {"alarmCondition", "alarmAckChange"} | Acc]);
+	fault(T, [{"eventName", ?EN_CHANGED}, {"alarmCondition", "alarmAckChange"} | Acc]);
 fault([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCondition", Value} | Acc]);
 fault([{"alarmEventType", "1"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Communication_System} | Acc]);
+	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
 fault([{"alarmEventType", "2"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Processing_Error} | Acc]);
+	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 fault([{"alarmEventType", "3"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Environmental_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 fault([{"alarmEventType", "4"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"alarmEventType", "5"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Equipment_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 fault([{"alarmEventType", "6"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Integrity_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
 fault([{"alarmEventType", "7"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Operational_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Operational_Violation} | Acc]);
 fault([{"alarmEventType", "8"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Physical_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Physical_Violation} | Acc]);
 fault([{"alarmEventType", "9"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
 fault([{"alarmEventType", "10"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Time_Domain_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 fault([{"alarmEventType", "11"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"alarmProbableCause", Value} | T], Acc) ->
 	fault(T, [{"probableCause", Value} | Acc]);
 fault([{"alarmAck", "1"} | T], Acc) ->

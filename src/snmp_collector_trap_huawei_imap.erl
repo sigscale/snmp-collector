@@ -350,7 +350,7 @@ handle_fault(TargetName, Varbinds) ->
 		VesNameValuePair :: [{VesName, VesValue}],
 		VesName :: string(),
 		VesValue :: string().
-%% @doc CODEC for fault.
+%% @doc CODEC for event.
 fault(NameValuePair) ->
 	fault(NameValuePair, []).
 %% @hidden
@@ -368,7 +368,7 @@ fault([{"iMAPNorthboundAlarmNEDevID", Value} | T], Acc)
 	fault(T, [{"sourceName", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmNEType", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"faultSourceType", Value} | Acc]);
+	fault(T, [{"eventSourceType", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"objectInstance", Value}| Acc]);
@@ -382,53 +382,53 @@ fault([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCondition", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "1"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_CRITICAL} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "2"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_MAJOR} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "3"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_MINOR} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_WARNING} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
-	fault(T, [{"faultSeverity", ?ES_INDETERMINATE} | Acc]);
+	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
-	fault(T, [{"faultName", ?EN_NEW} | Acc]);
+	fault(T, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
-	fault(T, [{"faultName", ?EN_CHANGED}| Acc]);
+	fault(T, [{"eventName", ?EN_CHANGED}| Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
-	fault(T, [{"faultName", ?EN_CLEARED} | Acc]);
+	fault(T, [{"eventName", ?EN_CLEARED} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Equipment_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Environmental_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "3"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Communication_System} | Acc]);
+	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "4"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Communication_System} | Acc]);
+	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "5"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Equipment_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "6"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Processing_Error} | Acc]);
+	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "7"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Processing_Error} | Acc]);
+	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "8"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Communication_System} | Acc]);
+	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "9"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "10"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Processing_Error} | Acc]);
+	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "11"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "12"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Integrity_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "13"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Operational_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Operational_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "14"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Physical_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Physical_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "15"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "16"} | T], Acc) ->
-	fault(T, [{"faultType", ?ET_Time_Domain_Violation} | Acc]);
+	fault(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"probableCause", Value} | Acc]);
