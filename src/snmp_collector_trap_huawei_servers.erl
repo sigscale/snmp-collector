@@ -131,27 +131,21 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 	case domain(Varbinds) of
 		other ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
 		fault ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 			handle_fault(TargetName, Varbinds);
 		syslog ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 			handle_syslog(TargetName, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
 	case domain(Varbinds) of
 		other ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
 		fault ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 			handle_fault(TargetName, Varbinds);
 		syslog ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 			handle_syslog(TargetName, Varbinds)
 	end.
 
