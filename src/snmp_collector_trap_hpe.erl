@@ -218,37 +218,29 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = event(NamesValues),
-		Event  = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
-	of
-		ok ->
+handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
+					ErrorIndex, Varbinds}, UserData);
+		heartbeat ->
 			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
+		notification ->
+			handle_notification(TargetName, Varbinds);
+		fault ->
+			handle_fault(TargetName, Varbinds)
 	end;
-handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = event(NamesValues),
-		Event  = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
-	of
-		ok ->
+handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName,
+					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
+		heartbeat ->
 			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
+		notification ->
+			handle_notification(TargetName, Varbinds);
+		fault ->
+			handle_fault(TargetName, Varbinds)
 	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
@@ -279,7 +271,31 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(OidNameValuePair) -> VesNameValuePair
+-spec handle_fault(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a fault event.
+handle_fault(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = fault(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec fault(OidNameValuePair) -> VesNameValuePair
 	when
 		OidNameValuePair :: [{OidName, OidValue}],
 		OidName :: string(),
@@ -288,15 +304,14 @@ handle_report(TargetName, SnmpReport, UserData) ->
 		VesName :: string(),
 		VesValue :: string().
 %% @doc CODEC for event.
-event(OidNameValuePair) ->
-	event(OidNameValuePair, []).
+fault(OidNameValuePair) ->
+	fault(OidNameValuePair, []).
 %% @hidden
-
-event([{"snmpTrapOID", "compaqq.[22001]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22001]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackSerialNum", RackSerialNum},
 		{"cpqRackTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId",  RackTrapSequenceNum},
+	fault(T, [{"alarmId",  RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -308,14 +323,14 @@ event([{"snmpTrapOID", "compaqq.[22001]"}, {"sysName", SysName},
 			{"eventSeverity", ?ES_INDETERMINATE},
 			{"specificProblem", "The rack name has changed to " ++ RackName},
 			{"rackSerialNum", RackSerialNum}| Acc]);
-event([{"snmpTrapOID", "compaqq.[22002]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22002]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureModel", EnclosureModel},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -332,14 +347,14 @@ event([{"snmpTrapOID", "compaqq.[22002]"}, {"sysName", SysName},
 			{"enclosureModel", EnclosureModel},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22003]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22003]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureModel", EnclosureModel},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -356,14 +371,14 @@ event([{"snmpTrapOID", "compaqq.[22003]"}, {"sysName", SysName},
 			{"enclosureModel", EnclosureModel},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22004]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22004]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureModel", EnclosureModel},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -380,14 +395,14 @@ event([{"snmpTrapOID", "compaqq.[22004]"}, {"sysName", SysName},
 			{"enclosureModel", EnclosureModel},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22005]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22005]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTempLocation", TempLocation},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -406,14 +421,14 @@ event([{"snmpTrapOID", "compaqq.[22005]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22006]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22006]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTempLocation", TempLocation},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -432,14 +447,14 @@ event([{"snmpTrapOID", "compaqq.[22006]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22007]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22007]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTempLocation", TempLocation},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -455,14 +470,14 @@ event([{"snmpTrapOID", "compaqq.[22007]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22008]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22008]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureFanLocation", FanLocation},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -479,14 +494,14 @@ event([{"snmpTrapOID", "compaqq.[22008]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22009]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22009]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureFanLocation", FanLocation},
 		{"cpqRackCommonEnclosureFanSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -503,14 +518,14 @@ event([{"snmpTrapOID", "compaqq.[22009]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22010]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22010]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureFanLocation", FanLocation},
 		{"cpqRackCommonEnclosureFanSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -526,14 +541,14 @@ event([{"snmpTrapOID", "compaqq.[22010]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22011]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22011]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureFanLocation", FanLocation},
 		{"cpqRackCommonEnclosureFanSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -549,14 +564,14 @@ event([{"snmpTrapOID", "compaqq.[22011]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22012]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22012]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureFanLocation", FanLocation},
 		{"cpqRackCommonEnclosureFanSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -573,7 +588,7 @@ event([{"snmpTrapOID", "compaqq.[22012]"}, {"sysName", SysName},
 			{"fanLocation", FanLocation},
 			{"fanSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22013]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22013]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerSupplyEnclosureName", EnclosureName},
 		{"cpqRackPowerSupplySerialNum", SerialNum},
@@ -582,7 +597,7 @@ event([{"snmpTrapOID", "compaqq.[22013]"}, {"sysName", SysName},
 		{"cpqRackPowerSupplySparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -602,7 +617,7 @@ event([{"snmpTrapOID", "compaqq.[22013]"}, {"sysName", SysName},
 			{"powerSupplySparePartNum", SparePartNumber},
 			{"enclosureTrapSerialNum", SerialNum},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22014]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22014]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerSupplyEnclosureName", EnclosureName},
 		{"cpqRackPowerSupplySerialNum", SerialNum},
@@ -611,7 +626,7 @@ event([{"snmpTrapOID", "compaqq.[22014]"}, {"sysName", SysName},
 		{"cpqRackPowerSupplySparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -631,7 +646,7 @@ event([{"snmpTrapOID", "compaqq.[22014]"}, {"sysName", SysName},
 			{"powerSupplySparePartNum", SparePartNumber},
 			{"enclosureTrapSerialNum", SerialNum},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22015]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22015]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerSupplyEnclosureName", EnclosureName},
 		{"cpqRackPowerSupplySerialNum", SerialNum},
@@ -640,7 +655,7 @@ event([{"snmpTrapOID", "compaqq.[22015]"}, {"sysName", SysName},
 		{"cpqRackPowerSupplySparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -659,7 +674,7 @@ event([{"snmpTrapOID", "compaqq.[22015]"}, {"sysName", SysName},
 			{"powerSupplySparePartNum", SparePartNumber},
 			{"enclosureTrapSerialNum", SerialNum},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22016]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22016]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerSupplyEnclosureName", EnclosureName},
 		{"cpqRackPowerSupplySerialNum", SerialNum},
@@ -668,7 +683,7 @@ event([{"snmpTrapOID", "compaqq.[22016]"}, {"sysName", SysName},
 		{"cpqRackPowerSupplySparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -687,7 +702,7 @@ event([{"snmpTrapOID", "compaqq.[22016]"}, {"sysName", SysName},
 			{"powerSupplySparePartNum", SparePartNumber},
 			{"enclosureTrapSerialNum", SerialNum},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22017]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22017]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerSupplyEnclosureName", EnclosureName},
 		{"cpqRackPowerSupplySerialNum", SerialNum},
@@ -696,7 +711,7 @@ event([{"snmpTrapOID", "compaqq.[22017]"}, {"sysName", SysName},
 		{"cpqRackPowerSupplySparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -715,12 +730,12 @@ event([{"snmpTrapOID", "compaqq.[22017]"}, {"sysName", SysName},
 			{"powerSupplySparePartNum", SparePartNumber},
 			{"enclosureTrapSerialNum", SerialNum},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22018]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22018]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerSupplyEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -737,7 +752,7 @@ event([{"snmpTrapOID", "compaqq.[22018]"}, {"sysName", SysName},
 			{"enclosureName", EnclosureName},
 			{"enclosureTrapSerialNum", SerialNum},
 			{"enclosureTrapSequenceNum", RackTrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22019]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22019]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerSupplyEnclosureName", EnclosureName},
 		{"cpqRackPowerSupplyPosition", PowerSupplyPosition}, {"cpqRackPowerSupplyFWRev", PowerSupplyFWRev},
@@ -745,7 +760,7 @@ event([{"snmpTrapOID", "compaqq.[22019]"}, {"sysName", SysName},
 		{"cpqRackPowerSupplySparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", SerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", RackTrapSequenceNum},
+	fault(T, [{"alarmId", RackTrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -764,12 +779,12 @@ event([{"snmpTrapOID", "compaqq.[22019]"}, {"sysName", SysName},
 			{"powerSupplyInputLineStatus", InputLineStatus},
 			{"powerSupplySparePartNumber", SparePartNumber},
 			{"enclosureTrapSerialNum", SerialNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22020]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22020]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackPowerEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber}, {"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -787,13 +802,13 @@ event([{"snmpTrapOID", "compaqq.[22020]"}, {"sysName", SysName},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"commonEnclosureSerialNum", EnclosureSerialNum},
 			{"enclosSerialNum", EnclosureSerialNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22021]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22021]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladePosition", BladePosition}, {"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -811,13 +826,13 @@ event([{"snmpTrapOID", "compaqq.[22021]"}, {"sysName", SysName},
 			{"enclosureSparePartNumber", SparePartNumber},
 			{"enclosureTrapSerialNum", EnclosureSerialNum},
 			{"enclosureSerialNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22022]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22022]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", BladeEnclosureName},
 		{"cpqRackServerBladePosition", BladePosition}, {"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -834,13 +849,13 @@ event([{"snmpTrapOID", "compaqq.[22022]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22023]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22023]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", BladeEnclosureName},
 		{"cpqRackServerBladePosition", BladePosition}, {"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -857,13 +872,13 @@ event([{"snmpTrapOID", "compaqq.[22023]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22024]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22024]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", BladeEnclosureName},
 		{"cpqRackServerBladePosition", BladePosition}, {"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -880,13 +895,13 @@ event([{"snmpTrapOID", "compaqq.[22024]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22025]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22025]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", BladeEnclosureName},
 		{"cpqRackServerBladePosition", BladePosition}, {"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -903,13 +918,13 @@ event([{"snmpTrapOID", "compaqq.[22025]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22026]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22026]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", BladeEnclosureName},
 		{"cpqRackServerBladePosition", BladePosition}, {"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -924,13 +939,13 @@ event([{"snmpTrapOID", "compaqq.[22026]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22027]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22027]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureFuseLocation", FuseLocation}, {"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -947,14 +962,14 @@ event([{"snmpTrapOID", "compaqq.[22027]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22028]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22028]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
 		{"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -969,14 +984,14 @@ event([{"snmpTrapOID", "compaqq.[22028]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22029]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22029]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
 		{"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -991,13 +1006,13 @@ event([{"snmpTrapOID", "compaqq.[22029]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22030]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22030]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1013,13 +1028,13 @@ event([{"snmpTrapOID", "compaqq.[22030]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22031]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22031]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1036,13 +1051,13 @@ event([{"snmpTrapOID", "compaqq.[22031]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22032]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22032]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1059,11 +1074,11 @@ event([{"snmpTrapOID", "compaqq.[22032]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22033]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22033]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1078,13 +1093,13 @@ event([{"snmpTrapOID", "compaqq.[22033]"}, {"sysName", SysName},
 					Replace any failed or degraded power supplies"},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22034]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22034]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1100,12 +1115,12 @@ event([{"snmpTrapOID", "compaqq.[22034]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22035]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22035]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1120,12 +1135,12 @@ event([{"snmpTrapOID", "compaqq.[22035]"}, {"sysName", SysName},
 			{"proposedRepairActions", "Remove the extra power enclosure"},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22036]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22036]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1140,7 +1155,7 @@ event([{"snmpTrapOID", "compaqq.[22036]"}, {"sysName", SysName},
 			{"proposedRepairActions", "Check the cabling of the power enclosure."},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22037]"},  {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22037]"},  {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
@@ -1148,7 +1163,7 @@ event([{"snmpTrapOID", "compaqq.[22037]"},  {"sysName", SysName},
 		{"cpqRackCommonEnclosureManagerSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureManagerSerialNum", ManagerSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1171,7 +1186,7 @@ event([{"snmpTrapOID", "compaqq.[22037]"},  {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureManagerSerialNum", ManagerSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22038]"},  {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22038]"},  {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
@@ -1179,7 +1194,7 @@ event([{"snmpTrapOID", "compaqq.[22038]"},  {"sysName", SysName},
 		{"cpqRackCommonEnclosureManagerSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureManagerSerialNum", ManagerSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1196,7 +1211,7 @@ event([{"snmpTrapOID", "compaqq.[22038]"},  {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureManagerSerialNum", ManagerSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22039"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22039"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
@@ -1204,7 +1219,7 @@ event([{"snmpTrapOID", "compaqq.[22039"}, {"sysName", SysName},
 		{"cpqRackCommonEnclosureManagerSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureManagerSerialNum", ManagerSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1221,7 +1236,7 @@ event([{"snmpTrapOID", "compaqq.[22039"}, {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureManagerSerialNum", ManagerSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22040]"},  {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22040]"},  {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
@@ -1229,7 +1244,7 @@ event([{"snmpTrapOID", "compaqq.[22040]"},  {"sysName", SysName},
 		{"cpqRackCommonEnclosureManagerSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureManagerSerialNum", ManagerSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1246,7 +1261,7 @@ event([{"snmpTrapOID", "compaqq.[22040]"},  {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureManagerSerialNum", ManagerSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22041]"},  {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22041]"},  {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackCommonEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
@@ -1254,7 +1269,7 @@ event([{"snmpTrapOID", "compaqq.[22041]"},  {"sysName", SysName},
 		{"cpqRackCommonEnclosureManagerSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureManagerSerialNum", ManagerSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1271,14 +1286,14 @@ event([{"snmpTrapOID", "compaqq.[22041]"},  {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureManagerSerialNum", ManagerSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22042]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22042]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
 		{"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1296,14 +1311,14 @@ event([{"snmpTrapOID", "compaqq.[22042]"}, {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22043]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22043]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
 		{"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1319,14 +1334,14 @@ event([{"snmpTrapOID", "compaqq.[22043]"}, {"sysName", SysName},
 			{"serverBladePosition", BladePosition},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22044]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22044]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackNetConnectorEnclosureName", EnclosureName},
 		{"cpqRackNetConnectorName", ConnectorName}, {"cpqRackNetConnectorLocation", ConnectorLocation},
 		{"cpqRackNetConnectorSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1343,14 +1358,14 @@ event([{"snmpTrapOID", "compaqq.[22044]"}, {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22045]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22045]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackNetConnectorEnclosureName", EnclosureName},
 		{"cpqRackNetConnectorName", ConnectorName}, {"cpqRackNetConnectorLocation", ConnectorLocation},
 		{"cpqRackNetConnectorSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1367,14 +1382,14 @@ event([{"snmpTrapOID", "compaqq.[22045]"}, {"sysName", SysName},
 			{"enclosureManagerSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22046]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22046]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackNetConnectorEnclosureName", EnclosureName},
 		{"cpqRackNetConnectorName", ConnectorName}, {"cpqRackNetConnectorLocation", ConnectorLocation},
 		{"cpqRackNetConnectorSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1392,14 +1407,14 @@ event([{"snmpTrapOID", "compaqq.[22046]"}, {"sysName", SysName},
 			{"rackNetConnectorSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22047]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22047]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackNetConnectorEnclosureName", EnclosureName},
 		{"cpqRackNetConnectorName", ConnectorName}, {"cpqRackNetConnectorLocation", ConnectorLocation},
 		{"cpqRackNetConnectorSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1418,14 +1433,14 @@ event([{"snmpTrapOID", "compaqq.[22047]"}, {"sysName", SysName},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22048]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22048]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackNetConnectorEnclosureName", EnclosureName},
 		{"cpqRackNetConnectorName", ConnectorName}, {"cpqRackNetConnectorLocation", ConnectorLocation},
 		{"cpqRackNetConnectorSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1444,14 +1459,14 @@ event([{"snmpTrapOID", "compaqq.[22048]"}, {"sysName", SysName},
 			{"rackNetConnectorSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22049]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22049]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
 		{"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1469,7 +1484,7 @@ event([{"snmpTrapOID", "compaqq.[22049]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22050]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22050]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1477,7 +1492,7 @@ event([{"snmpTrapOID", "compaqq.[22050]"}, {"sysName", SysName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackServerBladeUid", ServerBladeUid},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1496,7 +1511,7 @@ event([{"snmpTrapOID", "compaqq.[22050]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22051]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22051]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1504,7 +1519,7 @@ event([{"snmpTrapOID", "compaqq.[22051]"}, {"sysName", SysName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1523,7 +1538,7 @@ event([{"snmpTrapOID", "compaqq.[22051]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22052]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22052]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladeProductId", BladeProductId},
@@ -1532,7 +1547,7 @@ event([{"snmpTrapOID", "compaqq.[22052]"}, {"sysName", SysName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1552,7 +1567,7 @@ event([{"snmpTrapOID", "compaqq.[22052]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22053]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22053]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladeProductId", BladeProductId},
@@ -1565,7 +1580,7 @@ event([{"snmpTrapOID", "compaqq.[22053]"}, {"sysName", SysName},
 		{"cpqRackServerBladeFaultMinor", BladeFaultMinor},
 		{"cpqRackServerBladeFaultDiagnosticString", DiagnosticString},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1588,7 +1603,7 @@ event([{"snmpTrapOID", "compaqq.[22053]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"bladeSerialNum", BladeSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22054]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22054]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladeProductId", BladeProductId},
@@ -1601,7 +1616,7 @@ event([{"snmpTrapOID", "compaqq.[22054]"}, {"sysName", SysName},
 		{"cpqRackServerBladeFaultMinor", BladeFaultMinor},
 		{"cpqRackServerBladeFaultDiagnosticString", DiagnosticString},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1624,14 +1639,14 @@ event([{"snmpTrapOID", "compaqq.[22054]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22055]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22055]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
 		{"cpqRackServerBladeSparePartNumber", SparePartNumber},
 		{"cpqRackServerBladeSerialNum", BladeSerialNum},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1649,7 +1664,7 @@ event([{"snmpTrapOID", "compaqq.[22055]"}, {"sysName", SysName},
 			{"enclosureSerialNum", BladeSerialNum},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22056]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22056]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1658,7 +1673,7 @@ event([{"snmpTrapOID", "compaqq.[22056]"}, {"sysName", SysName},
 		{"cpqRackServerBladeSerialNum", BladeSerialNum},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1678,7 +1693,7 @@ event([{"snmpTrapOID", "compaqq.[22056]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22057]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22057]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1688,7 +1703,7 @@ event([{"snmpTrapOID", "compaqq.[22057]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeManagementDeviceFirmwareFlashingStatus", FirmwareFlashingStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1708,7 +1723,7 @@ event([{"snmpTrapOID", "compaqq.[22057]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22058]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22058]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1718,7 +1733,7 @@ event([{"snmpTrapOID", "compaqq.[22058]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeManagementDeviceFirmwareFlashingStatus", FirmwareFlashingStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1738,7 +1753,7 @@ event([{"snmpTrapOID", "compaqq.[22058]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22059]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22059]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1748,7 +1763,7 @@ event([{"snmpTrapOID", "compaqq.[22059]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeSystemBIOSFlashingStatus", FirmwareFlashingStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1768,7 +1783,7 @@ event([{"snmpTrapOID", "compaqq.[22059]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22060]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22060]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1778,7 +1793,7 @@ event([{"snmpTrapOID", "compaqq.[22060]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeSystemBIOSFlashingStatus", FirmwareFlashingStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1798,7 +1813,7 @@ event([{"snmpTrapOID", "compaqq.[22060]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22061]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22061]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1808,7 +1823,7 @@ event([{"snmpTrapOID", "compaqq.[22061]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeFrontIOBlankingModeStatus", BladeFrontIOBlankingModeStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1828,7 +1843,7 @@ event([{"snmpTrapOID", "compaqq.[22061]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22062]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22062]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1838,7 +1853,7 @@ event([{"snmpTrapOID", "compaqq.[22062]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeFrontIOBlankingModeStatus", BladeFrontIOBlankingModeStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1858,7 +1873,7 @@ event([{"snmpTrapOID", "compaqq.[22062]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22063]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22063]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1868,7 +1883,7 @@ event([{"snmpTrapOID", "compaqq.[22063]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeDiagnosticAdaptorPresence", DiagnosticAdaptorPresence},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1888,7 +1903,7 @@ event([{"snmpTrapOID", "compaqq.[22063]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22064]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22064]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1898,7 +1913,7 @@ event([{"snmpTrapOID", "compaqq.[22064]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladeDiagnosticAdaptorPresence", DiagnosticAdaptorPresence},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1918,7 +1933,7 @@ event([{"snmpTrapOID", "compaqq.[22064]"}, {"sysName", SysName},
 			{"diagnosticAdaptorPresence", DiagnosticAdaptorPresence},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22065]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22065]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1928,7 +1943,7 @@ event([{"snmpTrapOID", "compaqq.[22065]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladePXEBootModeStatus", PXEBootModeStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1948,7 +1963,7 @@ event([{"snmpTrapOID", "compaqq.[22065]"}, {"sysName", SysName},
 			{"pXEBootModeStatus", PXEBootModeStatus},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22066]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22066]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1958,7 +1973,7 @@ event([{"snmpTrapOID", "compaqq.[22066]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladePXEBootModeStatus", PXEBootModeStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -1978,7 +1993,7 @@ event([{"snmpTrapOID", "compaqq.[22066]"}, {"sysName", SysName},
 			{"pXEBootModeStatus", PXEBootModeStatus},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22067]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22067]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -1988,7 +2003,7 @@ event([{"snmpTrapOID", "compaqq.[22067]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladePOSTStatus", BladePOSTStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2008,7 +2023,7 @@ event([{"snmpTrapOID", "compaqq.[22067]"}, {"sysName", SysName},
 			{"bladePOSTStatus", BladePOSTStatus},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22068]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22068]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -2018,7 +2033,7 @@ event([{"snmpTrapOID", "compaqq.[22068]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladePOSTStatus", BladePOSTStatus},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2038,7 +2053,7 @@ event([{"snmpTrapOID", "compaqq.[22068]"}, {"sysName", SysName},
 			{"bladeSparePartNumber", SparePartNumber},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22069]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22069]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -2048,7 +2063,7 @@ event([{"snmpTrapOID", "compaqq.[22069]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladePowered", BladePowered},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2068,7 +2083,7 @@ event([{"snmpTrapOID", "compaqq.[22069]"}, {"sysName", SysName},
 			{"bladePowerStatus", BladePowered},
 			{"enclosureSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22070]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22070]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -2078,7 +2093,7 @@ event([{"snmpTrapOID", "compaqq.[22070]"}, {"sysName", SysName},
 		{"cpqRackServerBladeUid", BladeUid},
 		{"cpqRackServerBladePowered", BladePowered},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2098,12 +2113,12 @@ event([{"snmpTrapOID", "compaqq.[22070]"}, {"sysName", SysName},
 			{"bladePowerStatus", BladePowered},
 			{"enclosureManagerSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22071]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22071]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum},
 		{"cpqRackLastEAEEvent", LastEAEEvent} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2116,12 +2131,12 @@ event([{"snmpTrapOID", "compaqq.[22071]"}, {"sysName", SysName},
 			{"specificProblem", LastEAEEvent},
 			{"bladeEnclosureName", EnclosureName},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22072]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22072]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum},
 		{"cpqRackLastEAEEvent", LastEAEEvent} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2134,12 +2149,12 @@ event([{"snmpTrapOID", "compaqq.[22072]"}, {"sysName", SysName},
 			{"specificProblem", LastEAEEvent},
 			{"bladeEnclosureName", EnclosureName},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22073]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22073]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum},
 		{"cpqRackLastEAEEvent", LastEAEEvent} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2152,12 +2167,12 @@ event([{"snmpTrapOID", "compaqq.[22073]"}, {"sysName", SysName},
 			{"specificProblem", LastEAEEvent},
 			{"bladeEnclosureName", EnclosureName},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22074]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22074]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum},
 		{"cpqRackLastEAEEvent", LastEAEEvent} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2170,12 +2185,12 @@ event([{"snmpTrapOID", "compaqq.[22074]"}, {"sysName", SysName},
 			{"specificProblem", LastEAEEvent},
 			{"bladeEnclosureName", EnclosureName},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22075]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22075]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum},
 		{"cpqRackLastEAEEvent", LastEAEEvent} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2188,12 +2203,12 @@ event([{"snmpTrapOID", "compaqq.[22075]"}, {"sysName", SysName},
 			{"specificProblem", LastEAEEvent},
 			{"bladeEnclosureName", EnclosureName},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22076]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22076]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum},
 		{"cpqRackLastEAEEvent", LastEAEEvent} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2206,7 +2221,7 @@ event([{"snmpTrapOID", "compaqq.[22076]"}, {"sysName", SysName},
 			{"specificProblem", LastEAEEvent},
 			{"bladeEnclosureName", EnclosureName},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([{"snmpTrapOID", "compaqq.[22078]"}, {"sysName", SysName},
+fault([{"snmpTrapOID", "compaqq.[22078]"}, {"sysName", SysName},
 		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
 		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
@@ -2214,7 +2229,7 @@ event([{"snmpTrapOID", "compaqq.[22078]"}, {"sysName", SysName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackServerBladeSerialNum", BladeSerialNum},
 		{"cpqRackServerBladeUid", BladeUid}, {"cpqRackCommonEnclosureTrapSequenceNum", TrapSequenceNum} | T], Acc) ->
-	event(T, [{"alarmId", TrapSequenceNum},
+	fault(T, [{"alarmId", TrapSequenceNum},
 			{"eventName", flags(TrapFlags)},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
@@ -2233,9 +2248,63 @@ event([{"snmpTrapOID", "compaqq.[22078]"}, {"sysName", SysName},
 			{"serverBladeUid", BladeUid},
 			{"enclosureManagerSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
-event([_H | T], Acc) ->
-	event(T, Acc);
-event([], Acc) ->
+fault([_H | T], Acc) ->
+	fault(T, Acc);
+fault([], Acc) ->
+	Acc.
+
+-spec handle_notification(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a syslog event.
+handle_notification(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = notification(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, syslog),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec notification(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for fault.
+notification(NameValuePair) ->
+	notification(NameValuePair, []).
+%% @hidden
+notification([{"snmpTrapOID", "compaqq.[0,11020]"}, {"sysName", SysName},
+		{"cpqHoTrapFlags", TrapFlags}, {"cpqHoSystemStatus", SystemStatus} | T], Acc) ->
+	notification(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "hoMibHealthStatusArrayChangeTrap"},
+			{"probableCause", "Health Status Array Change occurred"},
+			{"priority", "Normal"},
+			{"eventType", ?ET_Communication_System},
+			{"eventSeverity", ?ES_INDETERMINATE},
+			{"specificProblem", "A change in the health status of the server has occurred,
+					the status is now SystemStatus"} | Acc]);
+notification([_H | T], Acc) ->
+	notification(T, Acc);
+notification([], Acc) ->
 	Acc.
 
 -spec flags(Flag) -> Result
@@ -2250,4 +2319,173 @@ flags(3) ->
 	?EN_NEW;
 flags(4) ->
 	?EN_NEW.
+
+-spec domain(Varbinds) -> Result
+	when
+		Varbinds :: [Varbinds],
+		Result :: fault | heartbeat | other.
+%% @doc Check the domain of the event.
+domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
+	domain1(snmp_collector_utils:oid_to_name(TrapName)).
+%% @hidden
+domain1("compaqq.[22001]") ->
+	fault;
+domain1("compaqq.[22002]") ->
+	fault;
+domain1("compaqq.[22003]") ->
+	fault;
+domain1("compaqq.[22004]") ->
+	fault;
+domain1("compaqq.[22005]") ->
+	fault;
+domain1("compaqq.[22006]") ->
+	fault;
+domain1("compaqq.[22007]") ->
+	fault;
+domain1("compaqq.[22008]") ->
+	fault;
+domain1("compaqq.[22009]") ->
+	fault;
+domain1("compaqq.[22010]") ->
+	fault;
+domain1("compaqq.[22011]") ->
+	fault;
+domain1("compaqq.[22012]") ->
+	fault;
+domain1("compaqq.[22013]") ->
+	fault;
+domain1("compaqq.[22014]") ->
+	fault;
+domain1("compaqq.[22015]") ->
+	fault;
+domain1("compaqq.[22016]") ->
+	fault;
+domain1("compaqq.[22017]") ->
+	fault;
+domain1("compaqq.[22018]") ->
+	fault;
+domain1("compaqq.[22019]") ->
+	fault;
+domain1("compaqq.[22020]") ->
+	fault;
+domain1("compaqq.[22021]") ->
+	fault;
+domain1("compaqq.[22022]") ->
+	fault;
+domain1("compaqq.[22023]") ->
+	fault;
+domain1("compaqq.[22024]") ->
+	fault;
+domain1("compaqq.[22025]") ->
+	fault;
+domain1("compaqq.[22026]") ->
+	fault;
+domain1("compaqq.[22027]") ->
+	fault;
+domain1("compaqq.[22028]") ->
+	fault;
+domain1("compaqq.[22029]") ->
+	fault;
+domain1("compaqq.[22030]") ->
+	fault;
+domain1("compaqq.[22031]") ->
+	fault;
+domain1("compaqq.[22032]") ->
+	fault;
+domain1("compaqq.[22033]") ->
+	fault;
+domain1("compaqq.[22034]") ->
+	fault;
+domain1("compaqq.[22035]") ->
+	fault;
+domain1("compaqq.[22036]") ->
+	fault;
+domain1("compaqq.[22037]") ->
+	fault;
+domain1("compaqq.[22038]") ->
+	fault;
+domain1("compaqq.[22039]") ->
+	fault;
+domain1("compaqq.[22040]") ->
+	fault;
+domain1("compaqq.[22041]") ->
+	fault;
+domain1("compaqq.[22042]") ->
+	fault;
+domain1("compaqq.[22043]") ->
+	fault;
+domain1("compaqq.[22044]") ->
+	fault;
+domain1("compaqq.[22045]") ->
+	fault;
+domain1("compaqq.[22046]") ->
+	fault;
+domain1("compaqq.[22047]") ->
+	fault;
+domain1("compaqq.[22048]") ->
+	fault;
+domain1("compaqq.[22049]") ->
+	fault;
+domain1("compaqq.[22050]") ->
+	fault;
+domain1("compaqq.[22051]") ->
+	fault;
+domain1("compaqq.[22052]") ->
+	fault;
+domain1("compaqq.[22053]") ->
+	fault;
+domain1("compaqq.[22054]") ->
+	fault;
+domain1("compaqq.[22055]") ->
+	fault;
+domain1("compaqq.[22056]") ->
+	fault;
+domain1("compaqq.[22057]") ->
+	fault;
+domain1("compaqq.[22058]") ->
+	fault;
+domain1("compaqq.[22059]") ->
+	fault;
+domain1("compaqq.[22060]") ->
+	fault;
+domain1("compaqq.[22061]") ->
+	fault;
+domain1("compaqq.[22062]") ->
+	fault;
+domain1("compaqq.[22063]") ->
+	fault;
+domain1("compaqq.[22064]") ->
+	fault;
+domain1("compaqq.[22065]") ->
+	fault;
+domain1("compaqq.[22066]") ->
+	fault;
+domain1("compaqq.[22067]") ->
+	fault;
+domain1("compaqq.[22068]") ->
+	fault;
+domain1("compaqq.[22069]") ->
+	fault;
+domain1("compaqq.[22070]") ->
+	fault;
+domain1("compaqq.[22071]") ->
+	fault;
+domain1("compaqq.[22072]") ->
+	fault;
+domain1("compaqq.[22073]") ->
+	fault;
+domain1("compaqq.[22074]") ->
+	fault;
+domain1("compaqq.[22075]") ->
+	fault;
+domain1("compaqq.[22076]") ->
+	fault;
+domain1("compaqq.[22077]") ->
+	fault;
+domain1("compaqq.[22078]") ->
+	fault;
+domain1("compaqq.[0,11020]") ->
+	notification;
+domain1(_) ->
+	other.
 
