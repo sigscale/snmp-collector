@@ -221,6 +221,8 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 					ErrorIndex, Varbinds}, UserData);
 		heartbeat ->
 			ignore;
+		notification ->
+			handle_notification(TargetName, Varbinds);
 		fault ->
 			handle_fault(TargetName, Varbinds)
 	end;
@@ -231,6 +233,8 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
 		heartbeat ->
 			ignore;
+		notification ->
+			handle_notification(TargetName, Varbinds);
 		fault ->
 			handle_fault(TargetName, Varbinds)
 	end.
@@ -393,6 +397,72 @@ fault([_H | T], Acc) ->
 fault([], Acc) ->
 	Acc.
 
+-spec handle_notification(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a notification fault.
+handle_notification(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = notification(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, notification),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec notification(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for event.
+notification(NameValuePair) ->
+	notification(NameValuePair, []).
+%% @hidden
+notification([{snmpTrapOID, "nbiAlarmSummaryNotification"},
+		{"nbiSequenceId", SequenceId}, {"nbiEventTime", RaisedTime},
+		{"nbiEmsSynchronizationState", SynchronizationState},
+		{"nbiNotSyncNEs", NotSyncNEs},
+		{"nbiNumberCriticalAlarms", NoCriticalAlarms},
+		{"nbiNumberMajorAlarms", NoMajorAlarms},
+		{"nbiNumberMinorAlarms", NoMinorAlarms},
+		{"nbiNumberWarningAlarms", NoWarningAlarms},
+		{"nbiNumberClearedAlarms", NoClearedAlarms},
+		{"nbiNumberIndeterminateAlarms", NoIndeterminateAlarms} | T], Acc) ->
+	notification(T, [{"Id",  snmp_collector_utils:generate_identity(7)},
+			{"eventName", ?EN_NEW},
+			{"sourceId", SequenceId},
+			{"raisedTime", RaisedTime},
+			{"newState", inService},
+			{"alarmCondition", "alarmSummaryNotification"},
+			{"eventType", ?ET_Communication_System},
+			{"notSyncNEs", NotSyncNEs},
+			{"synchronizationState", SynchronizationState},
+			{"numberCriticalAlarms", NoCriticalAlarms},
+			{"numberMajorAlarms", NoMajorAlarms},
+			{"numberMinorAlarms", NoMinorAlarms},
+			{"numberWarningAlarms", NoWarningAlarms},
+			{"numberClearedAlarms", NoClearedAlarms},
+			{"numberIndeterminateAlarms", NoIndeterminateAlarms} | Acc]);
+notification([_H | T], Acc) ->
+	notification(T, Acc);
+notification([], Acc) ->
+	Acc.
+
 -spec domain(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
@@ -409,12 +479,12 @@ domain1("nbiAlarmClearedNotification") ->
 	fault;
 domain1("nbiAlarmSyncNotification") ->
 	fault;
-domain1("nbiAlarmSummaryNotification") ->
-	fault;
 domain1("nbiAlarmNewNotification") ->
 	fault;
 domain1("nbiAlarmAckChangedNotification") ->
 	fault;
+domain1("nbiAlarmSummaryNotification") ->
+	notification;
 domain1("nbiHeartbeatNotification") ->
 	heartbeat;
 domain1(_) ->
