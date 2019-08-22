@@ -349,7 +349,7 @@ generate_maps(TargetName, AlarmDetails, syslog) ->
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
 	{NewCommonEventHeader, SyslogFields};
 generate_maps(TargetName, AlarmDetails, notification) ->
-	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notificaion"),
+	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notification"),
 	NotificaitonFields = notification_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
 	{NewCommonEventHeader, NotificaitonFields}.
@@ -961,7 +961,7 @@ check_fields1(CH, #{"eventSeverity" := EventSeverity} = FF)
 check_fields1(CH, FF) ->
 	check_fields2(CH#{"eventSeverity" => ?ES_MINOR}, FF).
 %% @hidden
-check_fields2(#{"eventType" := EventType} = CH, FF)
+check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
 		when is_list(EventType), length(EventType) > 0 ->
 	check_fields3(CH, FF);
 check_fields2(CH, FF) ->
@@ -971,7 +971,7 @@ check_fields3(#{"probableCause" := ProbableCause} = CH, FF)
 		when is_list(ProbableCause), length(ProbableCause) > 0 ->
 	{CH, FF};
 check_fields3(CH, FF) ->
-	{CH#{"probableCause" => ?ET_Quality_Of_Service_Alarm}, FF}.
+	{CH#{"probableCause" => ?PC_Indeterminate}, FF}.
 
 -spec strip_name(Name) -> Name
 	when
