@@ -129,6 +129,7 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 %% @doc Handle a trap/notification message from an agent.
 %% @private
 handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
@@ -139,6 +140,7 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 			handle_syslog(TargetName, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName,
@@ -443,6 +445,7 @@ syslog([{"snmpTrapOID", "clogMessageGenerated"},
 	syslog(T, [{"sysSourceType", FacilityName},
 			{"eventFieldsVersion", 1},
 			{"syslogMsg", MessageText},
+			{"eventType", ?ET_Communication_System},
 			{"syslogSev", snmp_collector_trap_generic:syslog_severity(SysLogSeverity)},
 			{"syslogTag", MessageName},
 			{"raisedTime", TimeStamp} | Acc]);
