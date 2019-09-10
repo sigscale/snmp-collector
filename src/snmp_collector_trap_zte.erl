@@ -42,12 +42,12 @@
 %%			<td id="mt">e.g. "Quality of Service Alarm"</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">alarmProbableCause</td>
+%% 		<td id="mt">alarmCodeName</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
 %%			<td id="mt">3GPP 32.111-2 Annex B e.g. "Alarm Indication Signal (AIS)"</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">alarmSpecificProblem</td>
+%% 		<td id="mt">alarmProbableCause</td>
 %% 		<td id="mt">faultFields.specificProblem</td>
 %%			<td id="mt"></td>
 %% 	</tr>
@@ -63,7 +63,7 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">systemDN</td>
-%% 		<td id="mt">faultFields.alarmAdditionalInformation.reportingEntityID</td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.reportingEntityI</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -78,7 +78,7 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmNetype</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.NeType</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.neType</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -135,11 +135,6 @@
 %%		<tr id="mt">
 %% 		<td id="mt">alarmIndex</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmIndex</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmCodeName</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmCodeName</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -319,10 +314,10 @@ handle_fault(TargetName, Varbinds) ->
 		OidValue :: string(),
 		VesNameValuePair :: [{VesName, VesValue}],
 		VesName :: string(),
-		VesValue :: string().
-%% @doc CODEC for event.
+		VesValue :: string ().
+%% @doc CODEC for fault.
 fault(NameValuePair) ->
-	fault(NameValuePair, []).
+        fault(NameValuePair, []).
 %% @hidden
 fault([{"alarmId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
@@ -335,14 +330,11 @@ fault([{"alarmNeIP", Value} | T], Acc)
 	fault(T, [{"sourceId", Value} | Acc]);
 fault([{"systemDN", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"reportingEntityID", Value} | Acc]);
+	fault(T, [{"reportingEntityId", Value} | Acc]);
 fault([{"alarmMocObjectInstance", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"eventSourceType", Value} | Acc]);
-fault([{"alarmManagedObjectInstanceName", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"objectInstance", Value} | Acc]);
-fault([{"alarmSpecificProblem", Value} | T], Acc)
+fault([{"alarmProbableCause", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"specificProblem", Value} | Acc]);
 fault([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
@@ -388,8 +380,9 @@ fault([{"alarmEventType", "10"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 fault([{"alarmEventType", "11"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-fault([{"alarmProbableCause", Value} | T], Acc) ->
-	fault(T, [{"probableCause", Value} | Acc]);
+fault([{"alarmCodeName", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	fault(T, [{"probableCause", probable_cause(Value)} | Acc]);
 fault([{"alarmAck", "1"} | T], Acc) ->
 	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 fault([{"alarmAck", "2"} | T], Acc) ->
@@ -399,31 +392,34 @@ fault([{"alarmOtherInfo", Value} | T], Acc)
 	fault(T, [{"additionalText", Value} | Acc]);
 fault([{"alarmNetype", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"Netype", Value} | Acc]);
+	fault(T, [{"netype", Value} | Acc]);
 fault([{"alarmSystemType", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmSystemType", Value} | Acc]);
-fault([{"alarmNeIP", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmNeIP", Value} | Acc]);
 fault([{"timeZoneID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"timeZoneID", Value} | Acc]);
 fault([{"alarmIndex", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmIndex", Value} | Acc]);
-fault([{"alarmCodeName", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmCodeName", Value} | Acc]);
 fault([{"alarmCode", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCode", Value} | Acc]);
 fault([{"aid", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmAID", Value} | Acc]);
-fault([{"alarmAdditionalText", Value} | T], Acc)
+fault([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmAdditionalText", Value} | Acc]);
+fault([{"alarmCustomAttr12", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	fault(T, [{"objectInstance", Value} | Acc]);
+fault([{"alarmCustomAttr2", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	fault(T, [{"alarmObjectName", Value} | Acc]);
+fault([{"alarmCustomAttr6", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	fault(T, [{"boardType", Value} | Acc]);
 fault([{Name, Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{Name, Value} | Acc]);
@@ -462,3 +458,104 @@ domain1("heartbeatNotification") ->
 	heartbeat;
 domain1(_) ->
 	other.
+
+-spec probable_cause(AlarmCodeName) -> ProbableCause
+	when
+		AlarmCodeName :: string(),
+		ProbableCause :: string().
+%% @doc Look up a probable cause.
+probable_cause("Performance threshold exceeded") ->
+	?PC_Threshold_Crossed;
+probable_cause("System resource of node is insufficient") ->
+	?PC_System_Resources_Overload;
+probable_cause("1588 clock source fault") ->
+	?PC_Real_Time_Clock_Failure;
+probable_cause("Association broken") ->
+	?PC_Connection_Establishment_Error;
+probable_cause("Baseband unit is being initialized") ->
+	?PC_Reinitialized;
+probable_cause("Cell interruption alarm") ->
+	?PC_Power_Problem;
+probable_cause("Cell is out of service") ->
+	?PC_Out_Of_Service;
+probable_cause("Device temperature is high") ->
+	?PC_High_Temperature;
+probable_cause("Disable PA") ->
+	?PC_Underlying_Resource_Unavailable;
+probable_cause("Dry contact alarm - GENSET ON") ->
+	?PC_Reinitialized;
+probable_cause("Dry contact alarm - INTRUDER") ->
+	?PC_Intrusion_Detection;
+probable_cause("Dry contact alarm - MAINS FAIL") ->
+	?PC_Power_Supply_Failure;
+probable_cause("Dry contact alarm - RECTIFIER FAULT") ->
+	?PC_Rectifier_Failure;
+probable_cause("eNodeB is out of service") ->
+	?PC_Out_Of_Service;
+probable_cause("External extended device fault") ->
+	?PC_External_Equipment_Failure;
+probable_cause("FCU FAULT") ->
+	?PC_Replaceable_Unit_Problem;
+probable_cause("FIRE") ->
+	?PC_Fire;
+probable_cause("FLUID") ->
+	?PC_Flood;
+probable_cause("GENSET ON") ->
+	?PC_Reinitialized;
+probable_cause("HIGH TEMPERATURE") ->
+	?PC_High_Temperature;
+probable_cause("Infrared alarm") ->
+	?PC_Intrusion_Detection;
+probable_cause("INTRUDER") ->
+	?PC_Intrusion_Detection;
+probable_cause("Link between OMM and NE broken") ->
+	?PC_Connection_Establishment_Error;
+probable_cause("LOW VOLTAGE") ->
+	?PC_Rectifier_Low_Voltage;
+probable_cause("LTE cell outage") ->
+	?PC_Power_Problem;
+probable_cause("MAINS FAIL") ->
+	?PC_Power_Supply_Failure;
+probable_cause("MAINS FAIL DELAY CKT ON") ->
+	?PC_Power_Supply_Failure;
+probable_cause("MAINS FAIL GEN REST_VDT") ->
+	?PC_Power_Supply_Failure;
+probable_cause("NodeB is out of service") ->
+	?PC_Out_Of_Service;
+probable_cause("RECTIFIER FAULT") ->
+	?PC_Rectifier_Failure;
+probable_cause("Site Abis control link broken") ->
+	?PC_DTE_DCE_Interface_Error;
+probable_cause("Temperature sensor abnormal") ->
+	?PC_External_Equipment_Failure;
+probable_cause("The board is not in position") ->
+	?PC_Configuration_Or_Customization_Error;
+probable_cause("The input voltage is abnormal") ->
+	?PC_Power_Problem;
+probable_cause("The RRU link is broken") ->
+	?PC_Connection_Establishment_Error;
+probable_cause("The SCTP association is broken") ->
+	?PC_Connection_Establishment_Error;
+probable_cause("The temperature at the air intake is abnormal") ->
+	?PC_HOVOCP;
+probable_cause("VSWR of the antenna feeder abnormal") ->
+	?PC_External_Equipment_Failure;
+probable_cause("Wrong login password") ->
+	?PC_Unauthorized_Access_Attempt;
+probable_cause("eNodeB out of service alarm") ->
+	?PC_Out_Of_Service;
+probable_cause("The link between NE and GTP-C node is down.") ->
+	?PC_Connection_Establishment_Error;
+probable_cause("Ethernet Physical (ETPI) Laser
+		Temperature (Celsius) threshold crossed") ->
+	?PC_Threshold_Crossed;
+probable_cause("FCE fan failure") ->
+	?PC_Cooling_Fan_Failure;
+probable_cause("Hardware type is different from the configuration") ->
+	?PC_Configuration_Or_Customization_Error;
+probable_cause("Internal fault") ->
+	?PC_Unspecified_Reason;
+probable_cause(AlarmCodeName) ->
+	AlarmCodeName.
+	
+
