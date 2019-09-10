@@ -127,24 +127,18 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 	case domain(Varbinds) of
-		other ->
-			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
-					ErrorIndex, Varbinds}, UserData);
-		heartbeat ->
-			ignore;
 		fault ->
-			handle_fault(TargetName, Varbinds)
+			handle_fault(TargetName, Varbinds);
+		notification ->
+			handle_notification(TargetName, Varbinds)
 	end;
-handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
 	case domain(Varbinds) of
-		other ->
-			snmp_collector_trap_generic:handle_trap(TargetName,
-					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
-		heartbeat ->
-			ignore;
 		fault ->
+			handle_fault(TargetName, Varbinds);
+		notification ->
 			handle_fault(TargetName, Varbinds)
 	end.
 
@@ -300,6 +294,7 @@ notification([_H | T], Acc) ->
 notification([], Acc) ->
 	Acc.
 
+-spec domain(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
 		Result :: fault | heartbeat | other.
