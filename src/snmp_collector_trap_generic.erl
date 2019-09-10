@@ -127,37 +127,25 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = event(NamesValues),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
-	of
-		ok ->
+handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
+					ErrorIndex, Varbinds}, UserData);
+		heartbeat ->
 			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
+		fault ->
+			handle_fault(TargetName, Varbinds)
 	end;
-handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = event(NamesValues),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
-	of
-		ok ->
+handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+	case domain(Varbinds) of
+		other ->
+			snmp_collector_trap_generic:handle_trap(TargetName,
+					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
+		heartbeat ->
 			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
+		fault ->
+			handle_fault(TargetName, Varbinds)
 	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
@@ -188,7 +176,31 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec event(OidNameValuePair) -> VesNameValuePair
+-spec handle_fault(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a fault event.
+handle_fault(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = fault(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec fault(OidNameValuePair) -> VesNameValuePair
 	when
 		OidNameValuePair :: [{OidName, OidValue}],
 		OidName :: string(),
@@ -197,23 +209,13 @@ handle_report(TargetName, SnmpReport, UserData) ->
 		VesName :: string(),
 		VesValue :: string().
 %% @doc CODEC for event.
-event(NameValuePair) ->
-	event(NameValuePair, []).
-%% hidden
-event([{"snmpTrapOID", "authenticationFailure"}, {"authAddar", AuthAddress},
-		{"cExtSnmpTargetAuthInetType", AuthAddressType},
-		{"cExtSnmpTargetAuthInetAddr", HostAddress} | T], Acc) ->
-	event(T, [{"eventSourceType", AuthAddressType},
-			{"sysSourceHost", HostAddress},
-			{"authAddress", AuthAddress},
-			{"eventFieldsVersion", 1},
-			{"syslogMsg", "authenticationFailure"},
-			{"syslogSev", ?SYS_WARNING},
-			{"raisedTime", erlang:system_time(milli_seconds)} | Acc]);
-event([{"snmpTrapOID", "linkDown"}, {"ifIndex", InterfaceIndex},
+fault(NameValuePair) ->
+	fault(NameValuePair, []).
+%% @hidden
+fault([{"snmpTrapOID", "linkDown"}, {"ifIndex", InterfaceIndex},
 		{"ifDescr", InterfaceDescripton}, {"ifType", InterfaceType},
 		{"locIfReason", StatusChangeReason} | T], Acc) ->
-	event(T, [{"alarmId", InterfaceIndex},
+	fault(T, [{"alarmId", InterfaceIndex},
 			{"sourceName", InterfaceDescripton},
 			{"alarmMocObjectInstance", InterfaceType},
 			{"raisedTime", erlang:system_time(milli_seconds)},
@@ -223,10 +225,10 @@ event([{"snmpTrapOID", "linkDown"}, {"ifIndex", InterfaceIndex},
 			{"eventType", ?ET_Equipment_Alarm} ,
 			{"eventSeverity", ?ES_MAJOR},
 			{"specificProblem", StatusChangeReason} | Acc]);
-event([{"snmpTrapOID", "linkUp"}, {"ifIndex", InterfaceIndex},
+fault([{"snmpTrapOID", "linkUp"}, {"ifIndex", InterfaceIndex},
 		{"ifDescr", InterfaceDescripton}, {"ifType", InterfaceType},
 		{"locIfReason", StatusChangeReason} | T], Acc) ->
-	event(T, [{"alarmId", InterfaceIndex},
+	fault(T, [{"alarmId", InterfaceIndex},
 			{"sourceName", InterfaceDescripton},
 			{"alarmMocObjectInstance", InterfaceType},
 			{"raisedTime", erlang:system_time(milli_seconds)},
@@ -236,13 +238,81 @@ event([{"snmpTrapOID", "linkUp"}, {"ifIndex", InterfaceIndex},
 			{"eventType", ?ET_Equipment_Alarm} ,
 			{"eventSeverity", ?ES_CLEARED},
 			{"specificProblem", StatusChangeReason} | Acc]);
-event([{Name, Value} | T], Acc)
+fault([{Name, Value} | T], Acc)
       when is_list(Value), length(Value) > 0 ->
-	event(T, [{Name, Value} | Acc]);
-event([_H | T], Acc) ->
-	event(T, Acc);
-event([], Acc) ->
+	fault(T, [{Name, Value} | Acc]);
+fault([_H | T], Acc) ->
+	fault(T, Acc);
+fault([], Acc) ->
 	Acc.
+
+-spec handle_notification(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a notification event.
+handle_notification(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = notification(NamesValues),
+		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, notification),
+		snmp_collector_utils:log_events(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec notification(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for notification.
+notification(NameValuePair) ->
+	notification(NameValuePair, []).
+%% hidden
+notification([{"snmpTrapOID", "authenticationFailure"}, {"authAddar", AuthAddress},
+		{"cExtSnmpTargetAuthInetType", AuthAddressType},
+		{"cExtSnmpTargetAuthInetAddr", HostAddress} | T], Acc) ->
+	notification(T, [{"notificationSourceType", AuthAddressType},
+			{"sysSourceHost", HostAddress},
+			{"authAddress", AuthAddress},
+			{"notificationFieldsVersion", 1},
+			{"syslogMsg", "authenticationFailure"},
+			{"syslogSev", ?SYS_WARNING},
+			{"raisedTime", erlang:system_time(milli_seconds)} | Acc]);
+notification([{Name, Value} | T], Acc)
+      when is_list(Value), length(Value) > 0 ->
+	notification(T, [{Name, Value} | Acc]);
+notification([_H | T], Acc) ->
+	notification(T, Acc);
+notification([], Acc) ->
+	Acc.
+
+	when
+		Varbinds :: [Varbinds],
+		Result :: fault | heartbeat | other.
+%% @doc Check the domain of the event.
+domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
+	domain1(snmp_collector_utils:oid_to_name(TrapName)).
+%% @hidden
+domain1("linkUp") ->
+	fault;
+domain1("linkDown") ->
+	fault;
+domain1(_) ->
+	notification.
 
 -spec syslog_severity(Severity) -> Result
 	when
