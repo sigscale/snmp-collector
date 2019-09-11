@@ -87,7 +87,7 @@
 -define(PC_Pump_Failure, "Pump Failure").
 -define(PC_Rectifier_Failure, "Rectifier Failure").
 -define(PC_Rectifier_High_Voltage, "Rectifier High Voltage").
--define(PC_Rectifier_Low_voltage, "Rectifier Low Voltage").
+-define(PC_Rectifier_Low_Voltage, "Rectifier Low Voltage").
 -define(PC_Ventilation_System_Failure, "Ventilation System Failure").
 -define(PC_Enclosure_Door_Open, "Enclosure Door Open").
 -define(PC_Explosive_Gas, "Explosive Gas").
