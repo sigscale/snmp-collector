@@ -109,7 +109,6 @@
 -define(PC_Toxic_Gas, "Toxic Gas").
 -define(PC_Application_Subsystem_Failure, "Application Subsystem Failure").
 -define(PC_Configuration_Or_Customization_Error, "Configuration Or Customization Error").
--define(PC_Database_Inconsistency, "Database Inconsistency").
 -define(PC_File_Error, "File Error").
 -define(PC_Storage_Capacity_Problem, "Storage Capacity Problem").
 -define(PC_Memory_Mismatch, "Memory Mismatch").
@@ -177,6 +176,57 @@
 -define(PC_Unauthorized_Access_Attempt, "Unauthorized Access Attempt").
 -define(PC_Unexpected_Info, "Unexpected Information").
 -define(PC_Unspecified_Reason, "Unspecified Reason").
+-define(PC_Database_Inconsistency, "Database Inconsistency").
+-define(PC_File_System_Call_Unsuccessful, "File System Call Unsuccessful").
+-define(PC_Input_Parameter_Out_Of_Range, "Input Parameter Out Of Range").
+-define(PC_Invalid_Parameter, "Invalid Parameter").
+-define(PC_Invalid_Pointer, "Invalid Pointer").
+-define(PC_Message_Not_Expected, "Message Not Expected").
+-define(PC_Message_Not_Initialized, "Message Not Initialized").
+-define(PC_Message_Out_Of_Sequence, "Message Out Of Sequence").
+-define(PC_System_Call_Unsuccessful, "System Call Unsuccessful").
+-define(PC_Variable_Out_Of_Range, "Variable Out Of Range").
+-define(PC_SS7_Protocol_Failure, "SS7 Protocol Failure").
+-define(PC_Watch_Dog_Timer_Expired, "Watch Dog Timer Expired").
+-define(PC_External_Power_Supply_Failure, "External Power Supply Failure").
+-define(PC_External_Transmission_Device_Failure, "External Transmission Device Failure").
+-define(PC_Fan_Failure, "Fan Failure").
+-define(PC_Link_Failure, "Link Failure").
+-define(PC_Reduced_Alarm_Reporting, "Reduced Alarm Reporting").
+-define(PC_Reduced_Event_Reporting, "Reduced Event Reporting").
+-define(PC_Invalid_MSU_Received, "Invalid MSU Received").
+-define(PC_LAPD_Link_Protocol_Failure, "LAPD Link Protocol Failure").
+-define(PC_Equipment_Failure, "Equipment Failure").
+-define(PC_A_bis_To_BTS_Interface_Failure, "A-bis To BTS Interface Failure").
+-define(PC_A_bis_To_TRX_Interface_Failure, "A-bis To TRX Interface Failure").
+-define(PC_Battery_Breakdown, "Battery Breakdown").
+-define(PC_Battery_Charging_Fault, "Battery Charging Fault").
+-define(PC_Clock_Synchronization_Problem, "Clock Synchronization Problem").
+-define(PC_Combiner_Problem, "Combiner Problem").
+-define(PC_Excessive_Receiver_Temperature, "Excessive Receiver Temperature").
+-define(PC_Excessive_Transmitter_Output_Power, "Excessive Transmitter Output Power").
+-define(PC_Excessive_Transmitter_Temperature, "Excessive Transmitter Temperature").
+-define(PC_Frequency_Hopping_Degraded, "Frequency Hopping Degraded").
+-define(PC_Frequency_Redefinition_Failed, "Frequency Redefinition Failed").
+-define(PC_Line_Interface_Failure, "Line Interface Failure").
+-define(PC_Mains_BreakDown_With_Battery_Back_Up, "Mains Breakdown With Battery Back-up").
+-define(PC_Mains_BreakDown_Without_Battery_Back_Up, "Mains Breakdown Without Battery Back-up").
+-define(PC_Receiver_Antenna_Fault, "Receiver Antenna Fault").
+-define(PC_Receiver_Multicoupler_Failure, "Receiver Multicoupler Failure").
+-define(PC_Reduced_Transmitter_Output_Power, "Reduced Transmitter Output Power").
+-define(PC_Transceiver_Problem, "Transceiver Problem").
+-define(PC_Transcoder_Problem, "Transcoder Problem").
+-define(PC_Transcoder_Or_Rate_Adapter_Problem, "Transcoder Or Rate Adapter Problem").
+-define(PC_Transmitter_Antenna_Failure, "Transmitter Antenna Failure").
+-define(PC_Transmitter_Antenna_Not_Adjusted, "Transmitter Antenna Not Adjusted").
+-define(PC_Transmitter_Low_Voltage_Or_Current, "Transmitter Low Voltage Or Current").
+-define(PC_Transmitter_Off_Frequency, "Transmitter Off Frequency").
+-define(PC_Re_transmission_Rate_Excessive, "Re-transmission Rate Excessive").
+-define(PC_Delayed_Information, "Delayed Information").
+-define(PC_Timeslot_Hardware_Failure, "Timeslot Hardware Failure").
+-define(PC_Local_Alarm_Indication, "Local Alarm Indication").
+-define(PC_Remote_Alarm_Indication, "Remote Alarm Indication").
+-define(PC_Equipment_Out_Of_Service, "Equipment Out Of Service").
 
 % Perceived Severities [3GPP TS 32.111-2 Table 5.5.1]
 -define(ES_CRITICAL, "CRITICAL").
