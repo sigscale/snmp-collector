@@ -219,24 +219,22 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 %% @doc Handle a trap/notification message from an agent.
 %% @private
 handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
-		heartbeat ->
-			ignore;
 		notification ->
 			handle_notification(TargetName, Varbinds);
 		fault ->
 			handle_fault(TargetName, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
-		heartbeat ->
-			ignore;
 		notification ->
 			handle_notification(TargetName, Varbinds);
 		fault ->
@@ -2323,7 +2321,7 @@ flags(4) ->
 -spec domain(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
-		Result :: fault | heartbeat | other.
+		Result :: fault | notification | other.
 %% @doc Check the domain of the event.
 domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
 	domain1(snmp_collector_utils:oid_to_name(TrapName)).

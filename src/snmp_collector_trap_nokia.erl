@@ -433,7 +433,7 @@ handle_notification(TargetName, Varbinds) ->
 notification(NameValuePair) ->
 	notification(NameValuePair, []).
 %% @hidden
-notification([{snmpTrapOID, "nbiAlarmSummaryNotification"},
+notification([{"snmpTrapOID", "nbiAlarmSummaryNotification"},
 		{"nbiSequenceId", SequenceId}, {"nbiEventTime", RaisedTime},
 		{"nbiEmsSynchronizationState", SynchronizationState},
 		{"nbiNotSyncNEs", NotSyncNEs},
@@ -466,7 +466,7 @@ notification([], Acc) ->
 -spec domain(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
-		Result :: fault | heartbeat | other.
+		Result :: fault | heartbeat | notification | other.
 %% @doc Check the domain of the event.
 domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
 	domain1(snmp_collector_utils:oid_to_name(TrapName)).
