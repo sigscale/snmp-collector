@@ -52,6 +52,11 @@
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
+%% 		<td id="mt">alarmspecificProblem</td>
+%% 		<td id="mt">faultFields.specificProblem</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
 %% 		<td id="mt">alarmOtherInfo</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
 %%			<td id="mt"></td>
@@ -108,9 +113,14 @@
 %%			<td id="mt">NE name</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">alarmManagedObjectInstanceName</td>
+%% 		<td id="mt">alarmCustomAttr12</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
 %%			<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmCustomAttr2</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmObjectName</td>
+%%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmAck</td>
@@ -235,7 +245,6 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 %% @doc Handle a trap/notification message from an agent.
 %% @private
 handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
-erlang:display({?MODULE, ?LINE, domain(Varbinds)}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
@@ -246,7 +255,6 @@ erlang:display({?MODULE, ?LINE, domain(Varbinds)}),
 			handle_fault(TargetName, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
-erlang:display({?MODULE, ?LINE, domain(Varbinds)}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName,
@@ -297,7 +305,6 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
-erlang:display({?MODULE, ?LINE, snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault)}),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_events(Event)
 	of
@@ -340,7 +347,7 @@ fault([{"alarmMocObjectInstance", Value} | T], Acc)
 fault([{"alarmProbableCause", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"probableCause", probable_cause(Value)} | Acc]);
-fault([{"alarmspecificProblem", Value} | T], Acc)
+fault([{"alarmSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"specificProblem", Value} | Acc]);
 fault([{"alarmPerceivedSeverity", "1"} | T], Acc) ->
@@ -414,9 +421,6 @@ fault([{"alarmCode", Value} | T], Acc)
 fault([{"aid", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmAID", Value} | Acc]);
-fault([{"alarmSpecificProblem", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmAdditionalText", Value} | Acc]);
 fault([{"alarmCustomAttr12", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"objectInstance", Value} | Acc]);
