@@ -2,15 +2,16 @@
 
 SigScale SNMP Collector is used by communications service providers
 (CSP) to terminate the fault management (FM) north bound interfaces
-(NBI) of various vendors' element management systems (EMS).
+(NBI) of various vendors' Element Management Systems (EMS).
 
 FM events are received as SNMP (v1, v2c, v3) TRAPs which are decoded
 using installed MIBs and vendor plugin modules. Vendor specific NBIs
 are normalized to the information model of ITU-T
 [X.721](http://www.itu.int/itu-t/recommendations/rec.aspx?rec=3060)/
 [X.733](http://www.itu.int/itu-t/recommendations/rec.aspx?rec=3071)
-and 3GPP [32.111-2](http://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&GSMSpecPart2=111&Search=search)
-and adapted to the virtual event streaming (VES)
+and 3GPP Alarm Integration Reference Point (IRP)
+[32.111-2](http://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&GSMSpecPart2=111&Search=search)
+and are adapted to the Virtual Event Streaming (VES)
 [API](http://wiki.onap.org/display/DW/VES+7.1) to be sent northbound.
 The [DMaaP](http://wiki.onap.org/display/DW/Data+Movement+as+a+Platform+Project)
 service of [ONAP](http://www.onap.org/)
