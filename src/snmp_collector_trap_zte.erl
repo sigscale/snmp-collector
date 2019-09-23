@@ -62,7 +62,7 @@
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">alarmId</td>
+%% 		<td id="mt">alarmIndex</td>
 %% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
 %%			<td id="mt">Unique identifier of an alarm</td>
 %% 	</tr>
@@ -140,11 +140,6 @@
 %%		<tr id="mt">
 %% 		<td id="mt">timeZoneID</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.timeZoneID</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmIndex</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmIndex</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -329,7 +324,7 @@ handle_fault(TargetName, Varbinds) ->
 fault(NameValuePair) ->
         fault(NameValuePair, []).
 %% @hidden
-fault([{"alarmId", Value} | T], Acc)
+fault([{"alarmIndex", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmId", Value} | Acc]);
 fault([{"alarmEventTime", Value} | T], Acc)
@@ -412,9 +407,6 @@ fault([{"alarmSystemType", Value} | T], Acc)
 fault([{"timeZoneID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"timeZoneID", Value} | Acc]);
-fault([{"alarmIndex", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmIndex", Value} | Acc]);
 fault([{"alarmCode", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCode", Value} | Acc]);
