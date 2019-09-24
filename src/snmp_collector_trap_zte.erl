@@ -358,11 +358,23 @@ fault([{"alarmPerceivedSeverity", "5"} | T], Acc) ->
 fault([{"alarmPerceivedSeverity", "6"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_NEW}, {"alarmCondition", "alarmNew"} | Acc]);
+	fault(T, [{"eventName", ?EN_NEW},
+			{"alarmCondition", "alarmNew"} | Acc]);
 fault([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CLEARED}, {"alarmCondition", "alarmCleared"} | Acc]);
+	fault(T, [{"eventName", ?EN_CLEARED},
+			{"alarmCondition", "alarmCleared"} | Acc]);
+fault([{"snmpTrapOID",  "alarmSeverityChange"} | T], Acc) ->
+	fault(T, [{"eventName", ?EN_CHANGED},
+		{"alarmCondition", "alarmSeverityChange"} | Acc]);
+fault([{"snmpTrapOID",  "alarmManagedObjectInstanceNameChange"} | T], Acc) ->
+	fault(T, [{"eventName", ?EN_CHANGED},
+		{"alarmCondition", "alarmManagedObjectInstanceNameChange"} | Acc]);
+fault([{"snmpTrapOID",  "alarmCommentChange"} | T], Acc) ->
+	fault(T, [{"eventName", ?EN_CHANGED},
+		{"alarmCondition", "alarmCommentChange"} | Acc]);
 fault([{"snmpTrapOID",  "alarmAckChange"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CHANGED}, {"alarmCondition", "alarmAckChange"} | Acc]);
+	fault(T, [{"eventName", ?EN_CHANGED},
+		{"alarmCondition", "alarmAckChange"} | Acc]);
 fault([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCondition", Value} | Acc]);
