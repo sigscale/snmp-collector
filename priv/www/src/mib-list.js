@@ -9,6 +9,8 @@
  */
 
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
+import {} from '@polymer/polymer/lib/elements/dom-if.js';
+import {} from '@polymer/polymer/lib/elements/dom-repeat.js';
 import '@vaadin/vaadin-grid/vaadin-grid.js';
 import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-sorter.js';
@@ -25,6 +27,34 @@ class mibList extends PolymerElement {
 					id="mibGrid"
 					loading="{{!finishedLoading}}"
 					active-item="{{activeItem}}">
+				<template class="row-details">
+					<dl class="details">
+						<template is="dom-if" if={{item.name}}>
+							<dt><b>Name</b></dt>
+							<dd>{{item.name}}</dd>
+						</template>
+						<template is="dom-if" if={{item.mib_format_version}}>
+							<dt><b>Mib format version</b></dt>
+							<dd>{{item.mib_format_version}}</dd>
+						</template>
+						<template is="dom-if" if={{item.organization}}>
+							<dt><b>Organization</b></dt>
+							<dd>{{item.organization}}</dd>
+						</template>
+						<template is="dom-if" if={{item.description}}>
+							<dt><b>Description</b></dt>
+							<dd>{{item.description}}</dd>
+						</template>
+						<template is="dom-if" if={{item.last}}>
+							<dt><b>Last</b></dt>
+							<dd>{{item.last}}</dd>
+						</template>
+						<template is="dom-if" if={{item.asn1_types}}>
+							<dt><b>Asn Types</b></dt>
+							<dd>{{item.asn1_types}}</dd>
+						</template>
+					</dl>
+				</template>
 				<vaadin-grid-column width="12ex" flex-grow="3">
 					<template class="header">
 						<vaadin-grid-sorter
@@ -207,15 +237,30 @@ class mibList extends PolymerElement {
 				var vaadinItems = new Array();
 				for(var index in request.response) {
 					var newRecord = new Object();
-					newRecord.name = request.response[index].name;
+					if(request.response[index].name) {
+						newRecord.name = request.response[index].name;
+					}
+					if(request.response[index].mib_format_version) {
+						newRecord.mib_format_version = request.response[index].mib_format_version;
+					}
 					if(request.response[index].module_identity) {
-						newRecord.organization = request.response[index].module_identity.organization;
-						newRecord.description = request.response[index].module_identity.description;
-						newRecord.last= request.response[index].module_identity.last_updated;
+						if(request.response[index].module_identity.organization) {
+							newRecord.organization = request.response[index].module_identity.organization;
+						}
+						if(request.response[index].module_identity.description) {
+							newRecord.description = request.response[index].module_identity.description;
+						}
+						if(request.response[index].module_identity.last_updated) {
+							newRecord.last= request.response[index].module_identity.last_updated;
+						}
 					}
 					if(request.response[index].traps) {
 						var trapCount = request.response[index].traps;
 						newRecord.traps = trapCount.length;
+					}
+					if(request.response[index].asn1_types) {
+						var asnArr = request.response[index].asn1_types;
+						newRecord.asn1_types = asnArr.toString(); 
 					}
 					vaadinItems[index] = newRecord;
 				}
