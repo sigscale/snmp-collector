@@ -2246,6 +2246,491 @@ fault([{"snmpTrapOID", "compaqq.[22078]"}, {"sysName", SysName},
 			{"serverBladeUid", BladeUid},
 			{"enclosureManagerSerialNum", EnclosureSerialNum},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
+fault([{"snmpTrapOID", "compaqq.[0,9002]"}, {"sysName", SysName},
+		{cpqHoTrapFlags, TrapFlags} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "serverPowerOutage"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?SYS_CRITICAL},
+			{"probableCause", ?PC_Power_Problem},
+			{"specificProblem", "Server power outage detected."} | Acc]);
+fault([{"snmpTrapOID", "compaqq.[0,9003]"}, {"sysName", SysName},
+		{"cpqHoTrapFlags", TrapFlags}, {"cpqSm2CntlrBadLoginAttemptsThresh", LoginAttempts} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "serverPowerOutage"},
+			{"eventType", ?ET_Operational_Violation},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Unauthorized_Access_Attempt},
+			{"specificProblem", "More than" ++ LoginAttempts ++
+					"unauthorized login attempts detected."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,9004]"}, {"sysName", SysName},
+		{cpqHoTrapFlags, TrapFlags} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "cpqSm2BatteryFailed"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?SYS_CRITICAL},
+			{"probableCause", ?PC_Battery_Failure},
+			{"specificProblem", "Remote Insight battery failed."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,9007]"}, {"sysName", SysName},
+		{cpqHoTrapFlags, TrapFlags} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "cpqSm2BatteryDisconnected"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Battery_Failure},
+			{"specificProblem", "Remote Insight Battery Disconnected"} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,9008]"}, {"sysName", SysName},
+		{cpqHoTrapFlags, TrapFlags} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "cpqSm2KeyboardCableDisconnected"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Cable_Tamper},
+			{"specificProblem", "Remote Insight keyboard cable disconnected."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,9009]"}, {"sysName", SysName},
+		{cpqHoTrapFlags, TrapFlags} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "cpqSm2MouseCableDisconnected"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Cable_Tamper},
+			{"specificProblem", "Remote Insight mouse cable disconnected."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,9010]"}, {"sysName", SysName},
+		{cpqHoTrapFlags, TrapFlags} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "cpqSm2ExternalPowerCableDisconnected"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Cable_Tamper},
+			{"specificProblem", "Remote Insight external power cable disconnected."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,9012]"}, {"sysName", SysName},
+		{cpqHoTrapFlags, TrapFlags} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(TrapFlags)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "securityOverrideEngaged"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Cable_Tamper},
+			{"specificProblem", "Remote Insight external power cable disconnected."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6003]"} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(4)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalTempFailed"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_High_Temperature},
+			{"specificProblem", "System will be shutdown due to this thermal condition."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6004]"}, {"cpqHeThermalDegradedAction", DegradeAction} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(4)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalTempDegraded"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Temperature_Unacceptable},
+			{"thermalDegradedAtion", DegradeAction},
+			{"specificProblem", "The temperature status has been set to degraded."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6005]"} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(2)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalTempOk"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Temperature_Unacceptable},
+			{"specificProblem", "Temperature has returned to normal range."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6006]"}, {"cpqHeThermalDegradedAction", DegradeAction} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(4)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalSystemFanFailed"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"thermalDegradedAtion", DegradeAction},
+			{"specificProblem", "The system fan status has been set to failed."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6007]"} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(2)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalSystemFanDegraded"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "An optional fan is not operating normally."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6008]"} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(4)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalSystemFanOk"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "The system fan status has been set to ok."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6009]"} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(4)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalCpuFanFailed"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "The CPU fan status has been set to failed."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6010]"} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(4)},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalCpuFanOk"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "The CPU fan status has been set to ok."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6018]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {cpqHeThermalDegradedAction, DegradeAction} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalTempDegraded"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Temperature_Unacceptable},
+			{"degradAction", DegradeAction},
+			{"proposedRepairActions", "Check the system for hardware failures
+					and verify the environment is properly cooled."},
+			{"specificProblem", "Temperature out of range, shutdown may occur."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6019]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalTempOk"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Temperature_Unacceptable},
+			{"specificProblem", "Temperature has returned to normal range."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6020]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {cpqHeThermalDegradedAction, DegradeAction} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalSystemFanFailed"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"degradAction", DegradeAction},
+			{"proposedRepairActions", "Replace the failed fan."},
+			{"specificProblem", "Required fan not operating normally, shutdown may occur."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6021]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {cpqHeThermalDegradedAction, DegradeAction} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalSystemFanDegraded"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"degradAction", DegradeAction},
+			{"proposedRepairActions", "Replace the failed fan."},
+			{"specificProblem", "An optional fan is not operating normally."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6022]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalSystemFanOk"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "System fan has returned to normal operation."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6023]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalCpuFanFailed"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"proposedRepairActions", "Replace the failed fan."},
+			{"specificProblem", "CPU fan has failed, server will be shutdown."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6024]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalCpuFanOk"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "The CPU fan status has been set to ok."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6032]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolPowerSupplyChassis", Chassis} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerRedundancyLost"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Power_Supply_Failure},
+			{"proposedRepairActions", "Check the system power supplies for a failure."},
+			{"specificProblem", "The power supplies are no longer redundant on
+					chassis" ++ Chassis} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6033]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolPowerSupplyChassis", Chassis},
+		{"cpqHeFltTolPowerSupplyBay", SupplyBay} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerSupplyInserted"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Power_Supply_Failure},
+			{"specificProblem", "The power supply has been inserted on
+					chassis" ++ Chassis ++ "bay" ++ SupplyBay} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6034]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolPowerSupplyChassis", Chassis},
+		{"cpqHeFltTolPowerSupplyBay", SupplyBay} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerSupplyRemoved"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Power_Supply_Failure},
+			{"specificProblem", "The power supply has been removed on
+					chassis" ++ Chassis ++ "bay" ++ SupplyBay} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6035]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolFanChassis", Chassis},
+		{"cpqHeFltTolFanIndex", FanIndex} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "fanDegraded"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"proposedRepairActions", "Replace the failing fan."},
+			{"specificProblem", "The fan degraded on chassis" ++ Chassis
+					 ++ "fan" ++ FanIndex} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6036]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolFanChassis", Chassis},
+		{"cpqHeFltTolFanIndex", FanIndex} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "fanFailed"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"proposedRepairActions", "Replace the failing fan."},
+			{"specificProblem", "The fan failed on chassis" ++ Chassis
+					 ++ "fan" ++ FanIndex} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6037]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolFanChassis", Chassis} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "fanRedundancyLost"},
+			{"eventTypa", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Loss_Of_Redundancy},
+			{"proposedRepairActions", "Check the system fans for a failure."},
+			{"specificProblem", "The fans are no longer redundant on chassis" ++ Chassis} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6038]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolFanChassis", Chassis},
+		{"cpqHeFltTolFanIndex", FanIndex} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "fanInserted"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_MAJOR},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "The fan has been inserted on chassis"
+					++ Chassis ++ "fan" ++ FanIndex} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6039]"}, {sysName, SysName},
+		{"cpqHoTrapFlags", Flag}, {"cpqHeFltTolFanChassis", Chassis},
+		{"cpqHeFltTolFanIndex", FanIndex} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "fanRemoved"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "The fan has been removed on chassis"
+					++ Chassis ++ "fan" ++ FanIndex} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6040]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeTemperatureChassis", Chassis}, {"cpqHeTemperatureLocale", Locale} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalFailure"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_High_Temperature},
+			{"proposedRepairActions", "Check the system for hardware failures
+					and verify the environment is properly cooled."},
+			{"specificProblem", "Temperature exceeded on chassis" ++ Chassis
+					++ "location" ++ Locale} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6041]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeThermalDegradedAction", DegradeAction}, {"cpqHeTemperatureChassis", Chassis},
+		{"cpqHeTemperatureLocale", Locale} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalStatusDegraded"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Low_Temperature},
+			{"degradeAction", DegradeAction},
+			{"proposedRepairActions", "Check the system for hardware failures and
+					verify the environment is properly cooled."},
+			{"specificProblem", "Temperature out of range on chassis" ++
+					Chassis ++ "location" ++ Locale ++ ". Shutdown may occur."} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6042]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeTemperatureChassis", Chassis}, {"cpqHeTemperatureLocale", Locale} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "thermalStatusOK"},
+			{"eventType", ?ET_Environmental_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Temperature_Unacceptable},
+			{"specificProblem", "Temperature are normal on chassis" ++
+					Chassis ++ "location" ++ Locale} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6048]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeFltTolPowerSupplyChassis", Chassis}, {"cpqHeFltTolPowerSupplyBay", SupplyBay},
+		{"cpqHeFltTolPowerSupplyStatus", Status}, {"cpqHeFltTolPowerSupplyModel", Model},
+		{"cpqHeFltTolPowerSupplySerialNumber", SerialNumber}, {"cpqHeFltTolPowerSupplyAutoRev", Rev},
+		{"cpqHeFltTolPowerSupplyFirmwareRev", FirmwareRev},
+		{"cpqHeFltTolPowerSupplySparePartNum", SparePartNum},
+		{"cpqSiServerSystemId", SystemId} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerSupplyOK "},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Power_Supply_Failure},
+			{"sparePartNumber", SparePartNum},
+			{"powerSupplyAutoRev", Rev},
+			{"chassis", Chassis},
+			{"systemId", SystemId},
+			{"specificProblem", "The power supply is ok on bay" ++ SupplyBay ++
+					"status" ++ Status ++ "model" ++ Model ++ "serial number" ++ SerialNumber ++
+					"firmware" ++ FirmwareRev} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6049]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeFltTolPowerSupplyChassis", Chassis}, {"cpqHeFltTolPowerSupplyBay", SupplyBay},
+		{"cpqHeFltTolPowerSupplyStatus", Status}, {"cpqHeFltTolPowerSupplyModel", Model},
+		{"cpqHeFltTolPowerSupplySerialNumber", SerialNumber}, {"cpqHeFltTolPowerSupplyAutoRev", Rev},
+		{"cpqHeFltTolPowerSupplyFirmwareRev", FirmwareRev},
+		{"cpqHeFltTolPowerSupplySparePartNum", SparePartNum},
+		{"cpqSiServerSystemId", SystemId} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerSupplyDegraded"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Power_Supply_Failure},
+			{"proposedRepairActions", "Replace the failing power supply."},
+			{"sparePartNumber", SparePartNum},
+			{"chassis", Chassis},
+			{"powerSupplyAutoRev", Rev},
+			{"systemId", SystemId},
+			{"specificProblem", "The power supply is degraded on bay" ++ SupplyBay ++
+					"status" ++ Status ++ "model" ++ Model ++ "serial number" ++ SerialNumber ++
+					"firmware" ++ FirmwareRev} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6050]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeFltTolPowerSupplyChassis", Chassis}, {"cpqHeFltTolPowerSupplyBay", SupplyBay},
+		{"cpqHeFltTolPowerSupplyStatus", Status}, {"cpqHeFltTolPowerSupplyModel", Model},
+		{"cpqHeFltTolPowerSupplySerialNumber", SerialNumber}, {"cpqHeFltTolPowerSupplyAutoRev", Rev},
+		{"cpqHeFltTolPowerSupplyFirmwareRev", FirmwareRev},
+		{"cpqHeFltTolPowerSupplySparePartNum", SparePartNum},
+		{"cpqSiServerSystemId", SystemId} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerSupplyFailed"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Power_Supply_Failure},
+			{"proposedRepairActions", "Replace the failing power supply."},
+			{"sparePartNumber", SparePartNum},
+			{"chassis", Chassis},
+			{"powerSupplyAutoRev", Rev},
+			{"systemId", SystemId},
+			{"specificProblem", "The power supply failed on bay" ++ SupplyBay ++
+					"status" ++ Status ++ "model" ++ Model ++ "serial number" ++ SerialNumber ++
+					"firmware" ++ FirmwareRev} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6054]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeFltTolPowerSupplyChassis", Chassis} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "powerRedundancyRestored"},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Power_Problem},
+			{"specificProblem", "The power supplies are now redundant on chassis" ++ Chassis} | Acc]);
+fault([{"snmpTrapOID", "compaq.[0,6055]"}, {sysName, SysName}, {"cpqHoTrapFlags", Flag},
+		{"cpqHeFltTolFanChassis", Chassis} | T], Acc) ->
+	fault(T, [{"alarmId", snmp_collector_utils:generate_identity(7)},
+			{"eventName", flags(Flag)},
+			{"sysName", SysName},
+			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"alarmCondition", "fanRedundancyRestored "},
+			{"eventType", ?ET_Equipment_Alarm},
+			{"eventSeverity", ?ES_CRITICAL},
+			{"probableCause", ?PC_Fan_Failure},
+			{"specificProblem", "The fans are now redundant on chassis" ++ Chassis} | Acc]);
 fault([_H | T], Acc) ->
 	fault(T, Acc);
 fault([], Acc) ->
@@ -2298,6 +2783,7 @@ notification([{"snmpTrapOID", "compaqq.[0,11020]"}, {"sysName", SysName},
 			{"priority", "Normal"},
 			{"eventType", ?ET_Communication_System},
 			{"eventSeverity", ?ES_INDETERMINATE},
+			{"systemStatus", SystemStatus},
 			{"specificProblem", "A change in the health status of the server has occurred,
 					the status is now SystemStatus"} | Acc]);
 notification([_H | T], Acc) ->
