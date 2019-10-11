@@ -134,6 +134,9 @@ class httpList extends PolymerElement {
 				</template>
 			</vaadin-grid-column>
 		</vaadin-grid>
+		<paper-toast
+			id="httpError">
+		</paper-toast>
 		<iron-ajax
 			id="getHttpList"
 			url="snmp/v1/log/http"
@@ -212,7 +215,7 @@ class httpList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			httpList1.etag = null;
-			var toast;
+         var toast = document.body.querySelector('snmp-collector').shadowRoot.querySelector('http-list').shadowRoot.getElementById('httpError');
 			toast.text = "error";
 			toast.open();
 			if(!grid.size) {

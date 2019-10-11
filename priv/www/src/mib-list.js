@@ -16,6 +16,7 @@ import '@vaadin/vaadin-grid/vaadin-grid-filter.js';
 import '@vaadin/vaadin-grid/vaadin-grid-sorter.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import '@polymer/iron-icons/iron-icons.js';
+import '@polymer/paper-toast/paper-toast.js';
 import './style-element.js';
 
 class mibList extends PolymerElement {
@@ -171,6 +172,9 @@ class mibList extends PolymerElement {
 					</template>
 				</vaadin-grid-column>
 			</vaadin-grid>
+         <paper-toast
+            id="mibError">
+         </paper-toast>
 			<iron-ajax
 				id="getMibAjax"
 				url="snmp/v1/mibs"
@@ -272,7 +276,7 @@ class mibList extends PolymerElement {
 		};
 		var handleAjaxError = function(error) {
 			mibList1.etag = null;
-			var toast;
+         var toast = document.body.querySelector('snmp-collector').shadowRoot.querySelector('mib-list').shadowRoot.getElementById('mibError');
 			toast.text = "error"
 			toast.open();
 			if(!grid.size) {
