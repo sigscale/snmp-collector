@@ -15,7 +15,7 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  @doc Test suite for SNMP manager of the
+%%%  @doc Test suite support library in the
 %%% 	{@link //snmp_collector. snmp_collector} application.
 %%%
 -module(snmp_collector_test_lib).
