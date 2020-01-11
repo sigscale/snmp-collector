@@ -29,7 +29,6 @@
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
--define(INTERVAL, interval).
 -define(sigscalePEN, 50386).
 
 -include_lib("inets/include/mod_auth.hrl").
