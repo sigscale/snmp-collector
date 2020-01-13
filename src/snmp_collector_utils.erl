@@ -173,7 +173,7 @@ iso8601hour(Date, [$ , $- , $ , H1, H2 | T])
 iso8601hour(Date, [$ , H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
+	iso8601minute(Date, Hour, T).
 iso8601hour(Date, Other) ->
 erlang:display({?MODULE, ?LINE, Date, Other}), exit(badarg).
 %% @hidden
@@ -374,6 +374,8 @@ common_event_header(TargetName, AlarmDetails, Domain)
 			"version" => 1},
 	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
 %% @hidden
+common_event_header([{"reportingEntityId", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"reportingEntityId" => Value}, AD);
 common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
 common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
@@ -404,7 +406,7 @@ common_event_header([], _TargetName, CH, AD) ->
 %% @doc Create the fault fields map.
 notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
 	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"syslogFieldsVersion" => 1},
+			"notificaionFieldsVersion" => 1},
 	notification_fields(AlarmDetails, DefaultMap).
 %% @hidden
 notification_fields([{"id", Value} | T], Acc) ->
