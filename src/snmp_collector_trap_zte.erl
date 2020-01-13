@@ -124,7 +124,7 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">alarmAck</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAckState</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.ackState</td>
 %%			<td id="mt">acknowledged | unacknowledged</td>
 %% 	</tr>
 %%		<tr id="mt">
@@ -300,6 +300,7 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
+erlang:display({?MODULE, ?LINE, AlarmDetails}),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_events(Event)
 	of
@@ -324,7 +325,7 @@ handle_fault(TargetName, Varbinds) ->
 fault(NameValuePair) ->
         fault(NameValuePair, []).
 %% @hidden
-fault([{"alarmIndex", Value} | T], Acc)
+fault([{"id", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmId", Value} | Acc]);
 fault([{"alarmEventTime", Value} | T], Acc)
@@ -362,6 +363,7 @@ fault([{"snmpTrapOID", "alarmNew"} | T], Acc) ->
 			{"alarmCondition", "alarmNew"} | Acc]);
 fault([{"snmpTrapOID", "alarmCleared"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CLEARED},
+			{"eventSeverity", ?ES_CLEARED},
 			{"alarmCondition", "alarmCleared"} | Acc]);
 fault([{"snmpTrapOID",  "alarmSeverityChange"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CHANGED},
@@ -404,9 +406,9 @@ fault([{"alarmCodeName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCodeName", Value} | Acc]);
 fault([{"alarmAck", "1"} | T], Acc) ->
-	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+	fault(T, [{"ackState", ?ACK_Acknowledged} | Acc]);
 fault([{"alarmAck", "2"} | T], Acc) ->
-	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+	fault(T, [{"ackState", ?ACK_Unacknowledged} | Acc]);
 fault([{"alarmOtherInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"additionalText", Value} | Acc]);
@@ -434,6 +436,9 @@ fault([{"alarmCustomAttr2", Value} | T], Acc)
 fault([{"alarmCustomAttr6", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"boardType", Value} | Acc]);
+fault([{"alarmId", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	fault(T, [{"exId", Value} | Acc]);
 fault([{Name, Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{Name, Value} | Acc]);
@@ -470,7 +475,7 @@ domain1("alarmManagedObjectInstanceNameChange") ->
 	fault;
 domain1("heartbeatNotification") ->
 	heartbeat;
-domain1(_) ->
+domain1(_Other) ->
 	other.
 
 -spec probable_cause(ProbableCauseCode) -> Result
@@ -895,9 +900,10 @@ probable_cause("203") ->
 	?PC_Excessive_Error_Rate;
 probable_cause("999") ->
 	?PC_Equipment_Out_Of_Service;
-probable_cause(ProbableCause) ->
+probable_cause(ProbableCauseCode) ->
 	error_logger:info_report(["SNMP Manager Unrecognized Probable Cause",
-			{probableCause, ProbableCause},
-			{module, ?MODULE}]).
+			{probableCause, ProbableCauseCode},
+			{module, ?MODULE}]),
+	ProbableCauseCode.
 	
 
