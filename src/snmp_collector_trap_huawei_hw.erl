@@ -43,13 +43,13 @@
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">hwNmNorthboundProbableCause</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
-%%		 	<td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)"</td>
+%% 		<td id="mt">faultsFields.specificProblem</td>
+%%		 	<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">hwNmNorthboundEventDetail</td>
-%% 		<td id="mt">faultFields.specificProblem</td>
-%%		 	<td id="mt"></td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.probableCause</td>
+%%		 	<td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)</td>
 %% 	</tr>
 %%		<tr id="mt">
 %% 		<td id="mt">hwNmNorthboundAdditionalInfo</td>
@@ -370,7 +370,7 @@ fault([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
 	fault(T, [{"objectInstance", Value} | Acc]);
 fault([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"specificProblem", Value} | Acc]);
+	fault(T, [{"probableCause", probable_cause(Value)} | Acc]);
 fault([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCondition", Value} | Acc]);
@@ -414,10 +414,10 @@ fault([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
 fault([{"hwNmNorthboundEventType", _} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-fault([{"hwNmNorthboundProbableCause", Value} | T], Acc) 
+fault([{"hwNmNorthboundProbableCause", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"probableCause", Value} | Acc]);
-fault([{"hwNmNorthboundProbableRepair", Value} | T], Acc) 
+	fault(T, [{"specificProblem", Value} | Acc]);
+fault([{"hwNmNorthboundProbableRepair", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"proposedRepairActions", Value} | Acc]);
 fault([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
@@ -509,4 +509,12 @@ domain1("hwNmNorthboundEventKeepAlive") ->
 	heartbeat;
 domain1(_) ->
 	other.
+
+-spec probable_cause(EventDetail) -> ProbableCause
+	when
+		Value :: string(),
+		ProbableCause :: string().
+%% @doc Look up a probable cause.
+probable_cause(EventDetail) ->
+	"fault".
 
