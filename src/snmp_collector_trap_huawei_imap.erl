@@ -42,12 +42,12 @@
 %%			<td id="mt">e.g. "Quality of Service Alarm"</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">iMAPNorthboundAlarmProbablecause</td>
+%% 		<td id="mt">iMAPNorthboundAlarmSpecificproblems</td>
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
 %%			<td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)"</td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">iMAPNorthboundAlarmSpecificproblems</td>
+%% 		<td id="mt"></td>
 %% 		<td id="mt">faultFields.specificProblem</td>
 %%			<td id="mt"></td>
 %% 	</tr>
@@ -287,6 +287,8 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 		heartbeat ->
 			ignore;
 		fault ->
+erlang:display({?MODULE, ?LINE, TargetName}),
+erlang:display({?MODULE, ?LINE,Varbinds}),
 			handle_fault(TargetName, Varbinds)
 	end.
 
@@ -375,9 +377,6 @@ fault([{"iMAPNorthboundAlarmMOName", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmObjectInstanceType", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"objectInstanceType", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"specificProblem", Value} | Acc]);
 fault([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCondition", Value} | Acc]);
@@ -431,7 +430,7 @@ fault([{"iMAPNorthboundAlarmType", "16"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"probableCause", Value} | Acc]);
+	fault(T, [{"specificProblem", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"proposedRepairActions", Value} | Acc]);
