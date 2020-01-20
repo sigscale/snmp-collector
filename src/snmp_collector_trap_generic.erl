@@ -66,7 +66,7 @@
 -define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_trap_cisco public API
+%%  The snmp_collector_trap_generic public API
 %%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
