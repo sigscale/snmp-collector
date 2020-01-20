@@ -512,9 +512,9 @@ domain1(_) ->
 
 -spec probable_cause(EventDetail) -> ProbableCause
 	when
-		Value :: string(),
+		EventDetail :: string(),
 		ProbableCause :: string().
 %% @doc Look up a probable cause.
-probable_cause(EventDetail) ->
+probable_cause(_EventDetail) ->
 	"fault".
 
