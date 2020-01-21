@@ -47,7 +47,7 @@
 %%		 	<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">hwNmNorthboundEventDetail</td>
+%% 		<td id="mt">reasonId</td>
 %% 		<td id="mt">faultFields.alarmAdditionalInformation.probableCause</td>
 %%		 	<td id="mt">3GPP 32.111-2 Annex B  e.g. "Alarm Indication Signal (AIS)</td>
 %% 	</tr>
@@ -174,8 +174,8 @@
 %%		 	<td id="mt"></td>
 %% 	</tr>
 %%		<tr id="mt">
-%% 		<td id="mt">hwNmNorthboundReasonID</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.reasonId</td>
+%% 		<td id="mt">hwNmNorthboundEventDetail</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.eventDetail</td>
 %%		 	<td id="mt"></td>
 %% 	</tr>
 %% </tbody>
@@ -368,9 +368,8 @@ fault([{"hwNmNorthboundDeviceType", Value} | T], Acc)
 fault([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"objectInstance", Value} | Acc]);
-fault([{"hwNmNorthboundEventDetail", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"probableCause", probable_cause(Value)} | Acc]);
+%%fault([{"hwNmNorthboundReasonId", Value} | T], Acc) ->
+%%	fault(T, [{"probableCause", PC_Indeterminate} | Acc]);
 fault([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCondition", Value} | Acc]);
@@ -416,7 +415,7 @@ fault([{"hwNmNorthboundEventType", _} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"hwNmNorthboundProbableCause", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"specificProblem", Value} | Acc]);
+	fault(T, [{"specificProblem", Value}, {"probableCause", ?PC_Indeterminate} | Acc]);
 fault([{"hwNmNorthboundProbableRepair", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"proposedRepairActions", Value} | Acc]);
@@ -425,50 +424,44 @@ fault([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
 fault([{"hwNmNorthboundConfirmStatus", 2} | T], Acc) ->
 	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 fault([{"hwNmNorthboundNEType", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"networkElementType", Value} | Acc]);
 fault([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"additionalText", Value} | Acc]);
 fault([{"hwNmNorthboundFaultFunction", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"eventFunction", Value} | Acc]);
 fault([{"hwNmNorthboundDeviceIP", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"deviceIP", Value} | Acc]);
 fault([{"hwNmNorthboundResourceIds", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"resourceIds", Value} | Acc]);
-fault([{"hwNmNorthboundReasonId", Value} | T], Acc)
-		when is_list(Value) ->
-	fault(T, [{"reasonId", Value} | Acc]);
-fault([{"hwNmNorthboundFaultId", Value} | T], Acc)
-		when is_list(Value) ->
-	fault(T, [{"eventId", Value} | Acc]);
 fault([{"hwNmNorthboundTrailName", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"trailName", Value} | Acc]);
 fault([{"hwNmNorthboundRootAlarm", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"rootAlarm", Value} | Acc]);
 fault([{"hwNmNorthboundGroupId", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"groupId", Value} | Acc]);
 fault([{"hwNmNorthboundMaintainStatus", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"maintainStatus", Value} | Acc]);
 fault([{"hwNmNorthboundEventName", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmEventName", Value} | Acc]);
 fault([{"hwNmNorthboundFaultID", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"eventId", Value} | Acc]);
 fault([{"hwNmNorthboundGroupID", Value} | T], Acc)
-		when is_list(Value) ->
+		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"groupId", Value} | Acc]);
-fault([{"hwNmNorthboundReasonID", Value} | T], Acc)
-		when is_list(Value) ->
-	fault(T, [{"reasonId", Value} | Acc]);
+fault([{"hwNmNorthboundEventDetail", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0 ->
+	fault(T, [{"eventDetail", Value} | Acc]);
 fault([{Name, Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{Name, Value} | Acc]);
@@ -510,11 +503,32 @@ domain1("hwNmNorthboundEventKeepAlive") ->
 domain1(_) ->
 	other.
 
--spec probable_cause(EventDetail) -> ProbableCause
+-spec probable_cause(ReasonId) -> ProbableCause
 	when
-		Value :: string(),
+		ReasonId:: string(),
 		ProbableCause :: string().
 %% @doc Look up a probable cause.
-probable_cause(EventDetail) ->
-	"fault".
-
+probable_cause("1") ->
+	?PC_LOS;
+probable_cause("2") ->
+	?PC_LOS;
+probable_cause("3") ->
+	?PC_Clock_Synchronization_Problem;
+probable_cause("4") ->
+	?PC_Clock_Synchronization_Problem;
+probable_cause("5") ->
+	?PC_LOF;
+probable_cause("6") ->
+	?PC_Replaceable_Unit_Missing;
+probable_cause("7") ->
+	?PC_Replaceable_Unit_Type_Mismatch;
+probable_cause("8") ->
+	?PC_LOF;
+probable_cause("9") ->
+	?PC_Transmission_Error;
+probable_cause("10") ->
+	?PC_Performance_Degraded;
+probable_cause("11") ->
+	?PC_Performance_Degraded;
+probable_cause(ReasonId) ->
+	ReasonId.

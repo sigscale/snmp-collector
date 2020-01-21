@@ -430,7 +430,7 @@ fault([{"iMAPNorthboundAlarmType", "16"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"specificProblem", Value} | Acc]);
+	fault(T, [{"probableCause", ?PC_Indeterminate}, {"specificProblem", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"proposedRepairActions", Value} | Acc]);
@@ -489,6 +489,9 @@ fault([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmSerialNumber", Value} | Acc]);
+fault([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
+		when is_list(Value), length(Value) > 0; Value =/= [$ ] ->
+	fault(T, [{"alarmSpecificproblems", Value} | Acc]);
 fault([{Name, Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{Name, Value} | Acc]);
