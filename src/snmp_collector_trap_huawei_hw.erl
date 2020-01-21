@@ -504,7 +504,6 @@ domain1(_) ->
 	other.
 
 -spec probable_cause(ReasonId) -> ProbableCause
-	when
 		ReasonId:: string(),
 		ProbableCause :: string().
 %% @doc Look up a probable cause.
@@ -530,5 +529,6 @@ probable_cause("10") ->
 	?PC_Performance_Degraded;
 probable_cause("11") ->
 	?PC_Performance_Degraded;
-probable_cause(ReasonId) ->
-	ReasonId.
+probable_cause(_EventDetail) ->
+	"fault".
+
