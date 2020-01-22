@@ -420,7 +420,7 @@ install12(Tables) ->
 					error_logger:info_report(["Created a default user",
 							{username, "admin"}, {password, "admin"},
 							{locale, "en"}]),
-					{ok, Tables};
+					install13(Tables),
 				{error, Reason} ->
 					error_logger:error_report(["Failed to create default user",
 							{username, "admin"}, {password, "admin"},
@@ -430,12 +430,23 @@ install12(Tables) ->
 		{ok, Users} ->
 			error_logger:info_report(["Found existing http users",
 					{users, Users}]),
-			{ok, Tables};
+			{error, Reason} ->
 		{error, Reason} ->
 			error_logger:error_report(["Failed to list http users",
 				{error, Reason}]),
 			{error, Reason}
 	end.
+%% @hidden
+install13(Table) ->
+	case ets:new(counters, [set, named_table]) of
+		counters ->
+			error_logger:info_report(["Created counters ets table",
+				{error, Reason}]),
+			{ok, Tables};
+		_ ->
+			error_logger:error_report(["Failed create counters ets table",
+				{error, Reason}]),
+	end.	
 
 -spec create_dirs(MibDir, BinDir) -> Result
 	when
