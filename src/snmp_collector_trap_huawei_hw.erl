@@ -368,8 +368,6 @@ fault([{"hwNmNorthboundDeviceType", Value} | T], Acc)
 fault([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"objectInstance", Value} | Acc]);
-%%fault([{"hwNmNorthboundReasonId", Value} | T], Acc) ->
-%%	fault(T, [{"probableCause", PC_Indeterminate} | Acc]);
 fault([{"snmpTrapOID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCondition", Value} | Acc]);
@@ -504,7 +502,8 @@ domain1(_) ->
 	other.
 
 -spec probable_cause(ReasonId) -> ProbableCause
-		ReasonId:: string(),
+	when
+		ReasonId :: string(),
 		ProbableCause :: string().
 %% @doc Look up a probable cause.
 probable_cause("1") ->
