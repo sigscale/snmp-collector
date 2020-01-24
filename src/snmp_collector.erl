@@ -22,7 +22,7 @@
 %% export the snmp_collector public API
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
-		query_mibs/3, add_snmp_user/3, remove_snmp_user/1]).
+		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -232,6 +232,20 @@ update_user(Username, Password, Language) ->
 					{error, Reason}
 			end
 	end.
+
+-spec get_count() -> Result
+	when
+		Result :: non_neg_integer().
+%% @doc Get current count of alarms on system.
+get_count() ->
+	MatchSpec = [{{'$1', '$2'}, [{'or', {'==', '$1', communicationsAlarm},
+			{'==', '$1', processingErrorAlarm}, {'==', '$1', environmentalAlarm},
+			{'==', '$1', qualityOfServiceAlarm}, {'==', '$1', equipmentAlarm},
+			{'==', '$1', integrityViolation},  {'==', '$1', operationalViolation},
+			{'==', '$1', physicalViolation},
+			{'==', '$1', securityServiceOrMechanismViolation},
+			{'==', '$1', timeDomainViolation}}], ['$2']}], 
+	lists:sum(ets:select(counters, MatchSpec)).
 
 -spec get_mib(Name) -> Result
 	when
