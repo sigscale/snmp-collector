@@ -22,7 +22,8 @@
 %% export the snmp_collector public API
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
-		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0]).
+		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
+		get_count/1]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -246,6 +247,16 @@ get_count() ->
 			{'==', '$1', securityServiceOrMechanismViolation},
 			{'==', '$1', timeDomainViolation}}], ['$2']}], 
 	lists:sum(ets:select(counters, MatchSpec)).
+
+-spec get_count(Metric) -> Result
+	when
+		Metric :: eventType | perceivedResult,
+		Result :: map().
+%% @doc Get current of alarms on system by metric. 
+get_count(Metric) ->
+	MatchSpec = [{{'$1', '$2'}, [{'==', '$1', Metric}], ['$2']}],
+	Sum = lists:sum(ets:select(counters, MatchSpec)),
+	#{Metric => Sum}.
 
 -spec get_mib(Name) -> Result
 	when
