@@ -405,9 +405,9 @@ fault([{"alarmEventType", "11"} | T], Acc) ->
 fault([{"alarmCodeName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCodeName", Value} | Acc]);
-fault([{"alarmAck", "1"} | T], Acc) ->
+fault([{"alarmAckState", "1"} | T], Acc) ->
 	fault(T, [{"ackState", ?ACK_Acknowledged} | Acc]);
-fault([{"alarmAck", "2"} | T], Acc) ->
+fault([{"alarmAckState", "2"} | T], Acc) ->
 	fault(T, [{"ackState", ?ACK_Unacknowledged} | Acc]);
 fault([{"alarmOtherInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
