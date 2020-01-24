@@ -23,7 +23,7 @@
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
-		get_count/1, get_vendor_count/1]).
+		get_count/1, get_vendor_count/1, get_vendor_count/2]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -266,6 +266,17 @@ get_count(Metric) ->
 get_vendor_count(Vendor) ->
 	MatchSpec = [{{{'$1', '$2'}, '$3'}, [{'==', '$1', Vendor}], ['$3']}],
 	lists:sum(ets:select(counters, MatchSpec)).
+
+-spec get_vendor_count(Vendor, Metric) -> Result
+	when
+		Vendor :: huawei | nokia | zte | emc | nec | hpe,
+		Metric :: eventType | perceivedResult,
+		Result :: map().
+%% @doc Get current count of alarms for vendor by metric
+get_vendor_count(Vendor, Metric) ->
+	MatchSpec = [{{{'$1', '$2'}, '$3'}, [{'==', '$1', Vendor}, {'==', '$2', Metric}], ['$3']}],
+	Sum = lists:sum(ets:select(counters, MatchSpec)),
+	#{Metric => Sum}.
 
 -spec get_mib(Name) -> Result
 	when
