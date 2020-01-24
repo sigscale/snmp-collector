@@ -438,9 +438,10 @@ fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmAckTime", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmConfirm", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmAckState", Value} | Acc]);
+fault([{"iMAPNorthboundAlarmConfirm", 1} | T], Acc) ->
+	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+fault([{"iMAPNorthboundAlarmConfirm", 2} | T], Acc) ->
+	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 fault([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"additionalText", Value} | Acc]);
