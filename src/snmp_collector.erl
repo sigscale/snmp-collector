@@ -23,7 +23,8 @@
 -export([add_user/3, get_users/0, get_user/1, delete_user/1,
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
-		get_count/1, get_vendor_count/1, get_vendor_count/2]).
+		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
+		get_agent_count/3]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -252,7 +253,7 @@ get_count() ->
 	when
 		Metric :: eventType | perceivedResult,
 		Result :: map().
-%% @doc Get current of alarms on system by metric. 
+%% @doc Get current of alarms on system by `metric'. 
 get_count(Metric) ->
 	MatchSpec = [{{'$1', '$2'}, [{'==', '$1', Metric}], ['$2']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
@@ -272,9 +273,33 @@ get_vendor_count(Vendor) ->
 		Vendor :: huawei | nokia | zte | emc | nec | hpe,
 		Metric :: eventType | perceivedResult,
 		Result :: map().
-%% @doc Get current count of alarms for vendor by metric
+%% @doc Get current count of alarms for `vendor' by `metric'.
 get_vendor_count(Vendor, Metric) ->
 	MatchSpec = [{{{'$1', '$2'}, '$3'}, [{'==', '$1', Vendor}, {'==', '$2', Metric}], ['$3']}],
+	Sum = lists:sum(ets:select(counters, MatchSpec)),
+	#{Metric => Sum}.
+
+-spec get_agent_count(Vendor, Agent) -> Result
+	when
+		Vendor :: huawei | nokia | zte | emc | nec | hpe,
+		Agent :: string(),
+		Result :: non_neg_integer().
+%% @doc Get current count of alarms for `vendor' by `agent'
+get_agent_count(Vendor, Agent) ->
+	MatchSpec = [{{{'$1', '$2', '$3'}, '$4'}, [{'==', '$1', Vendor},
+		{'==', '$2', Agent}], ['$4']}],
+	lists:sum(ets:select(counters, MatchSpec)).
+
+-spec get_agent_count(Vendor, Agent, Metric) -> Result
+	when
+		Vendor :: huawei | nokia | zte | emc | nec | hpe,
+		Agent :: string(),
+		Metric :: eventType | perceivedResult,
+		Result :: map().
+%% @doc Get current alarms for `vendor' by `agent' and `metric'
+get_agent_count(Vendor, Agent, Metric) ->
+	MatchSpec = [{{{'$1', '$2', '$3'}, '$4'}, [{'==', '$1', Vendor},
+		{'==', '$2', Agent},{'==', '$3', Metric}], ['$4']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
 
