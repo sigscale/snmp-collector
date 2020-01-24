@@ -1109,36 +1109,27 @@ add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
 %% @doc Update counters for SNMP notifications received
 update_counters(AgentName, TargetName,
 		[{"eventType", ?ET_Communication_System} | T]) ->
-	ets:update_counter(counters, {AgentName, TargetName, communicationsAlarm},
-			{2, 1}, {{AgentName, TargetName, communicationsAlarm}, 0}),
-	ets:update_counter(counters, {AgentName, communicationsAlarm},
-			{2, 1}, {{AgentName, communicationsAlarm}, 0}),
-	ets:update_counter(counters, communicationsAlarm,
-			{2, 1}, {communicationsAlarm, 0}),
+	ets:update_counter(counters, {AgentName, TargetName, communicationsAlarm}, {2, 1}, {{AgentName, TargetName, communicationsAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, communicationsAlarm}, {2, 1}, {{AgentName, communicationsAlarm}, 0}),
+	ets:update_counter(counters, communicationsAlarm, {2, 1}, {communicationsAlarm, 0}),
 	update_counters(AgentName, TargetName, T);
 update_counters(AgentName, TargetName,
 		[{"eventType", ?ET_Processing_Error} | T]) ->
-	ets:update_counter(counters, {AgentName, TargetName, processingErrorAlarm},
-			{2, 1}, {{AgentName, TargetName, processingErrorAlarm}, 0}),
-	ets:update_counter(counters, {AgentName, processingErrorAlarm},
-			{2, 1}, {{AgentName, processingErrorAlarm}, 0}),
-	ets:update_counter(counters, processingErrorAlarm,
-			{2, 1}, {processingErrorAlarm, 0}),
+	ets:update_counter(counters, {AgentName, TargetName, processingErrorAlarm}, {2, 1}, {{AgentName, TargetName, processingErrorAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, processingErrorAlarm}, {2, 1}, {{AgentName, processingErrorAlarm}, 0}),
+	ets:update_counter(counters, processingErrorAlarm, {2, 1}, {processingErrorAlarm, 0}),
 	update_counters(AgentName, TargetName, T);
 update_counters(AgentName, TargetName,
 		[{"eventType", ?ET_Environmental_Alarm} | T]) ->
-	ets:update_counter(counters, {AgentName, TargetName, environmentalAlarm},
-			{2, 1}, {{AgentName, TargetName, environmentalAlarm}, 0}),
-	ets:update_counter(counters, {TargetName, environmentalAlarm},
-			{2, 1}, {{TargetName, environmentalAlarm}, 0}),
-	ets:update_counter(counters, environmentalAlarm,
-			{2, 1}, {environmentalAlarm, 0}),
+	ets:update_counter(counters, {AgentName, TargetName, environmentalAlarm}, {2, 1}, {{AgentName, TargetName, environmentalAlarm}, 0}),
+	ets:update_counter(counters, {TargetName, environmentalAlarm}, {2, 1}, {{TargetName, environmentalAlarm}, 0}),
+	ets:update_counter(counters, environmentalAlarm, {2, 1}, {environmentalAlarm, 0}),
 	update_counters(AgentName, TargetName, T);
 update_counters(AgentName, TargetName,
 		[{"eventType", ?ET_Quality_Of_Service_Alarm} | T]) ->
 	ets:update_counter(counters, {AgentName, TargetName, qualityOfServiceAlarm},
 			{2, 1}, {{AgentName, TargetName, qualityOfServiceAlarm}, 0}),
-	ets:update_counter(counters, {AgentName},
+	ets:update_counter(counters, {AgentName, qualityOfServiceAlarm},
 			{2, 1}, {{AgentName, qualityOfServiceAlarm}, 0}),
 	ets:update_counter(counters, qualityOfServiceAlarm,
 			{2, 1}, {qualityOfServiceAlarm, 0}),
