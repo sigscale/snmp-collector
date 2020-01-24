@@ -1,7 +1,7 @@
 %%%snmp_collector_utils.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2019 SigScale Global Inc.
+%%% @copyright 2016 - 2020 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(snmp_collector_utils).
--copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_events/1, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
-		authenticate_v1_v2/2]).
+		authenticate_v1_v2/2, update_counters/3]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -374,6 +374,8 @@ common_event_header(TargetName, AlarmDetails, Domain)
 			"version" => 1},
 	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
 %% @hidden
+common_event_header([{"reportingEntityId", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"reportingEntityId" => Value}, AD);
 common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
 common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
@@ -404,7 +406,7 @@ common_event_header([], _TargetName, CH, AD) ->
 %% @doc Create the fault fields map.
 notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
 	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"syslogFieldsVersion" => 1},
+			"notificaionFieldsVersion" => 1},
 	notification_fields(AlarmDetails, DefaultMap).
 %% @hidden
 notification_fields([{"id", Value} | T], Acc) ->
@@ -1097,6 +1099,162 @@ add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
+-spec update_counters(AgentName, TargetName, AlarmDetails) -> Result
+	when
+		AgentName :: atom(),
+		TargetName :: string(),
+		AlarmDetails :: [tuple()],
+		Result :: ok.
+%% @doc Update counters for SNMP notifications received
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Communication_System} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, communicationsAlarm},
+			{2, 1}, {{AgentName, TargetName, communicationsAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, communicationsAlarm},
+			{2, 1}, {{AgentName, communicationsAlarm}, 0}),
+	ets:update_counter(counters, communicationsAlarm,
+			{2, 1}, {communicationsAlarm, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Processing_Error} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, processingErrorAlarm},
+			{2, 1}, {{AgentName, TargetName, processingErrorAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, processingErrorAlarm},
+			{2, 1}, {{AgentName, processingErrorAlarm}, 0}),
+	ets:update_counter(counters, processingErrorAlarm,
+			{2, 1}, {processingErrorAlarm, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Environmental_Alarm} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, environmentalAlarm},
+			{2, 1}, {{AgentName, TargetName, environmentalAlarm}, 0}),
+	ets:update_counter(counters, {TargetName, environmentalAlarm},
+			{2, 1}, {{TargetName, environmentalAlarm}, 0}),
+	ets:update_counter(counters, environmentalAlarm,
+			{2, 1}, {environmentalAlarm, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Quality_Of_Service_Alarm} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, qualityOfServiceAlarm},
+			{2, 1}, {{AgentName, TargetName, qualityOfServiceAlarm}, 0}),
+	ets:update_counter(counters, {AgentName},
+			{2, 1}, {{AgentName, qualityOfServiceAlarm}, 0}),
+	ets:update_counter(counters, qualityOfServiceAlarm,
+			{2, 1}, {qualityOfServiceAlarm, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Equipment_Alarm} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, equipmentAlarm},
+			{2, 1}, {{AgentName, TargetName, equipmentAlarm}, 0}),
+	ets:update_counter(counters, {AgentName,equipmentAlarm},
+			{2, 1}, {{AgentName, equipmentAlarm}, 0}),
+	ets:update_counter(counters, equipmentAlarm,
+			{2, 1}, {equipmentAlarm, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Integrity_Violation} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, integrityViolation},
+			{2, 1}, {{AgentName, TargetName, integrityViolation}, 0}),
+	ets:update_counter(counters, {TargetName, integrityViolation},
+			{2, 1}, {{AgentName, integrityViolation}, 0}),
+	ets:update_counter(counters, integrityViolation,
+			{2, 1}, {integrityViolation, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Operational_Violation} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, operationalViolation},
+			{2, 1}, {{AgentName, TargetName, operationalViolation}, 0}),
+	ets:update_counter(counters, {AgentName, operationalViolation},
+			{2, 1}, {{AgentName, operationalViolation}, 0}),
+	ets:update_counter(counters, operationalViolation,
+			{2, 1}, {operationalViolation, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Physical_Violation} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, physicalViolation},
+			{2, 1}, {{AgentName, TargetName, physicalViolation}, 0}),
+	ets:update_counter(counters, {AgentName, physicalViolation},
+			{2, 1}, {{AgentName, physicalViolation}, 0}),
+	ets:update_counter(counters, physicalViolation,
+			{2, 1}, {physicalViolation, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, securityServiceOrMechanismViolation},
+			{2, 1}, {{AgentName, TargetName, securityServiceOrMechanismViolation}, 0}),
+	ets:update_counter(counters, {AgentName, securityServiceOrMechanismViolation},
+			{2, 1}, {{AgentName, securityServiceOrMechanismViolation}, 0}),
+	ets:update_counter(counters, securityServiceOrMechanismViolation,
+			{2, 1}, {securityServiceOrMechanismViolation, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventType", ?ET_Time_Domain_Violation} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, timeDomainViolation},
+			{2, 1}, {{AgentName, TargetName, timeDomainViolation}, 0}),
+	ets:update_counter(counters, {AgentName, timeDomainViolation},
+			{2, 1}, {{AgentName, timeDomainViolation}, 0}),
+	ets:update_counter(counters, timeDomainViolation,
+			{2, 1}, {timeDomainViolation, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventSeverity", ?ES_CRITICAL} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, critical},
+			{2, 1}, {{AgentName, TargetName, critical}, 0}),
+	ets:update_counter(counters, {AgentName, critical},
+			{2, 1}, {{AgentName, critical}, 0}),
+	ets:update_counter(counters, critical,
+			{2, 1}, {critical, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventSeverity", ?ES_MAJOR}| T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, major},
+			{2, 1}, {{AgentName, TargetName, major}, 0}),
+	ets:update_counter(counters, {AgentName, major},
+			{2, 1}, {{AgentName, major}, 0}),
+	ets:update_counter(counters, major,
+			{2, 1}, {major, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventSeverity", ?ES_MINOR} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, minor},
+			{2, 1}, {{AgentName, TargetName, minor}, 0}),
+	ets:update_counter(counters, {AgentName, minor},
+			{2, 1}, {{AgentName, minor}, 0}),
+	ets:update_counter(counters, minor,
+			{2, 1}, {minor, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventSeverity", ?ES_WARNING} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, warning},
+			{2, 1}, {{AgentName, TargetName, warning}, 0}),
+	ets:update_counter(counters, {AgentName, warning},
+			{2, 1}, {{AgentName, warning}, 0}),
+	ets:update_counter(counters, warning,
+			{2, 1}, {warning, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventSeverity", ?ES_INDETERMINATE} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, indeterminate},
+			{2, 1}, {{AgentName, TargetName, indeterminate}, 0}),
+	ets:update_counter(counters, {AgentName, indeterminate},
+			{2, 1}, {{AgentName, indeterminate}, 0}),
+	ets:update_counter(counters, indeterminate,
+			{2, 1}, {indeterminate, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName,
+		[{"eventSeverity", ?ES_CLEARED} | T]) ->
+	ets:update_counter(counters, {AgentName, TargetName, cleared},
+			{2, 1}, {{AgentName, TargetName, cleared}, 0}),
+	ets:update_counter(counters, {AgentName, cleared},
+			{2, 1}, {{AgentName, cleared}, 0}),
+	ets:update_counter(counters, cleared,
+			{2, 1}, {cleared, 0}),
+	update_counters(AgentName, TargetName, T);
+update_counters(AgentName, TargetName, [_H | T]) ->
+	update_counters(AgentName, TargetName, T);
+update_counters(_, _, []) ->
+	ok.
 
 -spec generate_key(Protocol, Pass, EngineID) -> Key
 	when

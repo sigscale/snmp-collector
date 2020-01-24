@@ -75,6 +75,11 @@ class snmpHelp extends PolymerElement {
 				</div>
 			</paper-toolbar>
 			<paper-icon-item
+					on-click="mibs">
+					<iron-icon icon="my-icons:mibIcon" slot="item-icon"></iron-icon>
+						Mibs
+			</paper-icon-item>
+			<paper-icon-item
 					on-click="logs">
 					<iron-icon icon="my-icons:logIcon" slot="item-icon"></iron-icon>
 						Logs
@@ -84,6 +89,55 @@ class snmpHelp extends PolymerElement {
 					<iron-icon icon="my-icons:users" slot="item-icon"></iron-icon>
 						Users
 			</paper-icon-item>
+		</paper-dialog>
+		<paper-dialog id="helpLogs">
+			<paper-toolbar>
+				<paper-icon-button
+					slot="top"
+					icon="my-icons:arrow-back"
+					on-click="helpBack">
+				</paper-icon-button>
+				<div slot="top" class="title">
+					Mibs
+				</div>
+			</paper-toolbar>
+			<paper-icon-item>
+				<iron-icon icon="my-icons:mibIcon" slot="item-icon"></iron-icon>
+					Mibs
+			</paper-icon-item>
+			<paper-dialog-scrollable>
+				<p>To access the <b>Mibs</b> view first open the navigation drawer
+				by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+				on the left of the toolbar at top. Select the
+				<iron-icon class="iconHelp" icon="my-icons:mibIcon"></iron-icon>
+				<b>Mibs</b> view from the navigation menu.</p>
+			</paper-dialog-scrollable>
+		</paper-dialog>
+		<paper-dialog>
+			<paper-toolbar>
+				<paper-icon-button
+					slot="top"
+					icon="my-icons:arrow-back"
+					on-click="helpBack">
+				</paper-icon-button>
+				<div slot="top" class="title">
+					Logs
+				</div>
+			</paper-toolbar>
+			<paper-icon-item>
+				<iron-icon icon="my-icons:assignment" slot="item-icon"></iron-icon>
+					Logs
+			</paper-icon-item>
+			<paper-dialog-scrollable>
+				<p>To access the <b>Logs</b> view first open the navigation drawer
+				by selecting it's icon <iron-icon class="iconHelp" icon="menu"></iron-icon>
+				on the left of the toolbar at top. Select the
+				<iron-icon class="iconHelp" icon="my-icons:logIcon"></iron-icon>
+				<b>Logs</b> view from the navigation menu.Finally select the
+				<iron-icon class="iconHelp" icon="my-icons:data"></iron-icon><b>
+				Event</b> view.</p>
+				<p>Logs are a collection of events that are of significance network operators.</p>
+			</paper-dialog-scrollable>
 		</paper-dialog>
 		<paper-dialog id="helpUsers">
 			<paper-toolbar>
@@ -151,6 +205,20 @@ class snmpHelp extends PolymerElement {
 		var helpObj = helpSnmp.shadowRoot.getElementById('helpMenu');
 		helpObj.open();
 	}
+	mibs(event) {
+		var mibsSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');
+      var mibsObj = mibsSnmp.shadowRoot.getElementById('helpMenu');
+      mibsObj.close();
+      var mibsObjDialog = mibsSnmp.shadowRoot.getElementById('helpLogs');
+      mibsObjDialog.open();
+	}
+	logs(event) {
+		var logsSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');
+		var logsObj = logsSnmp.shadowRoot.getElementById('helpMenu');
+		logsObj.close();
+		var logsObjDialog = logsSnmp.shadowRoot.getElementById('helpLogs');
+		logsObjDialog.open();
+	}
 	users(event) {
 		var userSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');
 		var userObj = userSnmp.shadowRoot.getElementById('helpMenu');
@@ -160,6 +228,8 @@ class snmpHelp extends PolymerElement {
 	}
 	helpBack(event) {
 		var helpBackSnmp = document.querySelector('snmp-collector').shadowRoot.getElementById('snmpGetHelp');     
+		var helpLogsDialog = helpBackSnmp.shadowRoot.getElementById('helpLogs');
+		helpLogsDialog.close();
 		var helpObjDialog = helpBackSnmp.shadowRoot.getElementById('helpUsers');
 		helpObjDialog.close();
 		var helpBackObj = helpBackSnmp.shadowRoot.getElementById('helpMenu');

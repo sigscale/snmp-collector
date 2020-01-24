@@ -67,7 +67,7 @@ class SnmpCollector extends PolymerElement {
 									icon="my-icons:menu"
 									drawer-toggle>
 							</paper-icon-button>
-							<div main-title>SNMP Collector</div>
+							<div main-title>[[viewTitle]]</div>
 							<paper-icon-button
 									icon="my-icons:refresh"
 									on-click="refreshClick">
@@ -190,6 +190,9 @@ class SnmpCollector extends PolymerElement {
 
 	static get properties() {
 		return {
+			viewTitle: {
+			type: String
+			},
 			page: {
 				type: String,
 				reflectToAttribute: true,
@@ -220,8 +223,25 @@ class SnmpCollector extends PolymerElement {
 		// Show 'mibView' in that case. And if the page doesn't exist, show 'view404'.
 		if (!page) {
 			this.page = 'mibView';
-		} else if (['mibView', 'userView', 'logView', 'httpView'].indexOf(page) !== -1) {
+		} else if (['mibView',
+					'userView',
+					'logView',
+					'httpView'].indexOf(page) !== -1) {
 			this.page = page;
+		}
+		switch (this.page) {
+			case 'mibView':
+				this.viewTitle = "MIBs";
+				break;
+			case 'userView':
+				this.viewTitle = "Users";
+				break;
+			case 'logView':
+				this.viewTitle = "Logs";
+				break;
+			case 'httpView':
+				this.viewTitle = "HTTP Log";
+				break;
 		}
 		// Close a non-persistent drawer when the page & route are changed.
 		if (!this.$.drawer.persistent) {

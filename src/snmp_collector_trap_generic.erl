@@ -66,7 +66,7 @@
 -define(EPOCH, 62167219200).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_trap_cisco public API
+%%  The snmp_collector_trap_generic public API
 %%----------------------------------------------------------------------
 
 -spec handle_error(ReqId, Reason, UserData) -> snmp:void()
@@ -182,6 +182,7 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
+		snmp_collector_utils:update_counters(generic, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_events(Event)
 	of

@@ -279,6 +279,7 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
+		snmp_collector_utils:update_counters(nokia, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_events(Event)
 	of
@@ -322,14 +323,8 @@ fault([{"nbiSpecificProblem", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	case catch string:tokens(Value, "|") of
 		[_, SpecificProblem] ->
-			case maps:get(SpecificProblem, probable_causes(), ?PC_Indeterminate) of
-				ProbableCause when is_list(ProbableCause) ->
-					fault(T, [{"specificProblem", SpecificProblem},
-							{"probableCause", ProbableCause} | Acc]);
-				{badmap, _Map} ->
-					fault(T, [{"specificProblem", SpecificProblem},
-							{"probableCause", ?PC_Indeterminate} | Acc])
-			end;
+			fault(T, [{"specificProblem", SpecificProblem},
+					{"probableCause", probable_cause(SpecificProblem)} | Acc]);
 		{'EXIT', _Reason} ->
 			fault(T, Acc)
 	end;
@@ -338,12 +333,13 @@ fault([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
 			{"alarmCondition", "alarmNewNotification"} | Acc]);
 fault([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "alarmClearedNotification"} | Acc]);
+			{"alarmCondition", "alarmClearedNotification"},
+			{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CHANGED},
 			{"alarmCondition", "alarmChangedNotification"} | Acc]);
 fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CLEARED},
+	fault(T, [{"eventName", ?EN_CHANGED},
 			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
 fault([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
@@ -490,52 +486,97 @@ domain1("nbiHeartbeatNotification") ->
 domain1(_) ->
 	other.
 
+-spec probable_cause(EventCause) -> Result
+	when
+		EventCause :: string(),
+		ProbableCause :: string(),
+		Result :: EventCause | ProbableCause.
 %% @hidden
-probable_causes() ->
-	#{"BASE STATION CONNECTIVITY DEGRADED" => ?PC_Degraded_Signal,
-			"LOW VOLTAGE" => ?PC_Power_Problem,
-			"ToP master service 10.40.61.86 unusable" => ?PC_Unavailable,
-			"Water Alarm" => ?PC_Low_Water,
-			"CRITICAL LIMIT IN SECURITY REPORTING REACHED" => ?PC_Reduced_Logging_Capability,
-			"CELL OPERATION DEGRADED" => ?PC_Performance_Degraded,
-			"BASE STATION NOTIFICATION" => ?PC_Alarm_Indication_Signal,
-			"FIRE" => ?PC_Fire,
-			"ASP ACTIVATION FAILED" => ?PC_CPU_Cycles_Limit_Exceeded,
-			"NE O&M CONNECTION FAILURE" => ?PC_Connection_Establishment_Error,
-			"AUTOMATIC RECOVERY ACTION" => ?PC_Reinitialized,
-			"WCDMA CELL OUT OF USE" => ?PC_Broadcast_Channel_Failure,
-			"WORKING STATE CHANGE" => ?PC_Alarm_Indication_Signal,
-			"D-CHANNEL FAILURE" => ?PC_LOS,
-			"Synchronization lost" => ?PC_Loss_Of_Synchronization,
-			"FAILURE IN D-CHANNEL ACTIVATION OR RESTORATION" => ?PC_Reinitialized,
-			"BASE STATION CONNECTIVITY PROBLEM" => ?PC_Connection_Establishment_Error,
-			"SIGNALING SERVICE INTERNAL FAILURE" => ?PC_LOS,
-			"TRX RESTARTED" => ?PC_Reinitialized,
-			"SCTP ASSOCIATION LOST" => ?PC_Communication_Protocol_Error,
-			"CONFUSION IN BSSMAP SIGNALING" => ?PC_Signal_Label_Mismatch,
-			"RECOVERY GROUP SWITCHOVER" => ?PC_Reinitialized,
-			"BCF INITIALIZATION" => ?PC_Reinitialized,
-			"MAINS FAIL" => ?PC_Power_Supply_Failure,
-			"INTRUDER" => ?PC_Unauthorized_Access_Attempt,
-			"BTS Configuration Synchronisation Problem Notification" =>
-					?PC_Configuration_Or_Customization_Error,
-			"BCCH MISSING" => ?PC_Power_Problem,
-			"NTP Server 10.10.27.121 unavailable" => ?PC_Unavailable,
-			"LOS on unit 0, Ethernet interface 1" => ?PC_LOS,
-			"RECTIFIER FAULT" => ?PC_Rectifier_Failure,
-			"ETHERNET LINK FAILURE" => ?PC_LAN_Error,
-			"CELL FAULTY" => ?PC_Processor_Problem,
-			"BASE STATION ANTENNA LINE PROBLEM" => ?PC_Antenna_Failure,
-			"BASE STATION OPERATION DEGRADED" => ?PC_Performance_Degraded,
-			"SYSTEM CLOCK OUT-OF-SYNC WITH NTP SERVER" => ?PC_Real_Time_Clock_Failure,
-			"DATABASE DISK UPDATES ARE PREVENTED" => ?PC_Software_Download_Failure,
-			"HUMIDITY" => ?PC_Humidity_Unacceptable,
-			"HIGH TEMPERATURE" => ?PC_High_Temperature,
-			"UNIT RESTARTED" => ?PC_Reinitialized,
-			"BCCH IS NOT AT PREFERRED BCCH TRX" => ?PC_Power_Problem,
-			"PLAN BASED CONFIGURATION OPERATION ONGOING" => "Plan based configuration operation ongoing",
-			"ALARM DATABASE UPLOAD IN PROGRESS" => "Alarm Database upload in progress",
-			"MEAN HOLDING TIME ABOVE DEFINED THRESHOLD" => ?PC_Excessive_Rresponse_Time,
-			"SIGNALLING MEASUREMENT REPORT LOST" => ?PC_Resource_at_or_Nearing_Capacity,
-			"MANAGED OBJECT FAILED" => ?PC_Alarm_Indication_Signal}.
+probable_cause("BASE STATION CONNECTIVITY DEGRADED") ->
+	?PC_Degraded_Signal;
+probable_cause("LOW VOLTAGE") ->
+	?PC_Power_Problem;
+probable_cause("ToP master service 10.40.61.86 unusable") ->
+	?PC_Unavailable;
+probable_cause("Water Alarm") ->
+	?PC_Low_Water;
+probable_cause("CRITICAL LIMIT IN SECURITY REPORTING REACHED") ->
+	?PC_Reduced_Logging_Capability;
+probable_cause("CELL OPERATION DEGRADED") ->
+	?PC_Performance_Degraded;
+probable_cause("BASE STATION NOTIFICATION") ->
+	?PC_Alarm_Indication_Signal;
+probable_cause("FIRE") ->
+	?PC_Fire;
+probable_cause("ASP ACTIVATION FAILED") ->
+	?PC_CPU_Cycles_Limit_Exceeded;
+probable_cause("NE O&M CONNECTION FAILURE") ->
+	?PC_Connection_Establishment_Error;
+probable_cause("AUTOMATIC RECOVERY ACTION") ->
+	?PC_Reinitialized;
+probable_cause("WCDMA CELL OUT OF USE") ->
+	?PC_Broadcast_Channel_Failure;
+probable_cause("WORKING STATE CHANGE") ->
+	?PC_Alarm_Indication_Signal;
+probable_cause("D-CHANNEL FAILURE") ->
+	?PC_LOS;
+probable_cause("Synchronization lost") ->
+	?PC_Loss_Of_Synchronization;
+probable_cause("FAILURE IN D-CHANNEL ACTIVATION OR RESTORATION") ->
+	?PC_Reinitialized;
+probable_cause("BASE STATION CONNECTIVITY PROBLEM") ->
+	?PC_Connection_Establishment_Error;
+probable_cause("SIGNALING SERVICE INTERNAL FAILURE") ->
+	?PC_LOS;
+probable_cause("TRX RESTARTED") ->
+	?PC_Reinitialized;
+probable_cause("SCTP ASSOCIATION LOST") ->
+	?PC_Communication_Protocol_Error;
+probable_cause("CONFUSION IN BSSMAP SIGNALING") ->
+	?PC_Signal_Label_Mismatch;
+probable_cause("RECOVERY GROUP SWITCHOVER") ->
+	?PC_Reinitialized;
+probable_cause("BCF INITIALIZATION") ->
+	?PC_Reinitialized;
+probable_cause("MAINS FAIL") ->
+	?PC_Power_Supply_Failure;
+probable_cause("BTS Configuration Synchronisation Problem Notification") ->
+	?PC_Configuration_Or_Customization_Error;
+probable_cause("NTP Server 10.10.27.121 unavailable") ->
+	?PC_Unavailable;
+probable_cause("LOS on unit 0, Ethernet interface 1") ->
+	?PC_LOS;
+probable_cause("RECTIFIER FAULT") ->
+	?PC_Rectifier_Failure;
+probable_cause("ETHERNET LINK FAILURE") ->
+	?PC_LAN_Error;
+probable_cause("CELL FAULTY") ->
+		?PC_Processor_Problem;
+probable_cause("INTRUDER") ->
+	?PC_Unauthorized_Access_Attempt;
+probable_cause("BCCH MISSING") ->
+	?PC_Power_Problem;
+probable_cause("BASE STATION ANTENNA LINE PROBLEM") ->
+	?PC_Antenna_Failure;
+probable_cause("HUMIDITY") ->
+	?PC_Humidity_Unacceptable;
+probable_cause("UNIT RESTARTED") ->
+	?PC_Reinitialized;
+probable_cause("BCCH IS NOT AT PREFERRED BCCH TRX") ->
+	?PC_Power_Problem;
+probable_cause("PLAN BASED CONFIGURATION OPERATION ONGOING") ->
+	undefined;
+probable_cause("ALARM DATABASE UPLOAD IN PROGRESS") ->
+	undefined;
+probable_cause("MEAN HOLDING TIME ABOVE DEFINED THRESHOLD") ->
+	?PC_Excessive_Rresponse_Time;
+probable_cause("SIGNALLING MEASUREMENT REPORT LOST") ->
+	?PC_Excessive_Rresponse_Time;
+probable_cause("MANAGED OBJECT FAILED") ->
+	?PC_Alarm_Indication_Signal;
+probable_cause(EventCause) ->
+	error_logger:info_report(["SNMP Manager Unrecognized Probable Cause",
+			{probableCause, EventCause},
+			{module, ?MODULE}]),
+	EventCause.
 
