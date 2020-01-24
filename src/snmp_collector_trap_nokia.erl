@@ -372,13 +372,13 @@ fault([{"nbiAckState", "2"} | T], Acc) ->
 	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 fault([{"nbiAckSystemId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmAckUserId", Value} | Acc]);
+	fault(T, [{"alarmAckSystemId", Value} | Acc]);
 fault([{"nbiAckTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmAckTime", Value} | Acc]);
 fault([{"nbiAckUser", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmAckUser", Value} | Acc]);
+	fault(T, [{"ackUserId", Value} | Acc]);
 fault([{"nbiAdditionalText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"additionalText", Value} | Acc]);
