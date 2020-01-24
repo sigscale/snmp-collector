@@ -395,6 +395,8 @@ fault([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CLEARED} | Acc]);
+fault([{"iMAPNorthboundAlarmCategory", "3"} | T], Acc) ->
+	fault(T, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "4"} | T], Acc) ->
 	fault(T, [{"eventName", ?ACK_Acknowledged} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "5"} | T], Acc) ->
