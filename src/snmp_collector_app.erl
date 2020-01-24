@@ -101,7 +101,7 @@ start1(normal = _StartType, _Args) ->
 	end.
 %% @hidden
 start2() ->
-	case catch ets:new(counters, [set, named_table]) of
+	case catch ets:new(counters, [set, named_table, public]) of
 		counters ->
 			start3();
 		{'EXIT', Reason} ->
