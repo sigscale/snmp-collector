@@ -390,6 +390,10 @@ fault([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Recovery"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CLEARED} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], Acc) ->
+	fault(T, [{"eventName", ?ACK_Acknowledged} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], Acc) ->
+	fault(T, [{"eventName", ?ACK_Unacknowledged} | Acc]);
 fault([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
 fault([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->
