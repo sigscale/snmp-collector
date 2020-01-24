@@ -393,10 +393,14 @@ fault([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_NEW} | Acc]);
-fault([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CHANGED}| Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_CLEARED} | Acc]);
+fault([{"iMAPNorthboundAlarmCategory", "4"} | T], Acc) ->
+	fault(T, [{"eventName", ?ACK_Acknowledged} | Acc]);
+fault([{"iMAPNorthboundAlarmCategory", "5"} | T], Acc) ->
+	fault(T, [{"eventName", ?ACK_Unacknowledged} | Acc]);
+fault([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
+	fault(T, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
@@ -438,9 +442,9 @@ fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmAckTime", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmConfirm", 1} | T], Acc) ->
+fault([{"iMAPNorthboundAlarmConfirm", "1"} | T], Acc) ->
 	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-fault([{"iMAPNorthboundAlarmConfirm", 2} | T], Acc) ->
+fault([{"iMAPNorthboundAlarmConfirm", "2"} | T], Acc) ->
 	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 fault([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
