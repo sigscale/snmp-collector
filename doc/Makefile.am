@@ -33,6 +33,7 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_rest_delete.html \
 			snmp_collector_rest_res_user.html \
 			snmp_collector_rest_res_mib.html \
+			snmp_collector_rest_res_counter.html \
 			snmp_collector_rest_res_event.html \
 			snmp_collector_rest_pagination_sup.html \
 			snmp_collector_rest_pagination_server.html \
