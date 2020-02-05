@@ -64,6 +64,8 @@ do(#mod{method = Method, parsed_header = Headers, request_uri = Uri,
 							check_content_type_header(Headers, Method, snmp_collector_rest_res_event, Data);
 						["snmp", "v1", "log", "http" | _] ->
 							check_content_type_header(Headers, Method, snmp_collector_rest_res_http, Data);
+						["counters", "v1", "snmp" | _] ->
+							check_content_type_header(Headers, Method, snmp_collector_rest_res_counter, Data);
 						_ ->
 							{proceed, Data}
 					end;

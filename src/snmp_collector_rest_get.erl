@@ -117,6 +117,9 @@ do_get(Resource, ModData,
 	do_response(ModData, Resource:get_http());
 do_get(Resource, ModData, ["eventManagement", "v1", "event", Id], Query) ->
 	do_response(ModData, Resource:get_event(Id, Query));
+do_get(Resource, ModData,
+		["counters", "v1", "snmp"], _Query) ->
+	do_response(ModData, Resource:get_counters());
 do_get(_, #mod{data = Data} = _ModData, _, _) ->
 	Response = "<h2>HTTP Error 404 - Not Found</h2>",
 	{proceed, [{response, {404, Response}} | Data]}.
