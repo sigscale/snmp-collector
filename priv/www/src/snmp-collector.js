@@ -86,6 +86,21 @@ class SnmpCollector extends PolymerElement {
 							selected="[[page]]"
 							attr-for-selected="name"
 							role="main">
+						<system-list
+								id="systemList"
+								loading="{{systemLoading}}"
+								name="systemView">
+						</system-list>
+						<vendor-list
+								id="vendorList"
+								loading="{{vendorLoading}}"
+								name="vendorView">
+						</vendor-list>
+						<agent-list
+								id="agentList"
+								loading="{{agentLoading}}"
+								name="agentView">
+						</agent-list>
 						<mib-list
 								id="mibList"
 								finished-loading="{{progress}}"
@@ -121,6 +136,32 @@ class SnmpCollector extends PolymerElement {
 							attr-for-selected="name"
 							class="drawer-list"
 							role="navigation">
+						<a on-click="_collapseLogs">
+							<paper-icon-button
+								icon="my-icons:dashboard">
+							</paper-icon-button>
+							Dashboard
+						</a>
+						<iron-collapse id="dash">
+							<a name="systemView" href="[[rootPath]]systemView">
+								<paper-icon-button
+									icon="my-icons:data">
+								</paper-icon-button>
+								System
+							</a>
+							<a name="vendorView" href="[[rootPath]]vendorView">
+								<paper-icon-button
+									icon="my-icons:data">
+								</paper-icon-button>
+								Vendor
+							</a>
+							<a name="agentView" href="[[rootPath]]agentView">
+								<paper-icon-button
+									icon="my-icons:data">
+								</paper-icon-button>
+								Agent
+							</a>
+						</iron-collapse>
 						<a name="mibView" href="[[rootPath]]mibView">
 							<paper-icon-button
 									icon="my-icons:mibIcon">
@@ -163,6 +204,12 @@ class SnmpCollector extends PolymerElement {
 
 	_collapseLogs(event) {
 		var snmp = document.body.querySelector('snmp-collector');
+		var dashObj = snmp.shadowRoot.getElementById('dash');
+		if(dashObj.opened == false) {
+			dashObj.show();
+		} else {
+			dashObj.hide();
+		}
 		var logObj = snmp.shadowRoot.getElementById('logs');
 		if(logObj.opened == false) {
 			logObj.show();
@@ -212,7 +259,7 @@ class SnmpCollector extends PolymerElement {
 	static get observers() {
 		return [
 			'_routePageChanged(routeData.page)',
-			'_loadingChanged(logLoading, httpLoading)'
+			'_loadingChanged(dashLoading, logLoading, httpLoading)'
 		];
 	}
 
@@ -223,13 +270,25 @@ class SnmpCollector extends PolymerElement {
 		// Show 'mibView' in that case. And if the page doesn't exist, show 'view404'.
 		if (!page) {
 			this.page = 'mibView';
-		} else if (['mibView',
+		} else if (['vendorView',
+					'systemView',
+					'agentView',
+					'mibView',
 					'userView',
 					'logView',
 					'httpView'].indexOf(page) !== -1) {
 			this.page = page;
 		}
 		switch (this.page) {
+			case 'vendorView':
+				this.viewTitle = "Vendor";
+				break;
+			case 'systemView':
+				this.viewTitle = "System";
+				break;
+			case 'agentView':
+				this.viewTitle = "Agent";
+				break;
 			case 'mibView':
 				this.viewTitle = "MIBs";
 				break;
@@ -255,6 +314,12 @@ class SnmpCollector extends PolymerElement {
 		// Note: `polymer build` doesn't like string concatenation in the import
 		// statement, so break it up.
 		switch (page) {
+			case 'vendorView':
+				break;
+			case 'systemView':
+				break;
+			case 'agentView':
+				break;
 			case 'mibView':
 				import('./mib-list.js');
 				break;
@@ -271,6 +336,11 @@ class SnmpCollector extends PolymerElement {
 		}
 
 	_loadingChanged() {
+		if(this.dashLoading) {
+			this.loading = true;
+		} else {
+			this.loading = false;
+		}
 		if(this.logLoading) {
 			this.loading = true;
 		} else {
