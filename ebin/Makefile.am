@@ -38,6 +38,7 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_rest_delete.beam \
 			snmp_collector_rest_res_user.beam \
 			snmp_collector_rest_res_mib.beam \
+			snmp_collector_rest_res_counter.beam \
 			snmp_collector_rest_res_event.beam \
 			snmp_collector_rest_pagination_sup.beam \
 			snmp_collector_rest_pagination_server.beam \

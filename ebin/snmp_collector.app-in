@@ -35,6 +35,7 @@
 					snmp_collector_snmp_usm,
 					snmp_collector_usm,
 					snmp_collector_mib,
+					snmp_collector_rest_res_counter,
 					snmp_collector_debug_sup,
 					snmp_collector_debug_fsm,
 					snmp_collector_manager_fsm,

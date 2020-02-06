@@ -58,6 +58,9 @@ styleElement.innerHTML = `<template>
 			.drawer-list iron-collapse#logs {
 				padding-left: 36px;
 			}
+			.drawer-list iron-collapse#dash {
+				padding-left: 36px;
+			}
 			#restError {
 				--paper-toast-background-color: var(--paper-red-a400);
 			}

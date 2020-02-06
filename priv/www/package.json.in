@@ -36,8 +36,18 @@
 	 "@polymer/paper-listbox": "^3.0.0-pre.25",
 	 "@polymer/paper-toolbar": "^3.0.1",
 	 "@polymer/paper-input": "^3.0.1",
+    "@polymer/paper-dropdown-menu": "^3.0.0-pre.15",
+	 "@polymer/paper-card": "^3.0.0-pre.15",
     "@vaadin/vaadin-grid": "^5.1.0-alpha3",
-    "@webcomponents/webcomponentsjs": "^2.0.0"
+    "@webcomponents/webcomponentsjs": "^2.0.0",
+    "d3-selection": "1",
+    "d3-shape": "1",
+    "d3-scale": "1",
+	 "d3-axis": "1",
+	 "d3-scale-chromatic": "1",
+	 "d3-geo": "1",
+    "shapefile": "0.6.6",
+    "topojson-client": "^3.0.0"
   },
   "devDependencies": {
     "polymer-cli": "^1.7.1",
