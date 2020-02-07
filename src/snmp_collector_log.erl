@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(snmp_collector_log).
--copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 %% export the snmp_collector_log_public API.
 -export([fault_open/0, fault_close/0, fault_query/6]).
@@ -32,11 +32,11 @@
 
 -include("snmp_collector_log.hrl").
 
--define(FAULTLOG, fault).
-
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
 %-define(MILLISECOND, millisecond).
+
+-define(FAULTLOG, fault).
 
 % calendar:datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 -define(EPOCH, 62167219200).
@@ -53,7 +53,7 @@
 fault_open() ->
 	{ok, Directory} = application:get_env(snmp_collector, queue_dir),
 	{ok, LogSize} = application:get_env(snmp_collector, queue_size),
-	{ok, LogFiles} = application:get_env(snmp_collector, queue_size),
+	{ok, LogFiles} = application:get_env(snmp_collector, queue_files),
 	{ok, LogNodes} = application:get_env(snmp_collector, queue_nodes),
 	open_log(Directory, ?FAULTLOG, LogSize, LogFiles, LogNodes).
 
@@ -312,7 +312,7 @@ open_log1(Directory, Log, LogSize, LogFiles, LogNodes) ->
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	case disk_log:open([{name, Log}, {file, FileName},
 					{type, wrap}, {size, {LogSize, LogFiles}},
-					{distributed, [node() | LogNodes]}]) of
+					{distributed, [node() | LogNodes]}, {repair, true}]) of
 		{ok, _} = Result ->
 			open_log2(Log, [{node(), Result}], [], undefined);
 		{repaired, _, _, _} = Result ->
