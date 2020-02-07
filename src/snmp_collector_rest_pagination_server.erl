@@ -103,7 +103,7 @@ init([Etag, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
 			args = A, max_page_size = MaxPageSize, timeout = Timeout},
 	{ok, State, Timeout};
 init([Etag, {LogName, B}, M, F, A] = _Args) when is_atom(M), is_atom(F), is_list(A) ->
-   {ok, Log} = disk_log:open([{LogName, B}]),
+   {ok, Log} = disk_log:open([{LogName, B}, {mode, read_only}]),
 	{ok, MaxPageSize} = application:get_env(rest_page_size),
 	{ok, Timeout} = application:get_env(rest_page_timeout),
 	process_flag(trap_exit, true),
