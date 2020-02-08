@@ -20,7 +20,7 @@
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 %% export the snmp_collector_log_public API.
--export([fault_open/0, fault_log/2, fault_close/0, fault_query/6]).
+-export([fault_open/0, fault_log/1, fault_close/0, fault_query/6]).
 -export([httpd_logname/1, http_query/8, http_file/2, last/2]).
 -export([dump_file/2, date/1, iso8601/1]).
 
@@ -56,20 +56,20 @@ fault_open() ->
 	{ok, LogNodes} = application:get_env(snmp_collector, queue_nodes),
 	open_log(Directory, Name, LogSize, LogFiles, LogNodes).
 
--spec fault_log(CommonEventHeader, FaultFields) -> Result
+-spec fault_log(Event) -> Result
    when
-      CommonEventHeader :: map(),
-      FaultFields :: map(),
+		Event :: fault_event(),	
       Result :: ok | {error, Reason},
       Reason :: term().
 %% @doc Write an event to fault log.
- fault_log(CommonEventHeader, OtherFields) ->
+ fault_log(Event) ->
 	{ok, Name} = application:get_env(snmp_collector, queue_name),
-	TimeStamp = snmp_collector_utils:timestamp(),
-   Identifer = erlang:unique_integer([positive]),
-   Node = node(),
-	Event = {TimeStamp, Identifer, Node, CommonEventHeader, OtherFields},
-	disk_log:log(Name, Event).
+	case disk_log:log(Name, Event) of 
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec fault_close() -> Result
 	when
