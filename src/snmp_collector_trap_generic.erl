@@ -15,37 +15,35 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This module normalizes Generic Traps.
 %%%
-
-%% @doc This module normalizes Generic Traps.
-%%
-%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
-%% and to VES attributes.
-%%
-%%	The following table shows the mapping between CISCO MIB attributes
-%%	and VES attributes.
-%%
-%% <h3> MIB Values and VNF Event Stream (VES) </h3>
-%%
-%% <p><table id="mt">
-%% <thead>
-%% 	<tr id="mt">
-%% 		<th id="mt">MIB Values</th>
-%%			<th id="mt">VNF Event Stream (VES)</th>
-%%			<th id="mt">VES Value Type</th>
-%% 	</tr>
-%% </thead>
-%% <tbody>
-%%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%% </tbody>
-%% </table></p>
-
+%%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
+%%% and to VES attributes.
+%%%
+%%%	The following table shows the mapping between ALARM-MIB attributes
+%%%	and VES attributes.
+%%%
+%%% <h3>MIB Values and VNF Event Stream (VES)</h3>
+%%%
+%%% <p><table id="mt">
+%%% <thead>
+%%% 	<tr id="mt">
+%%% 		<th id="mt">MIB Values</th>
+%%%			<th id="mt">VNF Event Stream (VES)</th>
+%%%			<th id="mt">VES Value Type</th>
+%%% 	</tr>
+%%% </thead>
+%%% <tbody>
+%%%		<tr id="mt">
+%%% 		<td id="mt"></td>
+%%% 		<td id="mt"></td>
+%%%			<td id="mt"></td>
+%%% 	</tr>
+%%% </tbody>
+%%% </table></p>
+%%%
 -module(snmp_collector_trap_generic).
--copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
 
