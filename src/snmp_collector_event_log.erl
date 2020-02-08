@@ -74,8 +74,9 @@ init([] = _Args) ->
 %% %%    gen_event:notify/2, gen_event:sync_notify/2}.
 %% %% @private
 %%
-handle_event({CommonEventHeader, OtherFields} = Event, State)
-		when is_map(CommonEventHeader), is_map(OtherFields) ->
+handle_event({TS, N, Node, CommonEventHeader, OtherFields} = Event, State)
+		when is_integer(TS), is_integer(N), is_atom(Node),
+				is_map(CommonEventHeader), is_map(OtherFields) ->
 	case snmp_collector_log:fault_log(Event) of
 		ok ->
 			{ok, State};
