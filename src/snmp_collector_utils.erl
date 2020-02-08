@@ -349,9 +349,9 @@ create_event(TargetName, AlarmDetails, syslog) ->
 	create_event1(NewCommonEventHeader, SyslogFields);
 create_event(TargetName, AlarmDetails, notification) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notification"),
-	NotificaitonFields = notification_fields(Remainder),
+	NotificationFields = notification_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
-	create_event1(NewCommonEventHeader, NotificaitonFields).
+	create_event1(NewCommonEventHeader, NotificationFields).
 %% @hidden
 create_event1(CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
