@@ -63,9 +63,9 @@ fault_open() ->
       Result :: ok | {error, Reason},
       Reason :: term().
 %% @doc Write an event to fault log.
- fault_log(CommonEventHeader, FaultFields) ->
+ fault_log(CommonEventHeader, OtherFields) ->
 	{ok, Name} = application:get_env(snmp_collector, queue_name),
-	TimeStamp = timestamp(),
+	TimeStamp = snmp_collector_utils:timestamp(),
    Identifer = erlang:unique_integer([positive]),
    Node = node(),
 	Event = {TimeStamp, Identifer, Node, CommonEventHeader, OtherFields},
@@ -373,8 +373,9 @@ open_log2(_Log, OkNodes, [], Reason) ->
 %% @doc Query fault log events with filters.
 %%
 fault_query(Continuation, _Size, Start, End, HeaderMatch, FieldsMatch) ->
+	{ok, Name} = application:get_env(snmp_collector, queue_name),
 	MFA = {?MODULE, fault_filter, [HeaderMatch, FieldsMatch]},
-	query_log(Continuation, Start, End, ?FAULTLOG, MFA).
+	query_log(Continuation, Start, End, Name, MFA).
 
 -spec date(MilliSeconds) -> Result
 	when
