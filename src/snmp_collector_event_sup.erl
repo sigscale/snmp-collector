@@ -33,7 +33,7 @@
 	when
 		Args :: [],
 		Result :: {ok, {{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
-		RestartStrategy :: one_for_one,
+		RestartStrategy :: rest_for_one,
 		MaxR :: non_neg_integer(),
 		MaxT :: pos_integer(),
 		ChildSpec :: supervisor:child_spec().
