@@ -24,7 +24,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
-		authenticate_v1_v2/2, update_counters/3, post_event/2, alarm_additional_information/1]).
+		authenticate_v1_v2/2, update_counters/3, post_event/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -353,143 +353,6 @@ generate_maps(TargetName, AlarmDetails, notification) ->
 	NotificaitonFields = notification_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
 	{NewCommonEventHeader, NotificaitonFields}.
-
--spec common_event_header(TargetName, AlarmDetails, Domain) -> Result
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		TargetName :: string(),
-		Domain :: string(),
-		Value :: list(),
-		Result :: {map(), AlarmDetails}.
-%% @doc Create the VES common event header map.
-common_event_header(TargetName, AlarmDetails, Domain)
-		when is_list(TargetName), is_list(AlarmDetails) ->
-	DefaultMap = #{"domain" => Domain,
-			"eventId" => event_id(),
-			"lastEpochMicrosec" => timestamp(),
-			"priority" => "Normal",
-			"reportingEntityName" => TargetName,
-			"sequence" => 0,
-			"version" => 1},
-	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
-%% @hidden
-common_event_header([{"reportingEntityId", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"reportingEntityId" => Value}, AD);
-common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
-common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"sourceId" => Value}, AD);
-common_event_header([{"sourceName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"sourceName" => Value}, AD);
-common_event_header([{"priority", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"priority" => Value}, AD);
-common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"sequence" => Value}, AD);
-common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"version" => Value}, AD);
-common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
-common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => iso8601(Value)}, AD);
-common_event_header([H | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH, [H | AD]);
-common_event_header([], _TargetName, CH, AD) ->
-	{CH, AD}.
-
--spec notification_fields(AlarmDetails) -> NotificationFields
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		Value :: list(),
-		NotificationFields :: map().
-%% @doc Create the fault fields map.
-notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"notificaionFieldsVersion" => 1},
-	notification_fields(AlarmDetails, DefaultMap).
-%% @hidden
-notification_fields([{"id", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"description", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"status", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"name", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"priority", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"eventType", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"stateInterface", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"changeType", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
-notification_fields([], Acc) ->
-	Acc.
-
--spec syslog_fields(AlarmDetails) -> SysLogFields
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		Value :: list(),
-		SysLogFields :: map().
-%% @doc Create the fault fields map.
-syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"syslogFieldsVersion" => 1},
-	syslog_fields(AlarmDetails, DefaultMap).
-%% @hidden
-syslog_fields([{"sysSourceType", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"eventSourceType" => Value});
-syslog_fields([{"sysSourceHost", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"eventSourceHost" => Value});
-syslog_fields([{"syslogMsg", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"syslogMsg" => Value});
-syslog_fields([{"syslogSev", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"syslogSev" => Value});
-syslog_fields([{"syslogTag", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"syslogTag" => Value});
-syslog_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
-syslog_fields([], Acc) ->
-	Acc.
-
--spec fault_fields(AlarmDetails) -> FaultFields
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		Value :: list(),
-		FaultFields :: map().
-%% @doc Create the fault fields map.
-fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"faultFieldsVersion" => 1},
-	fault_fields(AlarmDetails, DefaultMap).
-%% @hidden
-fault_fields([{"alarmCondition", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"alarmCondition" => Value});
-fault_fields([{"eventCategory", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"eventCategory" => Value});
-fault_fields([{"eventSeverity", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"eventSeverity" => Value});
-fault_fields([{"eventSourceType", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"eventSourceType" => Value});
-fault_fields([{"specificProblem", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"specificProblem" => Value});
-fault_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
-fault_fields([], Acc) ->
-	Acc.
-
 -spec security_params(EngineID, Address, SecName,
 		AuthParams, Packet, AuthPass, PrivPass) -> Result
 	when
@@ -1051,6 +914,142 @@ update_counters(_, _, []) ->
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
+
+-spec common_event_header(TargetName, AlarmDetails, Domain) -> Result
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		TargetName :: string(),
+		Domain :: string(),
+		Value :: list(),
+		Result :: {map(), AlarmDetails}.
+%% @doc Create the VES common event header map.
+common_event_header(TargetName, AlarmDetails, Domain)
+		when is_list(TargetName), is_list(AlarmDetails) ->
+	DefaultMap = #{"domain" => Domain,
+			"eventId" => event_id(),
+			"lastEpochMicrosec" => timestamp(),
+			"priority" => "Normal",
+			"reportingEntityName" => TargetName,
+			"sequence" => 0,
+			"version" => 1},
+	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
+%% @hidden
+common_event_header([{"reportingEntityId", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"reportingEntityId" => Value}, AD);
+common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
+common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"sourceId" => Value}, AD);
+common_event_header([{"sourceName", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"sourceName" => Value}, AD);
+common_event_header([{"priority", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"priority" => Value}, AD);
+common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"sequence" => Value}, AD);
+common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"version" => Value}, AD);
+common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
+common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => iso8601(Value)}, AD);
+common_event_header([H | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH, [H | AD]);
+common_event_header([], _TargetName, CH, AD) ->
+	{CH, AD}.
+
+-spec notification_fields(AlarmDetails) -> NotificationFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		NotificationFields :: map().
+%% @doc Create the fault fields map.
+notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"notificaionFieldsVersion" => 1},
+	notification_fields(AlarmDetails, DefaultMap).
+%% @hidden
+notification_fields([{"id", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"description", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"status", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"name", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"priority", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"eventType", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"stateInterface", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{"changeType", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"" => Value});
+notification_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+notification_fields([], Acc) ->
+	Acc.
+
+-spec syslog_fields(AlarmDetails) -> SysLogFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		SysLogFields :: map().
+%% @doc Create the fault fields map.
+syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"syslogFieldsVersion" => 1},
+	syslog_fields(AlarmDetails, DefaultMap).
+%% @hidden
+syslog_fields([{"sysSourceType", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"eventSourceType" => Value});
+syslog_fields([{"sysSourceHost", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"eventSourceHost" => Value});
+syslog_fields([{"syslogMsg", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogMsg" => Value});
+syslog_fields([{"syslogSev", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogSev" => Value});
+syslog_fields([{"syslogTag", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogTag" => Value});
+syslog_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+syslog_fields([], Acc) ->
+	Acc.
+
+-spec fault_fields(AlarmDetails) -> FaultFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		FaultFields :: map().
+%% @doc Create the fault fields map.
+fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"faultFieldsVersion" => 1},
+	fault_fields(AlarmDetails, DefaultMap).
+%% @hidden
+fault_fields([{"alarmCondition", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"alarmCondition" => Value});
+fault_fields([{"eventCategory", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"eventCategory" => Value});
+fault_fields([{"eventSeverity", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"eventSeverity" => Value});
+fault_fields([{"eventSourceType", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"eventSourceType" => Value});
+fault_fields([{"specificProblem", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"specificProblem" => Value});
+fault_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+fault_fields([], Acc) ->
+	Acc.
 
 -spec alarm_additional_information(AlarmAdditionalInformation) -> Result
 	when
