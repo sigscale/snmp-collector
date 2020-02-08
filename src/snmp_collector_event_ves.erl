@@ -84,17 +84,19 @@ init([] = _Args) ->
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
-handle_event({_TS, _N, _Node,
-		#{"domain" := Domain} = CommonEventHeader, OtherFields} = _Event,
-		#state{authorization = Authorization,
-		uri = Url, options = Options} = State) when is_map(OtherFields) ->
+handle_event({_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
+		#{"alarmAdditionalInformation" := AlarmAdditionalInformation}
+		= OtherFields1} = _Event, #state{authorization = Authorization,
+		uri = Url, options = Options} = State) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
 	F = fun(Key, Value, Acc) ->
 				[#{"name" => Key, "value" => Value} | Acc]
 	end,
+	OtherFields2 = OtherFields1#{"alarmAdditionalInformation"
+			=> maps:fold(F, [], AlarmAdditionalInformation)},
 	Event1 = #{"event" => #{"commonEventHeader" => CommonEventHeader,
-			Domain ++ "Fields" => maps:fold(F, [], OtherFields)}},
+			Domain ++ "Fields" => OtherFields2}},
 	RequestBody = zj:encode(Event1),
 	Request = {Url ++ "/eventListener/v5",
 			[Accept, Authorization], ContentType, RequestBody},
