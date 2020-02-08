@@ -628,7 +628,7 @@ agent_name(Address) ->
 %% @doc Log the event to disk.
 %% @private
 log_events({CommonEventHeader, OtherFields}) ->
-	TimeStamp = erlang:system_time(milli_seconds),
+	TimeStamp = timestamp(),
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
 	Event = {TimeStamp, Identifer, Node, CommonEventHeader, OtherFields},
@@ -992,7 +992,7 @@ strip_name(Name) ->
 		EventId :: string().
 %% @doc Create unique event id.
 event_id() ->
-	Ts = erlang:system_time(?MILLISECOND),
+	Ts = timestamp(),
 	N = erlang:unique_integer([positive]),
 	integer_to_list(Ts) ++ "-" ++ integer_to_list(N).
 
