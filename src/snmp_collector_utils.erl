@@ -530,7 +530,7 @@ arrange_list(Varbinds)
 		when is_list(Varbinds) ->
 	arrange_list(Varbinds, []).
 %% @hidden
-arrange_list([{vabind, OID, 'TimeTicks', Value, _Seqnum} | T], Acc) ->
+arrange_list([{varbind, OID, 'TimeTicks', Value, _Seqnum} | T], Acc) ->
 	arrange_list(T, [{OID, Value} | Acc]);
 arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
