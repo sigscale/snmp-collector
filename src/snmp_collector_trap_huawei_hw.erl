@@ -324,11 +324,20 @@ handle_report(TargetName, SnmpReport, UserData) ->
 handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+erlang:display({?MODULE, ?LINE, here}),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+erlang:display({?MODULE, ?LINE, here}),
 		AlarmDetails = fault(NamesValues),
+erlang:display({?MODULE, ?LINE, here}),
 		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
+erlang:display({?MODULE, ?LINE, here}),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:log_event(Event),
+erlang:display({?MODULE, ?LINE, here}),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -380,10 +389,10 @@ fault([{"hwNmNorthboundSeverity", "Minor"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
 fault([{"hwNmNorthboundSeverity", "Warning"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
-fault([{"hwNmNorthboundSeverity", "Cleared"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"hwNmNorthboundSeverity", "Indeterminate"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
+fault([{"hwNmNorthboundRestoreStatus", 1} | T], Acc) ->
+	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
@@ -465,11 +474,12 @@ fault([{"hwNmNorthboundGroupID", Value} | T], Acc)
 fault([{"hwNmNorthboundEventDetail", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"eventDetail", Value} | Acc]);
-fault([{Name, Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{Name, Value} | Acc]);
-fault([_H | T], Acc) ->
+fault([{_, [$ ]} | T], Acc) ->
 	fault(T, Acc);
+fault([{_, []} | T], Acc) ->
+	fault(T, Acc);
+fault([{Name, Value} | T], Acc) ->
+	fault(T, [{Name, Value} | Acc]);
 fault([], Acc) ->
 	Acc.
 

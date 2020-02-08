@@ -165,7 +165,7 @@
 %% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
     handle_pdu/4, handle_trap/3, handle_inform/3,
-    handle_report/3]).
+    handle_report/3, fault/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -298,11 +298,22 @@ handle_report(TargetName, SnmpReport, UserData) ->
 handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+erlang:display({?MODULE, ?LINE, here}),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+erlang:display({?MODULE, ?LINE, NamesValues}),
+erlang:display({?MODULE, ?LINE, fault(NamesValues)}),
 		AlarmDetails = fault(NamesValues),
+erlang:display({?MODULE, ?LINE, AlarmDetails}),
+erlang:display({?MODULE, ?LINE, here}),
 		snmp_collector_utils:update_counters(zte, TargetName, AlarmDetails),
+erlang:display({?MODULE, ?LINE, here}),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:log_event(Event),
+erlang:display({?MODULE, ?LINE, here}),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -405,10 +416,10 @@ fault([{"alarmEventType", "11"} | T], Acc) ->
 fault([{"alarmCodeName", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmCodeName", Value} | Acc]);
-fault([{"alarmAckState", "1"} | T], Acc) ->
-	fault(T, [{"ackState", ?ACK_Acknowledged} | Acc]);
-fault([{"alarmAckState", "2"} | T], Acc) ->
-	fault(T, [{"ackState", ?ACK_Unacknowledged} | Acc]);
+fault([{"alarmAck", "1"} | T], Acc) ->
+	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+fault([{"alarmAck", "2"} | T], Acc) ->
+	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 fault([{"alarmOtherInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"additionalText", Value} | Acc]);
@@ -439,11 +450,12 @@ fault([{"alarmCustomAttr6", Value} | T], Acc)
 fault([{"alarmId", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"exId", Value} | Acc]);
-fault([{Name, Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{Name, Value} | Acc]);
-fault([_H | T], Acc) ->
+fault([{_, [$ ]} | T], Acc) ->
 	fault(T, Acc);
+fault([{_, []} | T], Acc) ->
+	fault(T, Acc);
+fault([{Name, Value} | T], Acc) ->
+	fault(T, [{Name, Value} | Acc]);
 fault([], Acc) ->
 	Acc.
 

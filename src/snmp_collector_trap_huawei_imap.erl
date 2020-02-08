@@ -287,8 +287,6 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 		heartbeat ->
 			ignore;
 		fault ->
-erlang:display({?MODULE, ?LINE, TargetName}),
-erlang:display({?MODULE, ?LINE,Varbinds}),
 			handle_fault(TargetName, Varbinds)
 	end.
 
@@ -330,11 +328,20 @@ handle_report(TargetName, SnmpReport, UserData) ->
 handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+erlang:display({?MODULE, ?LINE, here}),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+erlang:display({?MODULE, ?LINE, here}),
 		AlarmDetails = fault(NamesValues),
+erlang:display({?MODULE, ?LINE, here}),
 		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
+erlang:display({?MODULE, ?LINE, here}),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:log_event(Event),
+erlang:display({?MODULE, ?LINE, here}),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -357,7 +364,7 @@ handle_fault(TargetName, Varbinds) ->
 fault(NameValuePair) ->
 	fault(NameValuePair, []).
 %% @hidden
-fault([{"iMAPNorthboundAlarmID", Value} | T], Acc)
+fault([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmId", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
@@ -391,6 +398,8 @@ fault([{"iMAPNorthboundAlarmLevel", "4"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
+fault([{"iMAPNorthboundAlarmLevel", "6"} | T], Acc) ->
+	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
 	fault(T, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
@@ -494,17 +503,18 @@ fault([{"iMAPNorthboundAlarmProductID", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmExtendInfo", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmSerialNumber", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
+fault([{"iMAPNorthboundAlarmID", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmSerialNumber", Value} | Acc]);
+	fault(T, [{"id", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0; Value =/= [$ ] ->
 	fault(T, [{"alarmSpecificproblems", Value} | Acc]);
-fault([{Name, Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{Name, Value} | Acc]);
-fault([_H | T], Acc) ->
+fault([{_, [$ ]} | T], Acc) ->
 	fault(T, Acc);
+fault([{_, []} | T], Acc) ->
+	fault(T, Acc);
+fault([{Name, Value} | T], Acc) ->
+	fault(T, [{Name, Value} | Acc]);
 fault([], Acc) ->
 	Acc.
 

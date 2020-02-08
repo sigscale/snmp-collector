@@ -277,11 +277,20 @@ handle_report(TargetName, SnmpReport, UserData) ->
 handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+erlang:display({?MODULE, ?LINE, here}),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+erlang:display({?MODULE, ?LINE, here}),
 		AlarmDetails = fault(NamesValues),
+erlang:display({?MODULE, ?LINE, here}),
 		snmp_collector_utils:update_counters(nokia, TargetName, AlarmDetails),
+erlang:display({?MODULE, ?LINE, here}),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:log_event(Event),
+erlang:display({?MODULE, ?LINE, here}),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+erlang:display({?MODULE, ?LINE, here}),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -385,11 +394,12 @@ fault([{"nbiAdditionalText", Value} | T], Acc)
 fault([{"nbiCommentText", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"eventComment", Value} | Acc]);
-fault([{Name, Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{Name, Value} | Acc]);
-fault([_H | T], Acc) ->
+fault([{_, [$ ]} | T], Acc) ->
 	fault(T, Acc);
+fault([{_, []} | T], Acc) ->
+	fault(T, Acc);
+fault([{Name, Value} | T], Acc) ->
+	fault(T, [{Name, Value} | Acc]);
 fault([], Acc) ->
 	Acc.
 
@@ -406,7 +416,9 @@ handle_notification(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = notification(NamesValues),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, notification),
-		snmp_collector_utils:log_events(Event)
+		snmp_collector_utils:log_events(Event),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
