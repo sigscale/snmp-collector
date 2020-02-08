@@ -74,15 +74,15 @@ init([] = _Args) ->
 %% %%    gen_event:notify/2, gen_event:sync_notify/2}.
 %% %% @private
 %%
-handle_event({CommonEventHeader, OtherFields}, State)
+handle_event({CommonEventHeader, OtherFields} = Event, State)
 		when is_map(CommonEventHeader), is_map(OtherFields) ->
 	case snmp_collector_log:fault_log(Event) of
 		ok ->
 			{ok, State};
 		{error, Reason} ->
 			error_logger:info_report(["SNMP Manager Logging Failed",
-				{error, Reason}]);
-		end
+				{error, Reason}])
+	end.
 
 
 -spec handle_call(Request, State) -> Result
