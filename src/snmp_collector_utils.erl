@@ -24,7 +24,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
-		authenticate_v1_v2/2, update_counters/3, post_event/2]).
+		authenticate_v1_v2/2, update_counters/3]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -509,36 +509,6 @@ log_event({CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalI
 			{error, Reason}
 	end.
 
--spec post_event(Event, Url) -> ok
-   when
-		Event :: {CommonEventHeader, OtherFields},
-		CommonEventHeader :: map(),
-		OtherFields :: map(),
-		Url :: inet:ip_address() | [].
-%% @doc POST an event.
-post_event(_Event, []) ->
-	ok;
-post_event({#{"domain" := Domain} = CommonEventHeader, OtherFields}, Url)
-		when is_map(CommonEventHeader), is_map(OtherFields), is_list(Url) ->
-	{ok, UserName } = application:get_env(snmp_collector, ves_username),
-	{ok, Password} = application:get_env(snmp_collector, ves_password),
-	{ok, Options} = application:get_env(snmp_collector, ves_options),
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
-	Authentication = {"authorization", EncodeKey},
-	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, Domain ++ "Fields" => OtherFields}},
-	RequestBody = zj:encode(Event),
-	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
-	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
-	case httpc:request(post, Request, [], NewOptions) of
-			{error, Reason} ->
-				error_logger:info_report(["SNMP Manager POST Failed",
-						{error, Reason}]);
-			_RequestID ->
-				ok
-	end.
-
 -spec arrange_list(Varbinds) -> Result
 	when
 		Varbinds :: [Varbind],
@@ -764,6 +734,188 @@ engine_id4(PEN, Acc) when length(Acc) == 27 ->
 engine_id4(PEN, Acc) ->
 	engine_id4(PEN, [rand:uniform(255) | Acc]).
 
+<<<<<<< HEAD
+=======
+%%----------------------------------------------------------------------
+%%  The internal functions
+%%----------------------------------------------------------------------
+
+-spec check_fields(CommonEventHeader, FaultFields) -> Result
+	when
+		CommonEventHeader :: map(),
+		FaultFields :: map(),
+		Result :: {NewCommonEventHeader, NewFaultFields},
+		NewCommonEventHeader :: map(),
+		NewFaultFields :: map().
+%% @doc Normalize mandatory fields.
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+	check_fields1(CH, FF);
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
+check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF)
+		when is_atom(EventName), EventName /= undefined ->
+	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
+check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_atom(EventName), EventName /= undefined, is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH, FF);
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, FF) ->
+	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
+check_fields(#{"eventName" := EventName} = CH, FF)
+		when is_atom(EventName), EventName /= undefined ->
+	check_fields1(CH, FF);
+check_fields(CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
+check_fields(CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH#{"eventName" => ?EN_NEW}, FF);
+check_fields(CH, FF) ->
+	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
+%% @hidden
+check_fields1(CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields2(CH, FF);
+check_fields1(CH, FF) ->
+	check_fields2(CH#{"eventSeverity" => ?ES_MINOR}, FF).
+%% @hidden
+check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
+		when is_list(EventType), length(EventType) > 0 ->
+	check_fields3(CH, FF);
+check_fields2(CH, FF) ->
+	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
+%% @hidden
+check_fields3(#{"probableCause" := ProbableCause} = CH, FF)
+		when is_list(ProbableCause), length(ProbableCause) > 0 ->
+	{CH, FF};
+check_fields3(CH, FF) ->
+	{CH#{"probableCause" => ?PC_Indeterminate}, FF}.
+
+-spec strip_name(Name) -> Name
+	when
+		Name :: string().
+%% @doc Removes the index from required names.
+strip_name(Name) ->
+	case string:tokens(Name, ".") of
+		[StripedName, _Index] ->
+			StripedName;
+		[Name] ->
+			Name
+	end.
+
+-spec event_id() -> EventId
+	when
+		EventId :: string().
+%% @doc Create unique event id.
+event_id() ->
+	Ts = timestamp(),
+	N = erlang:unique_integer([positive]),
+	integer_to_list(Ts) ++ "-" ++ integer_to_list(N).
+
+-spec timestamp() -> TimeStamp
+	when
+		TimeStamp :: integer().
+%% @doc Create time stamp.
+timestamp() ->
+	erlang:system_time(?MILLISECOND).
+
+-spec authenticate_v3(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
+	when
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		AuthKey :: [byte()],
+		AuthParams :: list(),
+		Packet :: [byte()],
+		Result :: true | false.
+%% @doc Authenticate the SNMP agent.
+authenticate_v3(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
+	case snmp_collector_snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) of
+		true ->
+			true;
+		false ->
+			false
+	end;
+authenticate_v3(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
+	case snmp_collector_snmp_usm:auth_in(usmHMACSHAAuthProtocol, AuthKey, AuthParams, Packet) of
+		true ->
+			true;
+		false ->
+			false
+	end;
+authenticate_v3(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
+	true.
+
+-spec add_usm_user(EngineID, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
+	when
+		EngineID :: list(),
+		UserName :: list(),
+		SecName :: list(),
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+		AuthPass :: list(),
+		PrivPass :: list(),
+		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
+		Reason :: term().
+%% @doc Add a new usm user to the snmp_usm table.
+add_usm_user(EngineID, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
+	add_usm_user1(EngineID, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
+			{auth_key, AuthKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
+			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
+			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmNoPrivProtocol}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
+	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
+	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
+	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
+	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
+%% @hidden
+add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
+		when is_list(EngineID), is_list(UserName) ->
+	case snmpm:register_usm_user(EngineID, UserName, Conf) of
+		ok ->
+			{usm_user_added, AuthProtocol, PrivProtocol};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+>>>>>>> 9908a7683bbcb64adadfdc82854b3cb918138cf4
 -spec update_counters(AgentName, TargetName, AlarmDetails) -> Result
 	when
 		AgentName :: atom(),

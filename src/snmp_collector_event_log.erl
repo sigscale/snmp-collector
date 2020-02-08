@@ -31,6 +31,9 @@
 -export([init/1, handle_call/2, handle_event/2, handle_info/2,
 			terminate/2, code_change/3]).
 
+-record(state, {}).
+-type state() :: #state{}.
+
 %%----------------------------------------------------------------------
 %%  The snmp_collector_event_log API
 %%----------------------------------------------------------------------
@@ -41,8 +44,8 @@
 
 -spec init(Args) -> Result
 	when
-		Args :: [State],
-		State :: any(),
+		Args :: [any()],
+		State :: state(),
 		Result :: {ok, State}
 			| {ok, State, hibernate}
 			| {error, Reason :: term()}.
@@ -56,7 +59,7 @@ init([] = _Args) ->
 -spec handle_event(Event, State) -> Result
 	when
 		Event :: term(),
-		State :: any(),
+		State :: state(),
 		Result :: {ok, NewState}
 				| {ok, NewState, hibernate}
 				| {swap_handler, Args1, NewState, Handler2, Args2}
@@ -78,10 +81,10 @@ handle_event(Event, State) ->
 -spec handle_call(Request, State) -> Result
 	when
 		Request :: term(),
-		State :: any(),
-		Result :: {ok, Reply :: term(), NewState :: any()}
-			| {ok, Reply :: term(), NewState :: any(), hibernate}
-			| {swap_handler, Reply :: term(), Args1 :: term(), NewState :: any(),
+		State :: state(),
+		Result :: {ok, Reply :: term(), NewState :: state()}
+			| {ok, Reply :: term(), NewState :: state(), hibernate}
+			| {swap_handler, Reply :: term(), Args1 :: term(), NewState :: state(),
 				Handler2 :: Module2 | {Module2, Id}, Args2 :: term()}
 			| {remove_handler, Reply :: term()},
 		Module2 :: atom(),
@@ -97,7 +100,7 @@ handle_call(_Request, _State) ->
 -spec handle_info(Info, State) -> Result
 	when
 		Info :: term(),
-		State :: any(),
+		State :: state(),
 		Result :: {ok, NewState :: term()}
 			| {ok, NewState :: term(), hibernate}
 			| {swap_handler, Args1 :: term(), NewState :: term(),
@@ -116,7 +119,7 @@ handle_info(_Info, _State) ->
 	when
 		Arg :: Args :: term() | {stop, Reson :: term()} | {error, term()}
 				| stop | remove_handler | {error,{'EXIT', Reason :: term()}},
-      State :: any().
+      State :: state().
 %% @doc Cleanup and exit.
 %% @see //stdlib/gen_event:terminate/3
 %% @private
