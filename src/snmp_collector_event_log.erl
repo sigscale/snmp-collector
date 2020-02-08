@@ -25,7 +25,7 @@
 -behaviour(gen_event).
 
 %% export the snmp_collector_event_log API
--export([notify/2]).
+-export([]).
 
 %% export the callbacks needed for gen_event behaviour
 -export([init/1, handle_call/2, handle_event/2, handle_info/2,
