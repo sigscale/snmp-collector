@@ -32,10 +32,10 @@
 			terminate/2, code_change/3]).
 
 -record(state,
-		#state{username :: string(),
-		password :: string(),
-		options = list()}}.
--type state() :: #sate{}.
+		{authorization :: tuple(),
+		uri :: string(),
+		options :: list()}).
+-type state() :: #state{}.
 
 %%----------------------------------------------------------------------
 %%  The snmp_collector_event_ves API
@@ -50,7 +50,7 @@
 		Args :: [any()],
 		Result :: {ok, State}
 			| {ok, State, hibernate}
-			| {error, Reason()}.
+			| {error, Reason},
 		State :: state(),
 		Reason :: term().
 %% @doc Initialize the {@module} server.
@@ -61,7 +61,10 @@ init([] = _Args) ->
 	{ok, UserName} = application:get_env(snmp_collector, ves_username),
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
 	{ok, Options} = application:get_env(snmp_collector, ves_options),
-	{ok, #state{username = UserName, password = Password, options = Options}}.
+	{ok, Url} = application:get_env(snmp_collector, ves_url),
+	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
+	Authorization = {"authorization", EncodeKey},
+	{ok, #state{authorization = Authorization, uri = Url, options = Options}}.
 
 -spec handle_event(Event, State) -> Result
 	when
@@ -81,8 +84,25 @@ init([] = _Args) ->
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
-handle_event(_Event, State) ->
-	{ok, State}.
+handle_event({_TS, _N, _Node,
+		#{"domain" := Domain} = CommonEventHeader, OtherFields} = _Event,
+		#state{authorization = Authorization,
+		uri = Url, options = Options} = State) when is_map(OtherFields) ->
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	Event1 = #{"event" => #{"commonEventHeader" => CommonEventHeader,
+			Domain ++ "Fields" => OtherFields}},
+	RequestBody = zj:encode(Event1),
+	Request = {Url ++ "/eventListener/v5",
+			[Accept, Authorization], ContentType, RequestBody},
+	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
+	case httpc:request(post, Request, [], NewOptions) of
+		{error, Reason} ->
+			error_logger:info_report(["SNMP Manager POST Failed",
+					{error, Reason}]);
+		_RequestID ->
+			{ok, State}
+	end.
 
 -spec handle_call(Request, State) -> Result
 	when
@@ -149,4 +169,23 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
+
+-spec check_response(ReplyInfo) -> any()
+	when
+		ReplyInfo :: tuple().
+%% @doc Check the response of a httpc request.
+check_response({_RequestId, {error, Reason}}) ->
+	error_logger:warning_report(["SNMP Manager POST Failed",
+			{error, Reason}]);
+check_response({_RequestId, {{"HTTP/1.1", 400, _BadRequest},_ , _}}) ->
+	error_logger:warning_report(["SNMP Manager POST Failed",
+			{error, "400, bad_request"}]);
+check_response({_RequestId, {{"HTTP/1.1", 500, _InternalError},_ , _}}) ->
+	error_logger:warning_report(["SNMP Manager POST Failed",
+			{error, "500, internal_server_error"}]);
+check_response({_RequestId, {{"HTTP/1.1", 502, _GateWayError},_ , _}}) ->
+	error_logger:warning_report(["SNMP Manager POST Failed",
+			{error, "502, bad_gateway"}]);
+check_response({_RequestId, {{"HTTP/1.1", 201, _Created},_ , _}}) ->
+	void.
 

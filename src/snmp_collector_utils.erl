@@ -24,7 +24,7 @@
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
-		authenticate_v1_v2/2, update_counters/3, post_event/2]).
+		authenticate_v1_v2/2, update_counters/3]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -645,36 +645,6 @@ log_events({CommonEventHeader, OtherFields}) ->
 			{error, Reason}
 	end.
 
--spec post_event(Event, Url) -> ok
-   when
-		Event :: {CommonEventHeader, OtherFields},
-		CommonEventHeader :: map(),
-		OtherFields :: map(),
-		Url :: inet:ip_address() | [].
-%% @doc POST an event.
-post_event(_Event, []) ->
-	ok;
-post_event({#{"domain" := Domain} = CommonEventHeader, OtherFields}, Url)
-		when is_map(CommonEventHeader), is_map(OtherFields), is_list(Url) ->
-	{ok, UserName } = application:get_env(snmp_collector, ves_username),
-	{ok, Password} = application:get_env(snmp_collector, ves_password),
-	{ok, Options} = application:get_env(snmp_collector, ves_options),
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
-	Authentication = {"authorization", EncodeKey},
-	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, Domain ++ "Fields" => OtherFields}},
-	RequestBody = zj:encode(Event),
-	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
-	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
-	case httpc:request(post, Request, [], NewOptions) of
-			{error, Reason} ->
-				error_logger:info_report(["SNMP Manager POST Failed",
-						{error, Reason}]);
-			_RequestID ->
-				ok
-	end.
-
 -spec arrange_list(Varbinds) -> Result
 	when
 		Varbinds :: [Varbind],
@@ -903,25 +873,6 @@ engine_id4(PEN, Acc) ->
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
-
--spec check_response(ReplyInfo) -> any()
-	when
-		ReplyInfo :: tuple().
-%% @doc Check the response of a httpc request.
-check_response({_RequestId, {error, Reason}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, Reason}]);
-check_response({_RequestId, {{"HTTP/1.1",400, _BadRequest},_ , _}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, "400, bad_request"}]);
-check_response({_RequestId, {{"HTTP/1.1",500, _InternalError},_ , _}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, "500, internal_server_error"}]);
-check_response({_RequestId, {{"HTTP/1.1",502, _GateWayError},_ , _}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, "502, bad_gateway"}]);
-check_response({_RequestId, {{"HTTP/1.1",201, _Created},_ , _}}) ->
-	void.
 
 -spec check_fields(CommonEventHeader, FaultFields) -> Result
 	when
