@@ -23,7 +23,7 @@
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_event/1, security_params/7,
-		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
+		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
 		authenticate_v1_v2/2, update_counters/3, timestamp/0]).
 
 %% support deprecated_time_unit()
@@ -327,32 +327,41 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
--spec generate_maps(TargetName, AlarmDetails, Domain) -> Result
+-spec create_event(TargetName, AlarmDetails, Domain) -> Result
 	when
 		TargetName :: list(),
 		AlarmDetails :: [{Name, Value}],
 		Domain :: fault | syslog | notification,
 		Name :: list(),
 		Value :: list(),
-		Result :: {CommonEventHeader, OtherFields},
+		Result :: fault_event(),
 		CommonEventHeader :: map(),
 		OtherFields :: map().
 %% @doc Generate the Common event header and Fault Fields maps.
-generate_maps(TargetName, AlarmDetails, fault) ->
+create_event(TargetName, AlarmDetails, fault) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "fault"),
 	FaultFields = fault_fields(Remainder),
 	{NewCommonEventHeader, NewFaultFields} = check_fields(CommonEventHeader, FaultFields),
-	{NewCommonEventHeader, NewFaultFields};
-generate_maps(TargetName, AlarmDetails, syslog) ->
+	create_event1(NewCommonEventHeader, NewFaultFields);
+create_event(TargetName, AlarmDetails, syslog) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "syslog"),
 	SyslogFields = syslog_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
-	{NewCommonEventHeader, SyslogFields};
-generate_maps(TargetName, AlarmDetails, notification) ->
+	create_event1(NewCommonEventHeader, SyslogFields);
+create_event(TargetName, AlarmDetails, notification) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notification"),
 	NotificaitonFields = notification_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
-	{NewCommonEventHeader, NotificaitonFields}.
+	create_event1(NewCommonEventHeader, NotificaitonFields).
+%% @hidden
+create_event1(CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(Ts) ++ "-" ++ integer_to_list(N).
+	{TS, N, node(),
+			CommonEventHeader#{"eventId" => EventId, "lastEpochMicrosec" => TS},
+			OtherFields}.
+
 -spec security_params(EngineID, Address, SecName,
 		AuthParams, Packet, AuthPass, PrivPass) -> Result
 	when
@@ -747,15 +756,6 @@ strip_name(Name) ->
 			Name
 	end.
 
--spec event_id() -> EventId
-	when
-		EventId :: string().
-%% @doc Create unique event id.
-event_id() ->
-	Ts = timestamp(),
-	N = erlang:unique_integer([positive]),
-	integer_to_list(Ts) ++ "-" ++ integer_to_list(N).
-
 -spec timestamp() -> TimeStamp
 	when
 		TimeStamp :: integer().
@@ -925,8 +925,6 @@ update_counters(_, _, []) ->
 common_event_header(TargetName, AlarmDetails, Domain)
 		when is_list(TargetName), is_list(AlarmDetails) ->
 	DefaultMap = #{"domain" => Domain,
-			"eventId" => event_id(),
-			"lastEpochMicrosec" => timestamp(),
 			"priority" => "Normal",
 			"reportingEntityName" => TargetName,
 			"sequence" => 0,
