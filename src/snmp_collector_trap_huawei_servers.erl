@@ -128,26 +128,10 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
-	case domain(Varbinds) of
-		other ->
-			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
-					ErrorIndex, Varbinds}, UserData);
-		fault ->
-			handle_fault(TargetName, Varbinds);
-		syslog ->
-			handle_syslog(TargetName, Varbinds)
-	end;
-handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
-	case domain(Varbinds) of
-		other ->
-			snmp_collector_trap_generic:handle_trap(TargetName,
-					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
-		fault ->
-			handle_fault(TargetName, Varbinds);
-		syslog ->
-			handle_syslog(TargetName, Varbinds)
-	end.
+handle_trap(_TargetName, {_ErrorStatus, _ErrorIndex, _Varbinds}, _UserData) ->
+	ignore;
+handle_trap(_TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, _Varbinds}, _UserData) ->
+	ignore.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
 	when
@@ -176,101 +160,5 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
-
--spec handle_fault(TargetName, Varbinds) -> Result
-	when
-		TargetName :: string(),
-		Varbinds :: snmp:varbinds(),
-		Result :: ignore | {error, Reason},
-		Reason :: term().
-%% @doc Handle a fault event.
-handle_fault(TargetName, Varbinds) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = fault(NamesValues),
-		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
-	of
-		ok ->
-			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
-	end.
-
--spec fault(OidNameValuePair) -> VesNameValuePair
-	when
-		OidNameValuePair :: [{OidName, OidValue}],
-		OidName :: string(),
-		OidValue :: string(),
-		VesNameValuePair :: [{VesName, VesValue}],
-		VesName :: string(),
-		VesValue :: string().
-%% @doc CODEC for fault.
-fault(NameValuePair) ->
-	fault(NameValuePair, []).
-%% @hidden
-fault([_H | T], Acc) ->
-	fault(T, Acc);
-fault([], Acc) ->
-	Acc.
-
--spec handle_syslog(TargetName, Varbinds) -> Result
-	when
-		TargetName :: string(),
-		Varbinds :: snmp:varbinds(),
-		Result :: ignore | {error, Reason},
-		Reason :: term().
-%% @doc Handle a syslog event.
-handle_syslog(TargetName, Varbinds) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = syslog(NamesValues),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, syslog),
-		snmp_collector_utils:log_event(Event),
-		{ok, Url} = application:get_env(snmp_collector, ves_url),
-		snmp_collector_utils:post_event(Event, Url)
-	of
-		ok ->
-			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
-	end.
-
--spec syslog(OidNameValuePair) -> VesNameValuePair
-	when
-		OidNameValuePair :: [{OidName, OidValue}],
-		OidName :: string(),
-		OidValue :: string(),
-		VesNameValuePair :: [{VesName, VesValue}],
-		VesName :: string(),
-		VesValue :: string().
-%% @doc CODEC for syslog.
-syslog(NameValuePair) ->
-	syslog(NameValuePair, []).
-%% @hidden
-syslog([_H | T], Acc) ->
-	syslog(T, Acc);
-syslog([], Acc) ->
-	Acc.
-
--spec domain(Varbinds) -> Result
-	when
-		Varbinds :: [snmp:varbinds()],
-		Result :: fault | syslog | heartbeat | other.
-%% @doc Verify if the domain of the event.
-domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
-	domain1(snmp_collector_utils:oid_to_name(TrapName)).
-%% @hidden
 %%
-domain1(_) ->
-	other.
 	
