@@ -1,4 +1,4 @@
-%%% snmp_collector_event_log.erl
+%%% snmp_collector_event_ves.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2020 SigScale Global Inc.
@@ -19,12 +19,12 @@
 %%% 	module implements an event handler of the
 %%% 	{@link //snmp_collector. snmp_collector} application.
 %%%
--module(snmp_collector_event_log).
+-module(snmp_collector_event_ves).
 -copyright('Copyright (c) 2020 SigScale Global Inc.').
 
 -behaviour(gen_event).
 
-%% export the snmp_collector_event_log API
+%% export the snmp_collector_event_ves API
 -export([notify/2]).
 
 %% export the callbacks needed for gen_event behaviour
@@ -32,11 +32,11 @@
 			terminate/2, code_change/3]).
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_event_log API
+%%  The snmp_collector_event_ves API
 %%----------------------------------------------------------------------
 
 %%----------------------------------------------------------------------
-%%  The snmp_collector_event_log gen_event callbacks
+%%  The snmp_collector_event_ves gen_event callbacks
 %%----------------------------------------------------------------------
 
 -spec init(Args) -> Result
@@ -68,8 +68,8 @@ init([] = _Args) ->
 		Module2 :: atom(),
 		Id :: term().
 %% @doc Handle a request sent using {@link //stdlib/genevent:handle_event/2.
-%% %%    gen_event:notify/2, gen_event:sync_notify/2}.
-%% %% @private
+%% 	gen_event:notify/2, gen_event:sync_notify/2}.
+%% @private
 %%
 handle_event(_Event, State) ->
 	{ok, State}.
@@ -139,4 +139,4 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
-%%
+
