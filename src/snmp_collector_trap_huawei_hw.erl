@@ -328,9 +328,7 @@ handle_fault(TargetName, Varbinds) ->
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event),
-		{ok, Url} = application:get_env(snmp_collector, ves_url),
-		snmp_collector_utils:post_event(Event, Url)
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -508,34 +506,4 @@ domain1("hwNmNorthboundEventKeepAlive") ->
 	heartbeat;
 domain1(_) ->
 	other.
-
--spec probable_cause(ReasonId) -> ProbableCause
-	when
-		ReasonId :: string(),
-		ProbableCause :: string().
-%% @doc Look up a probable cause.
-probable_cause("1") ->
-	?PC_LOS;
-probable_cause("2") ->
-	?PC_LOS;
-probable_cause("3") ->
-	?PC_Clock_Synchronization_Problem;
-probable_cause("4") ->
-	?PC_Clock_Synchronization_Problem;
-probable_cause("5") ->
-	?PC_LOF;
-probable_cause("6") ->
-	?PC_Replaceable_Unit_Missing;
-probable_cause("7") ->
-	?PC_Replaceable_Unit_Type_Mismatch;
-probable_cause("8") ->
-	?PC_LOF;
-probable_cause("9") ->
-	?PC_Transmission_Error;
-probable_cause("10") ->
-	?PC_Performance_Degraded;
-probable_cause("11") ->
-	?PC_Performance_Degraded;
-probable_cause(_EventDetail) ->
-	"fault".
 

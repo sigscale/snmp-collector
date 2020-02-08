@@ -219,7 +219,6 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 %% @doc Handle a trap/notification message from an agent.
 %% @private
 handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
@@ -282,9 +281,7 @@ handle_fault(TargetName, Varbinds) ->
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(hpe, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event),
-		{ok, Url} = application:get_env(snmp_collector, ves_url),
-		snmp_collector_utils:post_event(Event, Url)
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -2664,9 +2661,7 @@ handle_notification(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = notification(NamesValues),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, syslog),
-		snmp_collector_utils:log_event(Event),
-		{ok, Url} = application:get_env(snmp_collector, ves_url),
-		snmp_collector_utils:post_event(Event, Url)
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;

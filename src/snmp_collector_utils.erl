@@ -497,11 +497,7 @@ log_event({CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalI
 		gen_event:notify(snmp_collector_event, Event) 
 	of
 		ok ->
-			ok;
-		{error, Reason} ->
-			error_logger:info_report(["SNMP Manager Event Logging Failed",
-					{reason, Reason}]),
-			{error, Reason}
+			ok
 	catch
 		_:Reason ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
@@ -1066,7 +1062,7 @@ alarm_additional_information([#{"name" := Name, "value" := Value} | T], Acc) ->
 	alarm_additional_information(T, Acc#{Name => Value});
 alarm_additional_information([], Acc) ->
 	Acc.
-	
+
 -spec check_fields(CommonEventHeader, FaultFields) -> Result
 	when
 		CommonEventHeader :: map(),

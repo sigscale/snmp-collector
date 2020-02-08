@@ -44,7 +44,7 @@
 init([]) ->
 	ChildSpecs = [event(snmp_collector_event, []),
 			server(snmp_collector_event_server, [])],
-	{ok, {{rest_one_for_one, 10, 60}, ChildSpecs}}.
+	{ok, {{rest_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions

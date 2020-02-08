@@ -182,9 +182,7 @@ handle_fault(TargetName, Varbinds) ->
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(generic, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event),
-		{ok, Url} = application:get_env(snmp_collector, ves_url),
-		snmp_collector_utils:post_event(Event, Url)
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -252,9 +250,7 @@ handle_notification(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = notification(NamesValues),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, notification),
-		snmp_collector_utils:log_event(Event),
-		{ok, Url} = application:get_env(snmp_collector, ves_url),
-		snmp_collector_utils:post_event(Event, Url)
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
