@@ -20,6 +20,7 @@
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
+-include("snmp_collector_log.hrl").
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_event/1, security_params/7,
@@ -334,9 +335,7 @@ generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 		Domain :: fault | syslog | notification,
 		Name :: list(),
 		Value :: list(),
-		Result :: fault_event(),
-		CommonEventHeader :: map(),
-		OtherFields :: map().
+		Result :: fault_event().
 %% @doc Generate the Common event header and Fault Fields maps.
 create_event(TargetName, AlarmDetails, fault) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "fault"),
@@ -357,7 +356,7 @@ create_event(TargetName, AlarmDetails, notification) ->
 create_event1(CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
-	EventId = integer_to_list(Ts) ++ "-" ++ integer_to_list(N).
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
 	{TS, N, node(),
 			CommonEventHeader#{"eventId" => EventId, "lastEpochMicrosec" => TS},
 			OtherFields}.
@@ -492,18 +491,22 @@ agent_name(Address) ->
 
 -spec log_event(Event) -> Result
    when
-		Event :: {CommonEventHeader, OtherFields},
+		Event :: {TS, N, Node, CommonEventHeader, OtherFields},
+		TS :: pos_integer(),
+		N :: pos_integer(),
+		Node :: node(),
 		CommonEventHeader :: map(),
 		OtherFields :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_event({CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalInformation} = OtherFields}) ->
+log_event({TS, N, Node, CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalInformation}
+		= OtherFields}) ->
 	try
-		AlarmAdditionalInformationMap = alarm_additional_information(AlarmAdditionalInformation),
-		Event = {CommonEventHeader, OtherFields#{"alarmAdditionalInformation" => AlarmAdditionalInformationMap}},
-		gen_event:notify(snmp_collector_event, Event) 
+		Event1 = {TS, N, Node, CommonEventHeader,
+				OtherFields#{"alarmAdditionalInformation" => alarm_additional_information(AlarmAdditionalInformation)}},
+		gen_event:notify(snmp_collector_event, Event1) 
 	of
 		ok ->
 			ok
