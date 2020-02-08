@@ -34,7 +34,7 @@
 %%----------------------------------------------------------------------
 %%  The snmp_collector_event_log API
 %%----------------------------------------------------------------------
-
+		
 %%----------------------------------------------------------------------
 %%  The snmp_collector_event_log gen_event callbacks
 %%----------------------------------------------------------------------
@@ -71,7 +71,8 @@ init([] = _Args) ->
 %% %%    gen_event:notify/2, gen_event:sync_notify/2}.
 %% %% @private
 %%
-handle_event(_Event, State) ->
+handle_event(Event, State) ->
+	snmp_collector_log:fault_log(Event),
 	{ok, State}.
 
 -spec handle_call(Request, State) -> Result
