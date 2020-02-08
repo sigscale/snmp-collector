@@ -62,7 +62,7 @@ fault_open() ->
       Result :: ok | {error, Reason},
       Reason :: term().
 %% @doc Write an event to fault log.
- fault_log(Event) ->
+fault_log(Event) ->
 	{ok, Name} = application:get_env(snmp_collector, queue_name),
 	case disk_log:log(Name, Event) of 
 		ok ->
