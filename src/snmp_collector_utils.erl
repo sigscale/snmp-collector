@@ -22,9 +22,9 @@
 -include("snmp_collector.hrl").
 
 -export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
-		arrange_list/1, stringify/1, log_events/1, security_params/7,
+		arrange_list/1, stringify/1, log_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
-		authenticate_v1_v2/2, update_counters/3]).
+		authenticate_v1_v2/2, update_counters/3, post_event/2]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -618,7 +618,7 @@ agent_name(Address) ->
 			{error, target_name_not_found}
 	end.
 
--spec log_events(Maps) -> Result
+-spec log_event(Maps) -> Result
    when
 		Maps :: {CommonEventHeader, OtherFields},
 		CommonEventHeader :: map(),
@@ -632,12 +632,10 @@ log_events({CommonEventHeader, OtherFields}) ->
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
 	Event = {TimeStamp, Identifer, Node, CommonEventHeader, OtherFields},
-	{ok, Url} = application:get_env(snmp_collector, ves_url),
 	{ok, LogName} = application:get_env(snmp_collector, queue_name),
 	case disk_log:log(LogName, Event) of
 		ok ->
-			Event1 = {CommonEventHeader, OtherFields},
-			post_event(Event1, Url);
+			ok;
 		{error, Reason} ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
 					{timestamp, TimeStamp},
@@ -653,7 +651,7 @@ log_events({CommonEventHeader, OtherFields}) ->
 		CommonEventHeader :: map(),
 		OtherFields :: map(),
 		Url :: inet:ip_address() | [].
-%% @doc Log the event to disk.
+%% @doc POST an event.
 post_event(_Event, []) ->
 	ok;
 post_event({#{"domain" := Domain} = CommonEventHeader, OtherFields}, Url)
@@ -693,8 +691,8 @@ arrange_list(Varbinds)
 		when is_list(Varbinds) ->
 	arrange_list(Varbinds, []).
 %% @hidden
-arrange_list([{vabind, [1,3,6,1,2,1,1,3,0], 'TimeTicks', _Value, _Seqnum} | T], Acc) ->
-	arrange_list(T, Acc);
+arrange_list([{vabind, OID, 'TimeTicks', Value, _Seqnum} | T], Acc) ->
+	arrange_list(T, [{OID, Value} | Acc]);
 arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(Value, utf8) of

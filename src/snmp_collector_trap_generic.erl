@@ -184,7 +184,9 @@ handle_fault(TargetName, Varbinds) ->
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(generic, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+		snmp_collector_utils:log_event(Event),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -234,10 +236,8 @@ fault([{"snmpTrapOID", "linkUp"}, {"ifIndex", InterfaceIndex},
 			{"eventSeverity", ?ES_CLEARED},
 			{"specificProblem", StatusChangeReason} | Acc]);
 fault([{Name, Value} | T], Acc)
-      when is_list(Value), length(Value) > 0 ->
+      when length(Value) > 0 ->
 	fault(T, [{Name, Value} | Acc]);
-fault([_H | T], Acc) ->
-	fault(T, Acc);
 fault([], Acc) ->
 	Acc.
 
@@ -254,7 +254,9 @@ handle_notification(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = notification(NamesValues),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, notification),
-		snmp_collector_utils:log_events(Event)
+		snmp_collector_utils:log_event(Event),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -288,10 +290,8 @@ notification([{"snmpTrapOID", "authenticationFailure"}, {"authAddar", AuthAddres
 			{"syslogSev", ?SYS_WARNING},
 			{"raisedTime", erlang:system_time(milli_seconds)} | Acc]);
 notification([{Name, Value} | T], Acc)
-      when is_list(Value), length(Value) > 0 ->
+      when length(Value) > 0 ->
 	notification(T, [{Name, Value} | Acc]);
-notification([_H | T], Acc) ->
-	notification(T, Acc);
 notification([], Acc) ->
 	Acc.
 

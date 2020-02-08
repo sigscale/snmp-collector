@@ -232,7 +232,9 @@ handle_syslog(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = syslog(NamesValues),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, syslog),
-		snmp_collector_utils:log_events(Event)
+		snmp_collector_utils:log_event(Event),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;

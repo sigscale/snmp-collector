@@ -193,7 +193,9 @@ handle_fault(TargetName, Varbinds) ->
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(cisco, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+		snmp_collector_utils:log_event(Event),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -398,8 +400,9 @@ fault([{"snmpTrapOID", "cswStackPowerUnbalancedPowerSupplies"},
 			{"specificProblem", "The switch has no power supply but another switch
 					in the same stack has more than one power supply"},
 			{"eventSeverity", ?ES_MINOR} | Acc]);
-fault([_H | T], Acc) ->
-	fault(T, Acc);
+fault([{Name, Value} | T], Acc)
+      when length(Value) > 0 ->
+	fault(T, [{Name, Value} | Acc]);
 fault([], Acc) ->
 	Acc.
 
@@ -416,7 +419,9 @@ handle_syslog(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = syslog(NamesValues),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, syslog),
-		snmp_collector_utils:log_events(Event)
+		snmp_collector_utils:log_event(Event),
+		{ok, Url} = application:get_env(snmp_collector, ves_url),
+		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
 			ignore;
@@ -450,8 +455,9 @@ syslog([{"snmpTrapOID", "clogMessageGenerated"},
 			{"syslogSev", snmp_collector_trap_generic:syslog_severity(SysLogSeverity)},
 			{"syslogTag", MessageName},
 			{"raisedTime", TimeStamp} | Acc]);
-syslog([_H | T], Acc) ->
-	syslog(T, Acc);
+syslog([{Name, Value} | T], Acc)
+      when length(Value) > 0 ->
+	syslog(T, [{Name, Value} | Acc]);
 syslog([], Acc) ->
 	Acc.
 
