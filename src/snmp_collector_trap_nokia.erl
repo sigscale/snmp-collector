@@ -280,7 +280,7 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(nokia, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
@@ -406,7 +406,7 @@ handle_notification(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = notification(NamesValues),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, notification),
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, notification),
 		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
