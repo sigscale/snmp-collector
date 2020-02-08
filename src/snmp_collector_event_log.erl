@@ -54,7 +54,7 @@
 %% @private
 %%
 init([] = _Args) ->
-	{ok, []}.
+	{ok, #state{}}.
 
 -spec handle_event(Event, State) -> Result
 	when
@@ -80,10 +80,8 @@ handle_event({CommonEventHeader, OtherFields} = Event, State)
 		ok ->
 			{ok, State};
 		{error, Reason} ->
-			error_logger:info_report(["SNMP Manager Logging Failed",
-				{error, Reason}])
+			exit(Reason)
 	end.
-
 
 -spec handle_call(Request, State) -> Result
 	when
