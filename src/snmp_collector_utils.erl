@@ -139,23 +139,22 @@ iso8601hour(Date, [$T]) ->
 	iso8601hour(Date, []);
 iso8601hour(Date, [$ ]) ->
 	iso8601hour(Date, []);
-iso8601hour(Date, [H1, $:])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
+iso8601hour(Date, [H1, $: | T]) ->
+	iso8601hour(Date, [$T, $0, H1, $: | T]);
 iso8601hour(Date, [$T, H1])
 		when H1 >= $0, H1 =< $2 ->
 	iso8601hour(Date, [$T, H1, $0]);
 iso8601hour(Date, [$ , H1])
 		when H1 >= $0, H1 =< $2 ->
 	iso8601hour(Date, [$ , H1, $0]);
-iso8601hour(Date, [$, , H1])
+iso8601hour(Date, [$,, H1])
 		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$ , H1, $0]);
+	iso8601hour(Date, [$T, H1, $0]);
 iso8601hour(Date, [$T, H, $- | T])
 		when H >= $1, H =< $9 ->
 	Hour = list_to_integer([H]),
 	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$, , H1, H2 | T])
+iso8601hour(Date, [$,, H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
 	iso8601minute(Date, Hour, T);
@@ -167,16 +166,14 @@ iso8601hour(Date, [$T, H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
 	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$ , $- , $ , H1, H2 | T])
+iso8601hour(Date, [$ , $-, $ , H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
 	iso8601minute(Date, Hour, T);
 iso8601hour(Date, [$ , H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, Other) ->
-erlang:display({?MODULE, ?LINE, Date, Other}), exit(badarg).
+	iso8601minute(Date, Hour, T).
 %% @hidden
 iso8601minute(Date, Hour, []) ->
 	DateTime = {Date, {Hour, 0, 0}},
