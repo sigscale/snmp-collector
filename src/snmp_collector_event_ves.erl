@@ -90,8 +90,11 @@ handle_event({_TS, _N, _Node,
 		uri = Url, options = Options} = State) when is_map(OtherFields) ->
 	ContentType = "application/json",
 	Accept = {"accept", "application/json"},
+	F = fun(Key, Value, Acc) ->
+				[#{"name" => Key, "value" => Value} | Acc]
+	end,
 	Event1 = #{"event" => #{"commonEventHeader" => CommonEventHeader,
-			Domain ++ "Fields" => OtherFields}},
+			Domain ++ "Fields" => maps:fold(F, [], OtherFields)}},
 	RequestBody = zj:encode(Event1),
 	Request = {Url ++ "/eventListener/v5",
 			[Accept, Authorization], ContentType, RequestBody},
