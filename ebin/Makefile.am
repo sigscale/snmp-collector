@@ -11,6 +11,8 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_sup.beam \
 			snmp_collector_get_sup.beam \
 			snmp_collector_server.beam \
+			snmp_collector_event_log.beam \
+			snmp_collector_event_ves.beam \
 			snmp_collector_get_fsm.beam \
 			snmp_collector_trap_huawei_imap.beam \
 			snmp_collector_trap_huawei_hw.beam \
