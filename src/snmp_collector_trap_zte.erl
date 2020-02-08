@@ -298,21 +298,12 @@ handle_report(TargetName, SnmpReport, UserData) ->
 handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-erlang:display({?MODULE, ?LINE, here}),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-erlang:display({?MODULE, ?LINE, NamesValues}),
-erlang:display({?MODULE, ?LINE, fault(NamesValues)}),
 		AlarmDetails = fault(NamesValues),
-erlang:display({?MODULE, ?LINE, AlarmDetails}),
-erlang:display({?MODULE, ?LINE, here}),
 		snmp_collector_utils:update_counters(zte, TargetName, AlarmDetails),
-erlang:display({?MODULE, ?LINE, here}),
 		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-erlang:display({?MODULE, ?LINE, here}),
 		snmp_collector_utils:log_event(Event),
-erlang:display({?MODULE, ?LINE, here}),
 		{ok, Url} = application:get_env(snmp_collector, ves_url),
-erlang:display({?MODULE, ?LINE, here}),
 		snmp_collector_utils:post_event(Event, Url)
 	of
 		ok ->
