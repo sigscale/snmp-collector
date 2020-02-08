@@ -305,8 +305,7 @@ fault(OidNameValuePair) ->
 	fault(OidNameValuePair, []).
 %% @hidden
 fault([{"snmpTrapOID", "compaq.[22005]"}, {"sysName", SysName},
-		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
-		{"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
+		{"cpqRackName", RackName}, {"cpqRackUid", RackUid}, {"cpqRackEnclosureName", EnclosureName},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
 		{"cpqRackCommonEnclosureTempLocation", TempLocation},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
@@ -2131,8 +2130,7 @@ fault([{"snmpTrapOID", "compaq.[22076]"}, {"sysName", SysName},
 			{"bladeEnclosureName", EnclosureName},
 			{"enclosureTrapSequenceNum", TrapSequenceNum} | Acc]);
 fault([{"snmpTrapOID", "compaq.[22078]"}, {"sysName", SysName},
-		{"cpqHoTrapFlags", TrapFlags}, {"cpqRackName", RackName},
-		{"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
+		{"cpqRackName", RackName}, {"cpqRackUid", RackUid}, {"cpqRackServerBladeEnclosureName", EnclosureName},
 		{"cpqRackServerBladeName", BladeName}, {"cpqRackServerBladePosition", BladePosition},
 		{"cpqRackServerBladeSparePartNumber", BladeSparePartNumber},
 		{"cpqRackCommonEnclosureSerialNum", EnclosureSerialNum},
