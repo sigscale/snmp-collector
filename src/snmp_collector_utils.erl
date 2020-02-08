@@ -627,7 +627,7 @@ agent_name(Address) ->
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_events({CommonEventHeader, OtherFields}) ->
+log_event({CommonEventHeader, OtherFields}) ->
 	TimeStamp = timestamp(),
 	Identifer = erlang:unique_integer([positive]),
 	Node = node(),
