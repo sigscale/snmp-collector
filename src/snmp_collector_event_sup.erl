@@ -60,8 +60,8 @@ init([]) ->
 %%		{@link //stdlib/gen_event. gen_event} behaviour.
 %% @private
 %%
-event(StartMod, Options) ->
-	StartArgs = [{local, StartMod}] ++ Options,
+event(StartMod, Args) ->
+	StartArgs = [{local, StartMod}] ++ Args,
 	StartFunc = {gen_event, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 
