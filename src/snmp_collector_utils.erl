@@ -1102,9 +1102,9 @@ check_fields1(CH, FF) ->
 %% @hidden
 check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
 		when is_list(EventType), length(EventType) > 0 ->
-	check_fields3(CH, FF);
+	{CH, FF};
 check_fields2(CH, FF) ->
-	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
+	{CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF}.
 
 -spec authenticate_v3(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
 	when
