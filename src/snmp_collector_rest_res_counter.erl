@@ -86,7 +86,7 @@ get_counters() ->
 							{Sum, Acc1}
 				end,
 				F4 = fun(F4, [Met | T], Sum, Acc1) ->
-							ResultMap = snmp_collector:get_agent_count(huawei, '_', Met),
+							ResultMap = snmp_collector:get_agent_count(huawei, "", Met),
                      #{Met := N} = ResultMap,
                      F4(F4, T, Sum + N, maps:merge(ResultMap, Acc1));
                   (_F4, [], Sum, Acc1) ->
@@ -108,7 +108,7 @@ get_counters() ->
 							{Sum, Acc1}
 				end,
 				F4 = fun(F4, [Met | T], Sum, Acc1) ->
-							ResultMap = snmp_collector:get_agent_count(nokia, '_', Met),
+							ResultMap = snmp_collector:get_agent_count(nokia, "", Met),
                      #{Met := N} = ResultMap,
                      F4(F4, T, Sum + N, maps:merge(ResultMap, Acc1));
                   (_F4, [], Sum, Acc1) ->
@@ -130,7 +130,7 @@ get_counters() ->
 							{Sum, Acc1}
 				end,
 				F4 = fun(F4, [Met | T], Sum, Acc1) ->
-                     ResultMap = snmp_collector:get_agent_count(zte, '_', Met),
+                     ResultMap = snmp_collector:get_agent_count(zte, "", Met),
                      #{Met := N} = ResultMap,
                      F4(F4, T, Sum + N, maps:merge(ResultMap, Acc1));
                   (_F4, [], Sum, Acc1) ->
@@ -150,8 +150,7 @@ get_counters() ->
 	JsonObj = #{total => TotalCount, eventType => Metric, perceivedSeverity => Severity,
 		vendor => maps:merge(#{total => VendorCountSum}, VendorMetric)},
 	Body = zj:encode(JsonObj),
-	Headers = [{"content_type", "application/json"},
-		{"content_range", "application/json"}],
+	Headers = [{"content_type", "application/json"}],
 	{ok, Headers, Body}.
 
 %%----------------------------------------------------------------------
