@@ -227,7 +227,7 @@ gather([], State, Acc) ->
 gather1([H | T], State, Acc) ->
 	F = fun({_, _, _, #{"eventName" := notifyNewAlarm}, _}, _) ->
 				true;
-			({_, _, _, #{"eventName" := notifyChangedAlarmi}, _},
+			({_, _, _, #{"eventName" := notifyChangedAlarm}, _},
 					{_, _, _, #{"eventName" := notifyClearedAlarm}, _}) ->
 				true;
 			({_, _, _, _, _}, {_, _, _, _, _}) ->
