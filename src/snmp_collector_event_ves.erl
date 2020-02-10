@@ -31,11 +31,20 @@
 -export([init/1, handle_call/2, handle_event/2, handle_info/2,
 			terminate/2, code_change/3]).
 
+-include("snmp_collector_log.hrl").
+
 -record(state,
 		{authorization :: tuple(),
 		uri :: string(),
-		options :: list()}).
+		options :: list(),
+		delay :: non_neg_integer(),
+		buffer = [] :: [fault_event()],
+		timer :: reference() | undefined}).
 -type state() :: #state{}.
+
+%% support deprecated_time_unit()
+-define(MILLISECOND, milli_seconds).
+%-define(MILLISECOND, millisecond).
 
 %%----------------------------------------------------------------------
 %%  The snmp_collector_event_ves API
@@ -62,9 +71,11 @@ init([] = _Args) ->
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
 	{ok, Options} = application:get_env(snmp_collector, ves_options),
 	{ok, Url} = application:get_env(snmp_collector, ves_url),
+	{ok, Delay} = application:get_env(snmp_collector, ves_reorder_delay),
 	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
 	Authorization = {"authorization", EncodeKey},
-	{ok, #state{authorization = Authorization, uri = Url, options = Options}}.
+	{ok, #state{authorization = Authorization,
+			uri = Url, options = Options, delay = Delay}}.
 
 -spec handle_event(Event, State) -> Result
 	when
@@ -84,30 +95,22 @@ init([] = _Args) ->
 %% 	gen_event:notify/2, gen_event:sync_notify/2}.
 %% @private
 %%
-handle_event({_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
-		#{"alarmAdditionalInformation" := AlarmAdditionalInformation}
-		= OtherFields1} = _Event, #state{authorization = Authorization,
-		uri = Url, options = Options} = State) ->
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	F = fun(Key, Value, Acc) ->
-				[#{"name" => Key, "value" => Value} | Acc]
+handle_event(Event, #state{delay = 0} = State) ->
+	post([Event], State);
+handle_event(Event, #state{timer = Timer} = State)
+		when is_reference(Timer) ->
+	erlang:cancel_timer(Timer),
+	handle_event(Event, State#state{timer = undefined});
+handle_event({Now, _, _, _, _} = Event,
+		#state{delay = Delay, buffer = Buffer} = State) ->
+	F = fun({TS, _, _, _, _}) when (Now - TS) < Delay ->
+				true;
+			(_) ->
+				false
 	end,
-	OtherFields2 = OtherFields1#{"alarmAdditionalInformation"
-			=> maps:fold(F, [], AlarmAdditionalInformation)},
-	Event1 = #{"event" => #{"commonEventHeader" => CommonEventHeader,
-			Domain ++ "Fields" => OtherFields2}},
-	RequestBody = zj:encode(Event1),
-	Request = {Url ++ "/eventListener/v5",
-			[Accept, Authorization], ContentType, RequestBody},
-	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
-	case httpc:request(post, Request, [], NewOptions) of
-		{error, Reason} ->
-			error_logger:info_report(["SNMP Manager POST Failed",
-					{error, Reason}]);
-		_RequestID ->
-			{ok, State}
-	end.
+	{Events, #state{buffer = NewBuffer} = NewState}
+			= gather(lists:dropwhile(F, Buffer), State),
+	post(Events, NewState#state{buffer = [Event | NewBuffer]}).
 
 -spec handle_call(Request, State) -> Result
 	when
@@ -143,8 +146,17 @@ handle_call(_Request, _State) ->
 %% @see //stdlib/gen_event:handle_info/2
 %% @private
 %%
-handle_info(_Info, _State) ->
-	remove_handler.
+handle_info({timeout, Timer, []} = _Info,
+		#state{timer = Timer, delay = Delay, buffer = Buffer} = State) ->
+	Now = erlang:system_time(?MILLISECOND),
+	F = fun({TS, _, _, _, _}) when (Now - TS) < Delay ->
+				true;
+			(_) ->
+				false
+	end,
+	{Events, #state{buffer = NewBuffer} = NewState}
+			= gather(lists:dropwhile(F, Buffer), State),
+	post(Events, NewState#state{timer = undefined, buffer = NewBuffer}).
 
 -spec terminate(Arg, State) -> term()
 	when
@@ -175,10 +187,99 @@ code_change(_OldVsn, State, _Extra) ->
 %%  internal functions
 %%----------------------------------------------------------------------
 
+-spec gather(Events, State) -> Result
+	when
+		Events :: [fault_event()],
+		State :: state(),
+		Result :: {Events, State}.
+%% @doc Gather all events for alarmIds ready to send.
+%% @private
+gather(Events, State) ->
+	gather(Events, State, []).
+%% @hidden
+gather([{_, _, _, #{"reportingEntityId" := AgentId},
+		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
+		#state{buffer = Buffer} = State, Acc) ->
+	F = fun({_, _, _, #{"reportingEntityId" := Agent},
+					#{"alarmAdditionalInformation" := #{"alarmId" := ID}}})
+					when Agent == AgentId, ID == AlarmId ->
+				true;
+			(_) ->
+				false
+	end,
+	{Events, NewBuffer} = lists:partition(F, Buffer),
+	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
+gather([{_, _, _, #{"reportingEntityName" := AgentName},
+		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
+		#state{buffer = Buffer} = State, Acc) ->
+	F = fun({_, _, _, #{"reportingEntityName" := Agent},
+					#{"alarmAdditionalInformation" := #{"alarmId" := ID}}})
+					when Agent == AgentName, ID == AlarmId ->
+				true;
+			(_) ->
+				false
+	end,
+	{Events, NewBuffer} = lists:partition(F, Buffer),
+	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
+gather([], State, Acc) ->
+	gather1(Acc, State, []).
+%% @hidden
+gather1([H | T], State, Acc) ->
+	F = fun({_, _, _, #{"eventName" := notifyNewAlarm}, _}, _) ->
+				true;
+			({_, _, _, #{"eventName" := notifyChangedAlarmi}, _},
+					{_, _, _, #{"eventName" := notifyClearedAlarm}, _}) ->
+				true;
+			({_, _, _, _, _}, {_, _, _, _, _}) ->
+				false
+	end,
+	gather1(T, State, [lists:sort(F, H) | Acc]);
+gather1([], State, Acc) ->
+	{lists:flatten(Acc), State}.
+
+-spec post(Events, State) -> Result
+	when
+		Events :: [fault_event()],
+		State :: state(),
+		Result :: {ok, State}.
+%% @doc POST VES events on northbound interface to ves_collector.
+%% @private
+post([{_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
+		#{"alarmAdditionalInformation" := AlarmAdditionalInformation} 
+		= OtherFields1} |T], #state{authorization = Authorization,
+		uri = Url, options = Options} = State) ->
+	ContentType = "application/json",
+	Accept = {"accept", "application/json"},
+	F = fun(Key, Value, Acc) ->
+				[#{"name" => Key, "value" => Value} | Acc]
+	end,
+	OtherFields2 = OtherFields1#{"alarmAdditionalInformation"
+			=> maps:fold(F, [], AlarmAdditionalInformation)},
+	Event1 = #{"event" => #{"commonEventHeader" => CommonEventHeader,
+			Domain ++ "Fields" => OtherFields2}},
+	RequestBody = zj:encode(Event1),
+	Request = {Url ++ "/eventListener/v5",
+			[Accept, Authorization], ContentType, RequestBody},
+	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
+	case httpc:request(post, Request, [], NewOptions) of
+		{error, Reason} ->
+			error_logger:info_report(["SNMP Manager POST Failed",
+					{error, Reason}]),
+			exit(Reason);
+		_RequestID ->
+			post(T, State)
+	end;
+post([], #state{delay = 0} = State) ->
+	{ok, State};
+post([], #state{delay = Delay} = State)
+		when is_integer(Delay), Delay > 0 ->
+	{ok, State#state{timer = erlang:start_timer(Delay, self(), [])}}.
+
 -spec check_response(ReplyInfo) -> any()
 	when
 		ReplyInfo :: tuple().
 %% @doc Check the response of a httpc request.
+%% @hidden
 check_response({_RequestId, {error, Reason}}) ->
 	error_logger:warning_report(["SNMP Manager POST Failed",
 			{error, Reason}]);
