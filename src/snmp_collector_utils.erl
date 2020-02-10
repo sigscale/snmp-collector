@@ -222,18 +222,71 @@ iso8601millisecond(EpocMilliseconds, []) ->
 	EpocMilliseconds;
 iso8601millisecond(EpocMilliseconds, [$.]) ->
 	EpocMilliseconds;
-iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | _])
+iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | T])
 		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9,
 		N3 >= $0, N3 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2, N3]);
-iso8601millisecond(EpocMilliseconds, [$., N1, N2 | _])
+	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2, N3]), T);
+iso8601millisecond(EpocMilliseconds, [$., N1, N2 | T])
 		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2]) * 10;
-iso8601millisecond(EpocMilliseconds, [$., N | _])
+	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2]) * 10, T);
+iso8601millisecond(EpocMilliseconds, [$., N | T])
 		when N >= $0, N =< $9 ->
-	EpocMilliseconds + list_to_integer([N]) * 100;
-iso8601millisecond(EpocMilliseconds, _) ->
-	EpocMilliseconds.
+	iso8601offset(EpocMilliseconds + list_to_integer([N]) * 100, T);
+iso8601millisecond(EpocMilliseconds, T) ->
+	iso8601offset(EpocMilliseconds, T).
+%% @hidden
+iso8601offset(EpocMilliseconds, [$, | T]) ->
+	iso8601offset(EpocMilliseconds, T);
+iso8601offset(EpocMilliseconds, [$+, H1])
+		when H1 >= $0, H1 =< $9 ->
+   EpocMilliseconds + (3600000 * H1);
+iso8601offset(EpocMilliseconds, [$-, H1])
+		when H1 >= $0, H1 =< $9 ->
+   EpocMilliseconds - (3600000 * H1);
+iso8601offset(EpocMilliseconds, [$+, H1, H2])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, $:, $0])
+		when H1 >= $0, H1 =< $9 ->
+   EpocMilliseconds + (3600000 * list_to_integer([H1]));
+iso8601offset(EpocMilliseconds, [$-, H1, $:, $0])
+		when H1 >= $0, H1 =< $9 ->
+   EpocMilliseconds - (3600000 * list_to_integer([H1]));
+iso8601offset(EpocMilliseconds, [$+, H1, $:, $3, $0])
+		when H1 >= $0, H1 =< $9 ->
+   EpocMilliseconds + (3600000 * list_to_integer([H1])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, $:, $3, $0])
+		when H1 >= $0, H1 =< $9 ->
+   EpocMilliseconds - (3600000 * list_to_integer([H1])) + 1800000;
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+   EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, _Other) ->
+   EpocMilliseconds.
 
 -spec oid_to_name(OID) -> Name
 	when
