@@ -343,8 +343,9 @@ arrange_list(Varbinds)
 		when is_list(Varbinds) ->
 	arrange_list(Varbinds, []).
 %% @hidden
-arrange_list([{varbind, OID, 'TimeTicks', Value, _Seqnum} | T], Acc) ->
-	arrange_list(T, [{OID, Value} | Acc]);
+arrange_list([{varbind, [1,3,6,1,2,1,1,3,0], 'TimeTicks', Value, _Seqnum},
+		{varbind, [1,3,6,1,6,3,1,1,4,1], _, Value1, _Seqnum} | T], Acc) ->
+	arrange_list(T, [{[1,3,6,1,6,3,1,1,4,1], Value1}, {[1,3,6,1,2,1,1,3,0], Value} | Acc]);
 arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(Value, utf8) of
@@ -765,6 +766,8 @@ common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
 common_event_header([{"changedTime", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
 common_event_header([{"clearedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
+common_event_header([{"ackTime", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
 common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
