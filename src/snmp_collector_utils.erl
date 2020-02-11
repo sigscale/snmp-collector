@@ -762,13 +762,13 @@ common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
 common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
 common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
+	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
 common_event_header([{"changedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
 common_event_header([{"clearedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
 common_event_header([{"ackTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
 common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
 common_event_header([], _TargetName, CH, AD) ->
