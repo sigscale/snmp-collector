@@ -148,7 +148,7 @@ handle_call(_Request, _State) ->
 %%
 handle_info({timeout, Timer, []} = Info,
 		#state{timer = LastTimer} = State)
-		when LastTimer /= undefined, LastTimer /= Timer ->
+		when is_reference(LastTimer), LastTimer /= Timer ->
 	erlang:cancel_timer(LastTimer),
 	handle_info(Info, State#state{timer = undefined});
 handle_info({timeout, _Timer, []} = _Info,
