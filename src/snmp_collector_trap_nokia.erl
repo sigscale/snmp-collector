@@ -279,6 +279,7 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
+erlang:display({?MODULE, ?LINE, AlarmDetails }),
 		snmp_collector_utils:update_counters(nokia, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
 		snmp_collector_utils:log_event(Event)
@@ -565,10 +566,6 @@ probable_cause("UNIT RESTARTED") ->
 	?PC_Reinitialized;
 probable_cause("BCCH IS NOT AT PREFERRED BCCH TRX") ->
 	?PC_Power_Problem;
-probable_cause("PLAN BASED CONFIGURATION OPERATION ONGOING") ->
-	undefined;
-probable_cause("ALARM DATABASE UPLOAD IN PROGRESS") ->
-	undefined;
 probable_cause("MEAN HOLDING TIME ABOVE DEFINED THRESHOLD") ->
 	?PC_Excessive_Rresponse_Time;
 probable_cause("SIGNALLING MEASUREMENT REPORT LOST") ->
