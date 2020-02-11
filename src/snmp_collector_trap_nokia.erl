@@ -437,6 +437,7 @@ notification(NameValuePair) ->
 	notification(NameValuePair, []).
 %% @hidden
 notification([{"snmpTrapOID", "nbiAlarmSummaryNotification"},
+		{"sysUpTimeInstance", SysUpTimeInstance},
 		{"nbiSequenceId", SequenceId}, {"nbiEventTime", RaisedTime},
 		{"nbiEmsSynchronizationState", SynchronizationState},
 		{"nbiNotSyncNEs", NotSyncNEs},
@@ -447,6 +448,7 @@ notification([{"snmpTrapOID", "nbiAlarmSummaryNotification"},
 		{"nbiNumberClearedAlarms", NoClearedAlarms},
 		{"nbiNumberIndeterminateAlarms", NoIndeterminateAlarms} | T], Acc) ->
 	notification(T, [{"id",  snmp_collector_utils:generate_identity(7)},
+			{"sysUpTimeInstance", SysUpTimeInstance},
 			{"eventName", ?EN_NEW},
 			{"sourceId", SequenceId},
 			{"raisedTime", RaisedTime},
