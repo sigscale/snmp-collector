@@ -302,97 +302,102 @@ erlang:display({?MODULE, ?LINE, AlarmDetails }),
 		VesName :: string(),
 		VesValue :: string().
 %% @doc CODEC for event.
-fault(NameValuePair) ->
-	fault(NameValuePair, []).
+fault([{"snmpTrapOID", "nbiAlarmNewNotification"} | T] = _OldNameValuePair) ->
+	fault(T, ?EN_NEW, [{"eventName", ?EN_NEW},
+			{"alarmCondition", "alarmNewNotification"}]);
+fault([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T]) ->
+	fault(T, ?EN_CLEARED, [{"eventName", ?EN_CLEARED},
+			{"alarmCondition", "alarmClearedNotification"},
+			{"eventSeverity", ?ES_CLEARED}]);
+fault([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T]) ->
+	fault(T, ?EN_CHANGED, [{"eventName", ?EN_CHANGED},
+			{"alarmCondition", "alarmChangedNotification"}]);
+fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T]) ->
+	fault(T, ?EN_CHANGED, [{"eventName", ?EN_CHANGED},
+			{"alarmCondition", "alarmAckChangedNotification"}]).
 %% @hidden
-fault([{"nbiAlarmId", Value} | T], Acc)
+fault([{"nbiAlarmId", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmId", Value} | Acc]);
-fault([{"nbiEventTime", Value} | T], Acc)
+	fault(T, EN, [{"alarmId", Value} | Acc]);
+fault([{"nbiEventTime", Value} | T], EN, Acc)
+		when EN == ?EN_NEW, is_list(Value), length(Value) > 0 ->
+	fault(T, EN, [{"raisedTime", Value} | Acc]);
+fault([{"nbiEventTime", Value} | T], EN, Acc)
+		when EN == ?EN_CHANGED, is_list(Value), length(Value) > 0 ->
+	fault(T, EN, [{"changedTime", Value} | Acc]);
+fault([{"nbiEventTime", Value} | T], EN, Acc)
+		when EN == ?EN_CLEARED, is_list(Value), length(Value) > 0 ->
+	fault(T, EN, [{"clearedTime", Value} | Acc]);
+fault([{"nbiSequenceId", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"raisedTime", Value} | Acc]);
-fault([{"nbiSequenceId", Value} | T], Acc)
+	fault(T, EN, [{"sourceId", Value} | Acc]);
+fault([{"nbiOptionalInformation", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"sourceId", Value} | Acc]);
-fault([{"nbiOptionalInformation", Value} | T], Acc)
+	fault(T, EN, [{"sourceName", Value} | Acc]);
+fault([{"nbiObjectInstance", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"sourceName", Value} | Acc]);
-fault([{"nbiObjectInstance", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"objectInstance", Value} | Acc]);
-fault([{"nbiSpecificProblem", Value} | T], Acc)
+	fault(T, EN, [{"objectInstance", Value} | Acc]);
+fault([{"nbiSpecificProblem", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	case catch string:tokens(Value, "|") of
 		[_, SpecificProblem] ->
-			fault(T, [{"specificProblem", SpecificProblem},
+			fault(T, EN, [{"specificProblem", SpecificProblem},
 					{"probableCause", probable_cause(SpecificProblem)} | Acc]);
 		{'EXIT', _Reason} ->
-			fault(T, Acc)
+			fault(T, EN, Acc)
 	end;
-fault([{"snmpTrapOID", "nbiAlarmNewNotification"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_NEW},
-			{"alarmCondition", "alarmNewNotification"} | Acc]);
-fault([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "alarmClearedNotification"},
-			{"eventSeverity", ?ES_CLEARED} | Acc]);
-fault([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "alarmChangedNotification"} | Acc]);
-fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "alarmAckChangedNotification"} | Acc]);
-fault([{"nbiPerceivedSeverity", "1"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
-fault([{"nbiPerceivedSeverity", "2"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
-fault([{"nbiPerceivedSeverity", "3"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
-fault([{"nbiPerceivedSeverity", "4"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
-fault([{"nbiPerceivedSeverity", "5"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
-fault([{"nbiPerceivedSeverity", "6"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
-fault([{"nbiAlarmType", "1"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
-fault([{"nbiAlarmType", "2"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-fault([{"nbiAlarmType", "3"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-fault([{"nbiAlarmType", "4"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
-fault([{"nbiAlarmType", "5"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
-fault([{"nbiProposedRepairAction", Value} | T], Acc)
+fault([{"nbiPerceivedSeverity", "1"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
+fault([{"nbiPerceivedSeverity", "2"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_MAJOR} | Acc]);
+fault([{"nbiPerceivedSeverity", "3"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_MINOR} | Acc]);
+fault([{"nbiPerceivedSeverity", "4"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"nbiPerceivedSeverity", "5"} | T], EN, Acc)
+		when EN == ?EN_CLEARED ->
+	fault(T, EN, Acc);
+fault([{"nbiPerceivedSeverity", "6"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
+fault([{"nbiAlarmType", "1"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Communication_System} | Acc]);
+fault([{"nbiAlarmType", "2"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+fault([{"nbiAlarmType", "3"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Processing_Error} | Acc]);
+fault([{"nbiAlarmType", "4"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
+fault([{"nbiAlarmType", "5"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
+fault([{"nbiProposedRepairAction", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"proposedRepairActions", Value} | Acc]);
-fault([{"nbiAckState", "1"} | T], Acc) ->
-	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-fault([{"nbiAckState", "2"} | T], Acc) ->
-	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
-fault([{"nbiAckSystemId", Value} | T], Acc)
+	fault(T, EN, [{"proposedRepairActions", Value} | Acc]);
+fault([{"nbiAckState", "1"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+fault([{"nbiAckState", "2"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+fault([{"nbiAckSystemId", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmAckSystemId", Value} | Acc]);
-fault([{"nbiAckTime", Value} | T], Acc)
+	fault(T, EN, [{"alarmAckSystemId", Value} | Acc]);
+fault([{"nbiAckTime", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmAckTime", Value} | Acc]);
-fault([{"nbiAckUser", Value} | T], Acc)
+	fault(T, EN, [{"alarmAckTime", Value} | Acc]);
+fault([{"nbiAckUser", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"ackUserId", Value} | Acc]);
-fault([{"nbiAdditionalText", Value} | T], Acc)
+	fault(T, EN, [{"ackUserId", Value} | Acc]);
+fault([{"nbiAdditionalText", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"additionalText", Value} | Acc]);
-fault([{"nbiCommentText", Value} | T], Acc)
+	fault(T, EN, [{"additionalText", Value} | Acc]);
+fault([{"nbiCommentText", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"eventComment", Value} | Acc]);
-fault([{_, [$ ]} | T], Acc) ->
-	fault(T, Acc);
-fault([{_, []} | T], Acc) ->
-	fault(T, Acc);
-fault([{Name, Value} | T], Acc) ->
-	fault(T, [{Name, Value} | Acc]);
-fault([], Acc) ->
+	fault(T, EN, [{"eventComment", Value} | Acc]);
+fault([{_, [$ ]} | T], EN, Acc) ->
+	fault(T, EN, Acc);
+fault([{_, []} | T], EN, Acc) ->
+	fault(T, EN, Acc);
+fault([{Name, Value} | T], EN, Acc) ->
+	fault(T, EN, [{Name, Value} | Acc]);
+fault([], _, Acc) ->
 	Acc.
 
 -spec handle_notification(TargetName, Varbinds) -> Result
