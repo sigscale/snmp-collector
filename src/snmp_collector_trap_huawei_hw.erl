@@ -454,20 +454,15 @@ fault([{"hwNmNorthboundEventDetail", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"eventDetail", Value} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Fault"} | T], EN, Acc) ->
-	Acc1 = fault1(T, EN, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]),
-	fault(T, EN, Acc1);
+	fault(T, EN, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Change"} | T], EN, Acc) ->
-	Acc1 = fault1(T, EN, ?EN_CHANGED, [{"eventName", ?EN_CHANGED} | Acc]),
-	fault(T, EN, Acc1);
+	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Recovery"} | T], EN, Acc) ->
-	Acc1 = fault1(T, EN, ?EN_CLEARED, [{"eventName", ?EN_CLEARED} | Acc]),
-	fault(T, EN, Acc1);
+	fault(T, EN, [{"eventName", ?EN_CLEARED} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], EN, Acc) ->
-	Acc1 = fault1(T, EN, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]),
-	fault(T, EN, Acc1);
+	fault(T, EN, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], EN, Acc) ->
-	Acc1 = fault1(T, EN, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]),
-	fault(T, EN, Acc1);
+	fault(T, EN, [{"eventName", ?EN_NEW} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
 		when EN == ?EN_NEW, is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);
@@ -484,12 +479,12 @@ fault([{"hwNmNorthboundEventTime", Value} | _T], _, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	[{"ackTime", Value} | Acc];
 fault([{_, [$ ]} | T], EN, Acc) ->
-	fault(T, EN, EN, Acc);
+	fault(T, EN, Acc);
 fault([{_, []} | T], EN, Acc) ->
-	fault(T, EN, EN, Acc);
+	fault(T, EN, Acc);
 fault([{Name, Value} | T], EN, Acc) ->
 	fault(T, EN, [{Name, Value} | Acc]);
-fault([], EN, Acc) ->
+fault([], _EN, Acc) ->
 	Acc.
 
 -spec domain(Varbinds) -> Result
