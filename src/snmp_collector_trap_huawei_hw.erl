@@ -350,10 +350,8 @@ handle_fault(TargetName, Varbinds) ->
 %% @doc CODEC for event.
 fault(NameValuePair) ->
 	{_, Value} = lists:keyfind("hwNmNorthboundFaultFlag", 1, NameValuePair),
-	fault(NameValuePair, Value, []).
+	fault(NameValuePair, Value, [{"eventName", Value}]).
 %% @hidden
-fault([{""hwNmNorthboundFaultFlag"", _} | T], EN, Acc) ->
-	fault(T, EN, Acc);
 fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"alarmId", Value} | Acc]);
