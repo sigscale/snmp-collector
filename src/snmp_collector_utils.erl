@@ -22,7 +22,7 @@
 -include("snmp_collector.hrl").
 -include("snmp_collector_log.hrl").
 
--export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
+-export([oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
 		authenticate_v1_v2/2, update_counters/3, timestamp/0]).
@@ -41,252 +41,6 @@
 %%----------------------------------------------------------------------
 %%  The snmp_collector_utilites public API
 %%----------------------------------------------------------------------
-
--spec date(MilliSeconds) -> DateTime
-	when
-		MilliSeconds :: pos_integer(),
-		DateTime :: calendar:datetime().
-%% @doc Convert timestamp to date and time.
-date(MilliSeconds) when is_integer(MilliSeconds) ->
-	Seconds = ?EPOCH + (MilliSeconds div 1000),
-	calendar:gregorian_seconds_to_datetime(Seconds).
-
--spec iso8601(DateTime) -> DateTime
-	when
-		DateTime :: pos_integer() | string().
-%% @doc Convert between ISO 8601 and Unix epoch milliseconds.
-%% 	Parsing is not strict to allow prefix matching.
-iso8601(DateTime) when is_integer(DateTime) ->
-	{{Year, Month, Day}, {Hour, Minute, Second}} = date(DateTime),
-	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
-	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0bZ",
-	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
-			[Year, Month, Day, Hour, Minute, Second, DateTime rem 1000]),
-	lists:flatten(Chars);
-iso8601([Y1, Y2, Y3, Y4 | T])
-		when Y1 >= $0, Y1 =< $9, Y2 >= $0, Y2 =< $9,
-		Y3 >= $0, Y3 =< $9, Y4 >= $0, Y4 =< $9 ->
-	iso8601month(list_to_integer([Y1, Y2, Y3, Y4]), T).
-%% @hidden
-iso8601month(Year, []) ->
-	DateTime = {{Year, 1, 1}, {0, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601month(Year, [$-]) ->
-	iso8601month(Year, []);
-iso8601month(Year, [$-, $0]) ->
-	iso8601month(Year, [$-, $0, $1]);
-iso8601month(Year, [$-, $1]) ->
-	iso8601month(Year, [$-, $1, $0]);
-iso8601month(Year, [$-, M, $- | T])
-		when M >= $1, M =< $9 ->
-	iso8601day(Year, list_to_integer([M]), T);
-iso8601month(Year, [$/, M1, M2 | T])
-		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
-	iso8601day(Year, list_to_integer([M1, M2]), T);
-iso8601month(Year, [$-, M1, M2 | T])
-		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
-	iso8601day(Year, list_to_integer([M1, M2]), T).
-%% @hidden
-iso8601day(Year, Month, []) ->
-	DateTime = {{Year, Month, 1}, {0, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601day(Year, Month, [$-]) ->
-	iso8601day(Year, Month, []);
-iso8601day(Year, Month, [$-, $0]) ->
-	iso8601day(Year, Month, [$-, $1, $0]);
-iso8601day(Year, Month, [$-, D1])
-		when D1 >= $1, D1 =< $3 ->
-	iso8601day(Year, Month, [$-, D1, $0]);
-iso8601day(Year, Month, [$/, D])
-		when D >= $1, D =< $9 ->
-	iso8601day(Year, Month, [$-, D]);
-iso8601day(Year, Month, [$-, D, _ | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D, $, | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [D, $, | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D, $- | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$/, D1, D2 | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [D1, D2, $, | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D1, D2 | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T).
-%% @hidden
-iso8601hour(Date, []) ->
-	DateTime = {Date, {0, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601hour(Date, [$T]) ->
-	iso8601hour(Date, []);
-iso8601hour(Date, [$ ]) ->
-	iso8601hour(Date, []);
-iso8601hour(Date, [H1, $: | T]) ->
-	iso8601hour(Date, [$T, $0, H1, $: | T]);
-iso8601hour(Date, [$T, H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
-iso8601hour(Date, [$ , H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$ , H1, $0]);
-iso8601hour(Date, [$,, H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
-iso8601hour(Date, [$T, H, $- | T])
-		when H >= $1, H =< $9 ->
-	Hour = list_to_integer([H]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$,, H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$T, H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$ , $-, $ , H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$ , H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T).
-%% @hidden
-iso8601minute(Date, Hour, []) ->
-	DateTime = {Date, {Hour, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601minute(Date, Hour, [$:]) ->
-	iso8601minute(Date, Hour, []);
-iso8601minute(Date, Hour, [$:, M1])
-		when M1 >= $0, M1 =< $5 ->
-	iso8601minute(Date, Hour, [$:, M1, $0]);
-iso8601minute(Date, Hour, [M1, $:, M2 | T])
-		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
-	Minute = list_to_integer([M1, M2]),
-	iso8601second(Date, Hour, Minute, T);
-iso8601minute(Date, Hour, [$:, M1, M2 | T])
-		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
-	Minute = list_to_integer([M1, M2]),
-	iso8601second(Date, Hour, Minute, T);
-iso8601minute(Date, Hour, _) ->
-	DateTime = {Date, {Hour, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
-%% @hidden
-iso8601second(Date, Hour, Minute, []) ->
-	DateTime = {Date, {Hour, Minute, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601second(Date, Hour, Minute, [$:]) ->
-	iso8601second(Date, Hour, Minute, []);
-iso8601second(Date, Hour, Minute, [$:, S1])
-		when S1 >= $0, S1 =< $5 ->
-	iso8601second(Date, Hour, Minute, [$:, S1, $0]);
-iso8601second(Date, Hour, Minute, [$:, S1, S2 | T])
-		when S1 >= $0, S1 =< $5, S2 >= $0, S2 =< $9 ->
-	Second = list_to_integer([S1, S2]),
-	DateTime = {Date, {Hour, Minute, Second}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	EpocMilliseconds = (GS - ?EPOCH) * 1000,
-	iso8601millisecond(EpocMilliseconds, T);
-iso8601second(Date, Hour, Minute, _) ->
-	DateTime = {Date, {Hour, Minute, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
-%% @hidden
-iso8601millisecond(EpocMilliseconds, []) ->
-	EpocMilliseconds;
-iso8601millisecond(EpocMilliseconds, [$.]) ->
-	EpocMilliseconds;
-iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | T])
-		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9,
-		N3 >= $0, N3 =< $9 ->
-	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2, N3]), T);
-iso8601millisecond(EpocMilliseconds, [$., N1, N2 | T])
-		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9 ->
-	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2]) * 10, T);
-iso8601millisecond(EpocMilliseconds, [$., N | T])
-		when N >= $0, N =< $9 ->
-	iso8601offset(EpocMilliseconds + list_to_integer([N]) * 100, T);
-iso8601millisecond(EpocMilliseconds, T) ->
-	iso8601offset(EpocMilliseconds, T).
-%% @hidden
-iso8601offset(EpocMilliseconds, [$, | T]) ->
-	iso8601offset(EpocMilliseconds, T);
-iso8601offset(EpocMilliseconds, [$+, H1])
-		when H1 >= $0, H1 =< $9 ->
-   EpocMilliseconds - (3600000 * H1);
-iso8601offset(EpocMilliseconds, [$-, H1])
-		when H1 >= $0, H1 =< $9 ->
-   EpocMilliseconds + (3600000 * H1);
-iso8601offset(EpocMilliseconds, [$+, H1, H2])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
-iso8601offset(EpocMilliseconds, [$-, H1, H2])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
-iso8601offset(EpocMilliseconds, [$+, H1, $:, $0])
-		when H1 >= $0, H1 =< $9 ->
-   EpocMilliseconds - (3600000 * list_to_integer([H1]));
-iso8601offset(EpocMilliseconds, [$-, H1, $:, $0])
-		when H1 >= $0, H1 =< $9 ->
-   EpocMilliseconds + (3600000 * list_to_integer([H1]));
-iso8601offset(EpocMilliseconds, [$+, H1, $:, $3, $0])
-		when H1 >= $0, H1 =< $9 ->
-   EpocMilliseconds - (3600000 * list_to_integer([H1])) + 1800000;
-iso8601offset(EpocMilliseconds, [$-, H1, $:, $3, $0])
-		when H1 >= $0, H1 =< $9 ->
-   EpocMilliseconds + (3600000 * list_to_integer([H1])) + 1800000;
-iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $3, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
-iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $3, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
-iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $0, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
-iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $0, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
-iso8601offset(EpocMilliseconds, [$+, H1, H2, $0, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
-iso8601offset(EpocMilliseconds, [$-, H1, H2, $0, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
-iso8601offset(EpocMilliseconds, [$+, H1, H2, $3, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
-iso8601offset(EpocMilliseconds, [$-, H1, H2, $3, $0])
-		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
-   EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
-iso8601offset(EpocMilliseconds, _Other) ->
-   EpocMilliseconds.
 
 -spec oid_to_name(OID) -> Name
 	when
@@ -1001,7 +755,7 @@ common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
 common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
 common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => iso8601(Value)}, AD);
+	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
 common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
 common_event_header([], _TargetName, CH, AD) ->
@@ -1020,21 +774,21 @@ notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
 	notification_fields(AlarmDetails, DefaultMap).
 %% @hidden
 notification_fields([{"id", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"id" => Value});
 notification_fields([{"description", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"description" => Value});
 notification_fields([{"status", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"status" => Value});
 notification_fields([{"name", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"name" => Value});
 notification_fields([{"priority", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"priority" => Value});
 notification_fields([{"eventType", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"eventType" => Value});
 notification_fields([{"stateInterface", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"stateInterface" => Value});
 notification_fields([{"changeType", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
+	notification_fields(T, Acc#{"changeType" => Value});
 notification_fields([{Name, Value} | T],
 		#{"alarmAdditionalInformation" := AI} = Acc) ->
 	NewAI = [#{"name" => Name, "value" => Value} | AI],
