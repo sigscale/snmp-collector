@@ -509,17 +509,17 @@ fault([], Acc) ->
 
 %% @hidden
 fault1([{"iMAPNorthboundmaAlarmOccurTime", Value} | _T], EC, Acc)
-      when EC == ?EN_NEW, is_list(Value), length(Value) > 0 ->
-   [{"raisedTime", Value} | Acc];
+		when EC == ?EN_NEW, is_list(Value), length(Value) > 0 ->
+	[{"raisedTime", Value} | Acc];
 fault1([{"iMAPNorthboundAlarmOccurTime ", Value} | _T], EC, Acc)
-      when EC == ?EN_CHANGED, is_list(Value), length(Value) > 0 ->
-   [{"changedTime", Value} | Acc];
+		when EC == ?EN_CHANGED, is_list(Value), length(Value) > 0 ->
+	[{"changedTime", Value} | Acc];
 fault1([{"iMAPNorthboundAlarmRestoreTime", Value} | _T], EC, Acc)
-      when EC == ?EN_CLEARED, is_list(Value), length(Value) > 0 ->
-   [{"clearedTime", Value} | Acc];
+		when EC == ?EN_CLEARED, is_list(Value), length(Value) > 0 ->
+	[{"clearedTime", Value} | Acc];
 fault1([{"iMAPNorthboundAlarmAckTime", Value} | _T], EC, Acc)
-      when is_list(Value), length(Value) > 0 ->
-   [{"ackTime", Value} | Acc];
+		when is_list(Value), length(Value) > 0 ->
+	[{"ackTime", Value} | Acc];
 fault1([_H | T], EC, Acc) ->
 	fault1(T, EC, Acc).
 
