@@ -356,11 +356,8 @@ fault(NameValuePair) ->
 	fault(NameValuePair, []).
 %% @hidden
 fault([{"iMAPNorthboundAlarmCSN", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when is_list(Value), length(Value) > 0, Value =/= [$ ] ->
 	fault(T, [{"alarmId", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmOccurTime", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"raisedTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"sourceId", Value} | Acc]);
@@ -391,18 +388,6 @@ fault([{"iMAPNorthboundAlarmLevel", "5"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "6"} | T], Acc) ->
 	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
-fault([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_NEW} | Acc]);
-fault([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CLEARED} | Acc]);
-fault([{"iMAPNorthboundAlarmCategory", "3"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_NEW} | Acc]);
-fault([{"iMAPNorthboundAlarmCategory", "4"} | T], Acc) ->
-	fault(T, [{"eventName", ?ACK_Acknowledged} | Acc]);
-fault([{"iMAPNorthboundAlarmCategory", "5"} | T], Acc) ->
-	fault(T, [{"eventName", ?ACK_Unacknowledged} | Acc]);
-fault([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
 	fault(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
 fault([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
@@ -441,9 +426,6 @@ fault([{"iMAPNorthboundAlarmProbablecause", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"proposedRepairActions", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmAckTime", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmAckTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmConfirm", "1"} | T], Acc) ->
 	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 fault([{"iMAPNorthboundAlarmConfirm", "2"} | T], Acc) ->
@@ -482,9 +464,6 @@ fault([{"iMAPNorthboundAlarmClearOperator", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmOperator", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmOperator", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmRestoreTime", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"restoreTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmRestore", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, [{"alarmRestore", Value} | Acc]);
@@ -500,6 +479,25 @@ fault([{"iMAPNorthboundAlarmID", Value} | T], Acc)
 fault([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], Acc)
 		when is_list(Value), length(Value) > 0; Value =/= [$ ] ->
 	fault(T, [{"alarmSpecificproblems", Value} | Acc]);
+fault([{"iMAPNorthboundAlarmCategory", "1"} | T], Acc) ->
+	Acc1 = fault1(T, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]),
+	fault(T, Acc1);
+fault([{"iMAPNorthboundAlarmCategory", "2"} | T], Acc) ->
+	Acc1 = fault1(T, ?EN_CLEARED, [{"eventName", ?EN_CLEARED},
+			{"eventSeverity", ?ES_CLEARED} | Acc]),
+	fault(T, Acc1);
+fault([{"iMAPNorthboundAlarmCategory", "3"} | T], Acc) ->
+	Acc1 = fault1(T, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]),
+	fault(T, Acc1);
+fault([{"iMAPNorthboundAlarmCategory", "4"} | T], Acc) ->
+	Acc1 = fault1(T, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]),
+	fault(T, Acc1);
+fault([{"iMAPNorthboundAlarmCategory", "5"} | T], Acc) ->
+	Acc1 = fault1(T, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]),
+	fault(T, Acc1);
+fault([{"iMAPNorthboundAlarmCategory", "9"} | T], Acc) ->
+	Acc1 = fault1(T, ?EN_CHANGED, [{"eventName", ?EN_CHANGED} | Acc]),
+	fault(T, Acc1);
 fault([{_, [$ ]} | T], Acc) ->
 	fault(T, Acc);
 fault([{_, []} | T], Acc) ->
@@ -508,6 +506,22 @@ fault([{Name, Value} | T], Acc) ->
 	fault(T, [{Name, Value} | Acc]);
 fault([], Acc) ->
 	Acc.
+
+%% @hidden
+fault1([{"iMAPNorthboundmaAlarmOccurTime", Value} | _T], EC, Acc)
+      when EC == ?EN_NEW, is_list(Value), length(Value) > 0 ->
+   [{"raisedTime", Value} | Acc];
+fault1([{"iMAPNorthboundAlarmOccurTime ", Value} | _T], EC, Acc)
+      when EC == ?EN_CHANGED, is_list(Value), length(Value) > 0 ->
+   [{"changedTime", Value} | Acc];
+fault1([{"iMAPNorthboundAlarmRestoreTime", Value} | _T], EC, Acc)
+      when EC == ?EN_CLEARED, is_list(Value), length(Value) > 0 ->
+   [{"clearedTime", Value} | Acc];
+fault1([{"iMAPNorthboundAlarmAckTime", Value} | _T], EC, Acc)
+      when is_list(Value), length(Value) > 0 ->
+   [{"ackTime", Value} | Acc];
+fault1([_H | T], EC, Acc) ->
+	fault1(T, EC, Acc).
 
 -spec domain(Varbinds) -> Result
 	when
