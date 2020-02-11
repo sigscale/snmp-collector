@@ -146,8 +146,13 @@ handle_call(_Request, _State) ->
 %% @see //stdlib/gen_event:handle_info/2
 %% @private
 %%
-handle_info({timeout, Timer, []} = _Info,
-		#state{timer = Timer, delay = Delay, buffer = Buffer} = State) ->
+handle_info({timeout, Timer, []} = Info,
+		#state{timer = LastTimer} = State)
+		when is_reference(LastTimer), LastTimer /= Timer ->
+	erlang:cancel_timer(LastTimer),
+	handle_info(Info, State#state{timer = undefined});
+handle_info({timeout, _Timer, []} = _Info,
+		#state{delay = Delay, buffer = Buffer} = State) ->
 	Now = erlang:system_time(?MILLISECOND),
 	F = fun({TS, _, _, _, _}) when (Now - TS) < Delay ->
 				true;
@@ -197,7 +202,7 @@ code_change(_OldVsn, State, _Extra) ->
 gather(Events, State) ->
 	gather(Events, State, []).
 %% @hidden
-gather([{_, _, _, #{"reportingEntityId" := AgentId},
+gather([{_, _, _, #{"domain" := "fault", "reportingEntityId" := AgentId},
 		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
 		#state{buffer = Buffer} = State, Acc) ->
 	F = fun({_, _, _, #{"reportingEntityId" := Agent},
@@ -209,7 +214,7 @@ gather([{_, _, _, #{"reportingEntityId" := AgentId},
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
 	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
-gather([{_, _, _, #{"reportingEntityName" := AgentName},
+gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
 		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
 		#state{buffer = Buffer} = State, Acc) ->
 	F = fun({_, _, _, #{"reportingEntityName" := Agent},
@@ -221,10 +226,12 @@ gather([{_, _, _, #{"reportingEntityName" := AgentName},
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
 	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
+gather([H | T], State, Acc) ->
+	gather(T, State, [H | Acc]);
 gather([], State, Acc) ->
 	gather1(Acc, State, []).
 %% @hidden
-gather1([H | T], State, Acc) ->
+gather1([H | T], State, Acc) when is_list(H) ->
 	F = fun({_, _, _, #{"eventName" := notifyNewAlarm}, _}, _) ->
 				true;
 			({_, _, _, #{"eventName" := notifyChangedAlarm}, _},
@@ -234,6 +241,8 @@ gather1([H | T], State, Acc) ->
 				false
 	end,
 	gather1(T, State, [lists:sort(F, H) | Acc]);
+gather1([H | T], State, Acc) ->
+	gather1(T, State, [H | Acc]);
 gather1([], State, Acc) ->
 	{lists:flatten(Acc), State}.
 
