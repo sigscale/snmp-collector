@@ -146,8 +146,13 @@ handle_call(_Request, _State) ->
 %% @see //stdlib/gen_event:handle_info/2
 %% @private
 %%
-handle_info({timeout, Timer, []} = _Info,
-		#state{timer = Timer, delay = Delay, buffer = Buffer} = State) ->
+handle_info({timeout, Timer, []} = Info,
+		#state{timer = LastTimer} = State)
+		when LastTimer /= undefined, LastTimer /= Timer ->
+	erlang:cancel_timer(LastTimer),
+	handle_info(Info, State#state{timer = undefined});
+handle_info({timeout, _Timer, []} = _Info,
+		#state{delay = Delay, buffer = Buffer} = State) ->
 	Now = erlang:system_time(?MILLISECOND),
 	F = fun({TS, _, _, _, _}) when (Now - TS) < Delay ->
 				true;
@@ -227,7 +232,7 @@ gather([], State, Acc) ->
 gather1([H | T], State, Acc) ->
 	F = fun({_, _, _, #{"eventName" := notifyNewAlarm}, _}, _) ->
 				true;
-			({_, _, _, #{"eventName" := notifyChangedAlarmi}, _},
+			({_, _, _, #{"eventName" := notifyChangedAlarm}, _},
 					{_, _, _, #{"eventName" := notifyClearedAlarm}, _}) ->
 				true;
 			({_, _, _, _, _}, {_, _, _, _, _}) ->
