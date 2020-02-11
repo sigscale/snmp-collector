@@ -157,6 +157,12 @@ create_event(TargetName, AlarmDetails, notification) ->
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
 	create_event1(NewCommonEventHeader, NotificationFields).
 %% @hidden
+create_event1(#{"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(),
+			CommonEventHeader#{"eventId" => EventId}, OtherFields};
 create_event1(CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
@@ -755,7 +761,11 @@ common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
 common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
 common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
+	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
+common_event_header([{"changedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
+common_event_header([{"clearedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_utils:iso8601(Value)}, AD);
 common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
 common_event_header([], _TargetName, CH, AD) ->
