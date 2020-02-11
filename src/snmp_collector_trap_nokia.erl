@@ -441,7 +441,7 @@ notification([{"snmpTrapOID", "nbiAlarmSummaryNotification"},
 		{"nbiNumberWarningAlarms", NoWarningAlarms},
 		{"nbiNumberClearedAlarms", NoClearedAlarms},
 		{"nbiNumberIndeterminateAlarms", NoIndeterminateAlarms} | T], Acc) ->
-	notification(T, [{"Id",  snmp_collector_utils:generate_identity(7)},
+	notification(T, [{"id",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
 			{"sourceId", SequenceId},
 			{"raisedTime", RaisedTime},
