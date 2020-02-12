@@ -157,19 +157,37 @@ create_event(TargetName, AlarmDetails, notification) ->
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
 	create_event1(NewCommonEventHeader, NotificationFields).
 %% @hidden
+create_event1(#{"startEpochMicrosec" := _,
+		"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW,
+		"lastEpochMicrosec" := Last} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"startEpochMicrosec" := Last}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW,
+		"startEpochMicrosec" := Start} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"lastEpochMicrosec" := Start}, OtherFields};
 create_event1(#{"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
 	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
-	{TS, N, node(),
-			CommonEventHeader#{"eventId" => EventId}, OtherFields};
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId}, OtherFields};
 create_event1(CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
 	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
-	{TS, N, node(),
-			CommonEventHeader#{"eventId" => EventId, "lastEpochMicrosec" => TS},
-			OtherFields}.
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"lastEpochMicrosec" => TS}, OtherFields}.
 
 -spec security_params(EngineID, Address, SecName,
 		AuthParams, Packet, AuthPass, PrivPass) -> Result
