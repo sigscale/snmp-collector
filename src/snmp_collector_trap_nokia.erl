@@ -356,7 +356,7 @@ fault([{"nbiPerceivedSeverity", "3"} | T], AC, Acc) ->
 	fault(T, AC, [{"eventSeverity", ?ES_MINOR} | Acc]);
 fault([{"nbiPerceivedSeverity", "4"} | T], AC, Acc) ->
 	fault(T, AC, [{"eventSeverity", ?ES_WARNING} | Acc]);
-fault([{"nbiPerceivedSeverity", "5"} | T], AC, Acc)
+fault([{"nbiPerceivedSeverity", "5"} | T], AC, Acc) ->
 	fault(T, AC, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"nbiPerceivedSeverity", "6"} | T], AC, Acc) ->
 	fault(T, AC, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
