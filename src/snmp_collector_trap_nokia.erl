@@ -302,33 +302,33 @@ handle_fault(TargetName, Varbinds) ->
 		VesValue :: string().
 %% @doc CODEC for event.
 fault([{"snmpTrapOID", "nbiAlarmNewNotification"} | T] = _OldNameValuePair) ->
-	fault(T, "alarmNewNotification", [{"eventName", ?EN_NEW},
-			{"alarmCondition", "alarmNewNotification"}]);
+	fault(T, "alarmNew", [{"eventName", ?EN_NEW},
+			{"alarmCondition", "alarmNew"}]);
 fault([{"snmpTrapOID", "nbiAlarmClearedNotification"} | T]) ->
-	fault(T, "alarmClearedNotification", [{"eventName", ?EN_CLEARED},
-			{"alarmCondition", "alarmClearedNotification"},
+	fault(T, "alarmCleared", [{"eventName", ?EN_CLEARED},
+			{"alarmCondition", "alarmCleared"},
 			{"eventSeverity", ?ES_CLEARED}]);
 fault([{"snmpTrapOID", "nbiAlarmChangedNotification"} | T]) ->
-	fault(T, "alarmChangedNotification", [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "alarmChangedNotification"}]);
+	fault(T, "alarmChanged", [{"eventName", ?EN_CHANGED},
+			{"alarmCondition", "alarmChanged"}]);
 fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T]) ->
-	fault(T, "alarmAckChangedNotification", [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "alarmAckChangedNotification"}]).
+	fault(T, "alarmAckChanged", [{"eventName", ?EN_CHANGED},
+			{"alarmCondition", "alarmAckChanged"}]).
 %% @hidden
 fault([{"nbiAlarmId", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"alarmId", Value} | Acc]);
 fault([{"nbiAlarmTime", Value} | T], AC, Acc)
-		when AC == "alarmNewNotification", is_list(Value), length(Value) > 0 ->
+		when AC == "alarmNew", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"raisedTime", Value} | Acc]);
 fault([{"nbiAlarmTime", Value} | T], AC, Acc)
-		when AC == "alarmChangedNotification", is_list(Value), length(Value) > 0 ->
+		when AC == "alarmChanged", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"changedTime", Value} | Acc]);
 fault([{"nbiAlarmTime", Value} | T], AC, Acc)
-		when AC == "alarmClearedNotification", is_list(Value), length(Value) > 0 ->
+		when AC == "alarmCleared", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"clearedTime", Value} | Acc]);
 fault([{"nbiAlarmTime", Value} | T], AC, Acc)
-		when AC == "alarmAckChangedNotification", is_list(Value), length(Value) > 0 ->
+		when AC == "alarmAckChanged", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"changedTime", Value} | Acc]);
 fault([{"nbiSequenceId", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
@@ -454,7 +454,7 @@ notification([{"snmpTrapOID", "nbiAlarmSummaryNotification"},
 			{"sourceId", SequenceId},
 			{"raisedTime", RaisedTime},
 			{"newState", inService},
-			{"alarmCondition", "alarmSummaryNotification"},
+			{"alarmCondition", "alarmSummary"},
 			{"eventType", ?ET_Communication_System},
 			{"notSyncNEs", NotSyncNEs},
 			{"synchronizationState", SynchronizationState},

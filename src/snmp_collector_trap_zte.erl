@@ -323,34 +323,40 @@ handle_fault(TargetName, Varbinds) ->
 		VesValue :: string ().
 %% @doc CODEC for event.
 fault([{"snmpTrapOID", "alarmNew"} | T] = _OldNameValuePair) ->
-	fault(T, ?EN_NEW, [{"eventName", ?EN_NEW},
+	fault(T, "alarmNew", [{"eventName", ?EN_NEW},
 			{"alarmCondition", "alarmNew"}]);
 fault([{"snmpTrapOID", "alarmCleared"} | T]) ->
-	fault(T, ?EN_CLEARED, [{"eventName", ?EN_CLEARED},
+	fault(T, "alarmCleared", [{"eventName", ?EN_CLEARED},
 			{"alarmCondition", "alarmCleared"},
 			{"eventSeverity", ?ES_CLEARED}]);
 fault([{"snmpTrapOID", "alarmSeverityChange"} | T]) ->
-	fault(T, ?EN_CHANGED, [{"eventName", ?EN_CHANGED},
+	fault(T, alarmSeverityChange, [{"eventName", ?EN_CHANGED},
 			{"alarmCondition", "alarmSeverityChange"}]);
 fault([{"snmpTrapOID", "alarmManagedObjectInstanceNameChange"} | T]) ->
-	fault(T, ?EN_CHANGED, [{"eventName", ?EN_CHANGED},
-			{"alarmCondition", "alarmManagedObjectInstanceNameChange"}]);
+	fault(T, "alarmMOINameChange", [{"eventName", ?EN_CHANGED},
+			{"alarmCondition", "alarmMOINameChange"}]);
 fault([{"snmpTrapOID", "alarmAckChange"} | T]) ->
-	fault(T, ?EN_CHANGED, [{"eventName", ?EN_CHANGED},
+	fault(T, "alarmAckChange", [{"eventName", ?EN_CHANGED},
 			{"alarmCondition", "alarmAckChange"}]).
 %% @hidden
 fault([{"id", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"alarmId", Value} | Acc]);
 fault([{"alarmEventTime", Value} | T], EN, Acc)
-		when EN == ?EN_NEW, is_list(Value), length(Value) > 0 ->
+		when EN == "alarmNew", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);
 fault([{"alarmEventTime", Value} | T], EN, Acc)
-		when EN == ?EN_CHANGED, is_list(Value), length(Value) > 0 ->
+		when EN == "alarmSeverityChange", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"changedTime", Value} | Acc]);
 fault([{"alarmEventTime", Value} | T], EN, Acc)
-		when EN == ?EN_CLEARED, is_list(Value), length(Value) > 0 ->
+		when EN == "alarmCleared", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"clearedTime", Value} | Acc]);
+fault([{"alarmEventTime", Value} | T], EN, Acc)
+		when EN == "alarmMOINameChange", is_list(Value), length(Value) > 0 ->
+	fault(T, EN, [{"changedTime", Value} | Acc]);
+fault([{"alarmEventTime", Value} | T], EN, Acc)
+		when EN == "alarmAckChange", is_list(Value), length(Value) > 0 ->
+	fault(T, EN, [{"alarmAckTime", Value} | Acc]);
 fault([{"alarmNeIP", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"sourceId", Value} | Acc]);
@@ -378,9 +384,6 @@ fault([{"alarmPerceivedSeverity", "5"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventSeverity", ?ES_WARNING} | Acc]);
 fault([{"alarmPerceivedSeverity", "6"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventSeverity", ?ES_CLEARED} | Acc]);
-fault([{"snmpTrapOID", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, EN, [{"alarmCondition", Value} | Acc]);
 fault([{"alarmEventType", "1"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventType", ?ET_Communication_System} | Acc]);
 fault([{"alarmEventType", "2"} | T], EN, Acc) ->
