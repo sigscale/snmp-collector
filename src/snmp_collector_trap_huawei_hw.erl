@@ -350,7 +350,7 @@ handle_fault(TargetName, Varbinds) ->
 %% @doc CODEC for event.
 fault(NameValuePair) ->
 	{_, Value} = lists:keyfind("hwNmNorthboundFaultFlag", 1, NameValuePair),
-	fault(NameValuePair, Value, [{"eventName", Value}]).
+	fault(NameValuePair, Value, []).
 %% @hidden
 fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
@@ -453,31 +453,31 @@ fault([{"hwNmNorthboundGroupID", Value} | T], EN, Acc)
 fault([{"hwNmNorthboundEventDetail", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"eventDetail", Value} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Fault"} | T], _EN, Acc) ->
-	fault(T, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Change"} | T], _EN, Acc) ->
-	fault(T, ?EN_CHANGED, [{"eventName", ?EN_CHANGED} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Recovery"} | T], _EN, Acc) ->
-	fault(T, ?EN_CLEARED, [{"eventName", ?EN_CLEARED} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], _EN, Acc) ->
-	fault(T, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], _EN, Acc) ->
-	fault(T, ?EN_NEW, [{"eventName", ?EN_NEW} | Acc]);
-fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == ?EN_NEW, is_list(Value), length(Value) > 0 ->
+fault([{"hwNmNorthboundFaultFlag", "Fault"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_NEW} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Change"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Recovery"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CLEARED} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
+fault([{"hwNmNorthbound}EventTime", Value} | T], EN, Acc)
+		when EN == "Fault", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == ?EN_CHANGED, is_list(Value), length(Value) > 0 ->
+		when EN == "Change", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"changedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == ?EN_CLEARED, is_list(Value), length(Value) > 0 ->
+		when EN == "Recovery", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"clearedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == ?EN_CLEARED, is_list(Value), length(Value) > 0 ->
-	fault(T, EN, [{"clearedTime", Value} | Acc]);
-fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when EN == "Acknowledge", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"ackTime", Value} | Acc]);
+fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
+		when EN == "Unacknowledge", is_list(Value), length(Value) > 0 ->
+	fault(T, EN, [{"changeTime", Value} | Acc]);
 fault([{_, [$ ]} | T], EN, Acc) ->
 	fault(T, EN, Acc);
 fault([{_, []} | T], EN, Acc) ->
