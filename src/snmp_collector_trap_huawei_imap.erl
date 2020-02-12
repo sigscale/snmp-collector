@@ -329,10 +329,15 @@ handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = fault(NamesValues),
-		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		case fault(TargetName, NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				fault(TargetName, NamesValues),
+				snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+				snmp_collector_utils:log_event(Event)
+		end
 	of
 		ok ->
 			ignore;
@@ -343,8 +348,9 @@ handle_fault(TargetName, Varbinds) ->
 			{error, Reason}
 	end.
 
--spec fault(OidNameValuePair) -> VesNameValuePair
+-spec fault(TargetName, OidNameValuePair) -> VesNameValuePair
 	when
+		TargetName :: string(),
 		OidNameValuePair :: [{OidName, OidValue}],
 		OidName :: string(),
 		OidValue :: string(),
@@ -352,9 +358,13 @@ handle_fault(TargetName, Varbinds) ->
 		VesName :: string(),
 		VesValue :: string().
 %% @doc CODEC for event.
-fault(NameValuePair) ->
-	{_, Value} = lists:keyfind("iMAPNorthboundAlarmCategory", 1, NameValuePair),
-	fault(NameValuePair, Value, []).
+fault(TargetName, NameValuePair) ->
+	case lists:keyfind("iMAPNorthboundAlarmCategory", 1, NameValuePair) of
+		{_, "3"} ->
+			[{[],[]}];
+		{_, Value} ->
+			fault(NameValuePair, Value, [])
+	end.
 %% @hidden
 fault([{"iMAPNorthboundAlarmCSN", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0, Value =/= [$ ] ->
@@ -453,9 +463,10 @@ fault([{"iMAPNorthboundAlarmClearCategory", "1"} | T], AC, Acc) ->
 	fault(T, AC, [{"clearCategory", "Automatically Detected Automcatically Cleared"} | Acc]);
 fault([{"iMAPNorthboundAlarmClearCategory", "2"} | T], AC, Acc) ->
 	fault(T, AC, [{"clearCategory", "Automatically Detected Manually Cleared"} | Acc]);
-fault([{"iMAPNorthboundAlarmRestore", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, AC, [{"alarmRestore", Value} | Acc]);
+fault([{"iMAPNorthboundAlarmRestore", "1"} | T], AC, Acc) ->
+	fault(T, AC, [{"alarmRestore", "cleared"} | Acc]);
+fault([{"iMAPNorthboundAlarmRestore", "2"} | T], AC, Acc) ->
+	fault(T, AC, [{"alarmRestore", "uncleared"} | Acc]);
 fault([{"iMAPNorthboundAlarmServiceAffectFlag", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"serviceAffectFlag", Value} | Acc]);
