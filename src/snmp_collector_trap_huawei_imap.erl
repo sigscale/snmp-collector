@@ -502,7 +502,7 @@ fault([{"iMAPNorthboundAlarmRestoreTime", Value} | T], AC, Acc)
 	fault(T, AC, [{"clearedTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmAckTime", Value} | T], AC, Acc)
 		when AC == "4", is_list(Value), length(Value) > 0 ->
-	fault(T, AC, [{"ackTime", Value} | Acc]);
+	fault(T, AC, [{"alarmAckTime", Value} | Acc]);
 fault([{_, [$ ]} | T], AC, Acc) ->
 	fault(T, AC, Acc);
 fault([{_, []} | T], AC, Acc) ->

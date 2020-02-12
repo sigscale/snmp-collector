@@ -767,7 +767,7 @@ common_event_header([{"changedTime", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
 common_event_header([{"clearedTime", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
-common_event_header([{"alarmAckTime ", Value} | T], TargetName, CH, AD) ->
+common_event_header([{"alarmAckTime", Value} | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
 common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
@@ -918,7 +918,7 @@ check_fields1(CH, #{"eventSeverity" := EventSeverity} = FF)
 		when is_list(EventSeverity), length(EventSeverity) > 0 ->
 	check_fields2(CH, FF);
 check_fields1(CH, FF) ->
-	check_fields2(CH#{"eventSeverity" => ?ES_MINOR}, FF).
+	check_fields2(CH#{"eventSeverity" => ?ES_INDETERMINATE}, FF).
 %% @hidden
 check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
 		when is_list(EventType), length(EventType) > 0 ->
