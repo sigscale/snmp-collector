@@ -211,7 +211,7 @@ fault([{"snmpTrapOID", "linkDown"}, {"ifIndex", InterfaceIndex},
 	fault(T, [{"alarmId", InterfaceIndex},
 			{"sourceName", InterfaceDescripton},
 			{"alarmMocObjectInstance", InterfaceType},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"eventName", ?EN_NEW},
 			{"alarmCondition", "linkup"},
 			{"probableCause", ?PC_External_If_Device_Problem},
@@ -224,7 +224,7 @@ fault([{"snmpTrapOID", "linkUp"}, {"ifIndex", InterfaceIndex},
 	fault(T, [{"alarmId", InterfaceIndex},
 			{"sourceName", InterfaceDescripton},
 			{"alarmMocObjectInstance", InterfaceType},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"eventName", ?EN_CLEARED},
 			{"alarmCondition", "linkup"},
 			{"probableCause", ?PC_External_If_Device_Problem},
@@ -282,7 +282,7 @@ notification([{"snmpTrapOID", "authenticationFailure"}, {"authAddar", AuthAddres
 			{"notificationFieldsVersion", 1},
 			{"syslogMsg", "authenticationFailure"},
 			{"syslogSev", ?SYS_WARNING},
-			{"raisedTime", erlang:system_time(milli_seconds)} | Acc]);
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))} | Acc]);
 notification([{Name, Value} | T], Acc)
       when length(Value) > 0 ->
 	notification(T, [{Name, Value} | Acc]);
