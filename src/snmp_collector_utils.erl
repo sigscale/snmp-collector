@@ -169,14 +169,14 @@ create_event1(#{"eventName" := ?EN_NEW,
 	N = erlang:unique_integer([positive]),
 	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
 	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
-			"startEpochMicrosec" := Last}, OtherFields};
+			"startEpochMicrosec" => Last}, OtherFields};
 create_event1(#{"eventName" := ?EN_NEW,
 		"startEpochMicrosec" := Start} = CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
 	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
 	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
-			"lastEpochMicrosec" := Start}, OtherFields};
+			"lastEpochMicrosec" => Start}, OtherFields};
 create_event1(#{"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
