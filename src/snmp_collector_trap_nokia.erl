@@ -318,16 +318,16 @@ fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T]) ->
 fault([{"nbiAlarmId", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"alarmId", Value} | Acc]);
-fault([{"nbiEventTime", Value} | T], AC, Acc)
+fault([{"nbiAlarmTime", Value} | T], AC, Acc)
 		when AC == "alarmNewNotification", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"raisedTime", Value} | Acc]);
-fault([{"nbiEventTime", Value} | T], AC, Acc)
+fault([{"nbiAlarmTime", Value} | T], AC, Acc)
 		when AC == "alarmChangedNotification", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"changedTime", Value} | Acc]);
-fault([{"nbiEventTime", Value} | T], AC, Acc)
+fault([{"nbiAlarmTime", Value} | T], AC, Acc)
 		when AC == "alarmClearedNotification", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"clearedTime", Value} | Acc]);
-fault([{"nbiEventTime", Value} | T], AC, Acc)
+fault([{"nbiAlarmTime", Value} | T], AC, Acc)
 		when AC == "alarmAckChangedNotification", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"changedTime", Value} | Acc]);
 fault([{"nbiSequenceId", Value} | T], AC, Acc)
