@@ -407,107 +407,54 @@ iso8601month(Year, []) ->
 	DateTime = {{Year, 1, 1}, {0, 0, 0}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	(GS - ?EPOCH) * 1000;
-iso8601month(Year, [$-]) ->
+iso8601month(Year, [S]) when S == $-; S == $/ ->
 	iso8601month(Year, []);
-iso8601month(Year, [$-, $0]) ->
-	iso8601month(Year, [$-, $0, $1]);
-iso8601month(Year, [$-, $1]) ->
-	iso8601month(Year, [$-, $1, $0]);
-iso8601month(Year, [$-, M, $- | T])
-		when M >= $1, M =< $9 ->
-	iso8601day(Year, list_to_integer([M]), T);
-iso8601month(Year, [$/, M1, M2 | T])
-		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
+iso8601month(Year, [S, M]) when S == $-; S == $/ ->
+	Month =  list_to_integer([M]),
+	DateTime = {{Year, Month, 1}, {0, 0, 0}},
+	GS = calendar:datetime_to_gregorian_seconds(DateTime),
+	(GS - ?EPOCH) * 1000;
+iso8601month(Year, [S, M1, M2 | T])
+		when ((S == $-) or (S == $/)), M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
 	iso8601day(Year, list_to_integer([M1, M2]), T);
-iso8601month(Year, [$-, M1, M2 | T])
-		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
-	iso8601day(Year, list_to_integer([M1, M2]), T).
+iso8601month(Year, [S, M | T])
+		when ((S == $-) or (S == $/)), M >= $1, M =< $9 ->
+	iso8601day(Year, list_to_integer([M]), T).
 %% @hidden
 iso8601day(Year, Month, []) ->
 	DateTime = {{Year, Month, 1}, {0, 0, 0}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	(GS - ?EPOCH) * 1000;
-iso8601day(Year, Month, [$-]) ->
+iso8601day(Year, Month, [S]) when S == $-; S == $/ ->
 	iso8601day(Year, Month, []);
-iso8601day(Year, Month, [$-, $0]) ->
-	iso8601day(Year, Month, [$-, $1, $0]);
-iso8601day(Year, Month, [$-, D1])
-		when D1 >= $1, D1 =< $3 ->
-	iso8601day(Year, Month, [$-, D1, $0]);
-iso8601day(Year, Month, [$/, D])
-		when D >= $1, D =< $9 ->
-	iso8601day(Year, Month, [$-, D]);
-iso8601day(Year, Month, [$-, D, _ | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D, $, | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [D, $, | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D, $- | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$/, D1, D2 | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [D1, D2, $, | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D1, D2 | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T).
+iso8601day(Year, Month, [S, D])
+		when ((S == $-) or (S == $/)), D >= $0, D =< $9 ->
+	Day  = list_to_integer([D]),
+	DateTime = {{Year, Month, Day}, {0, 0, 0}},
+	GS = calendar:datetime_to_gregorian_seconds(DateTime),
+	(GS - ?EPOCH) * 1000;
+iso8601day(Year, Month, [S, D1, D2 | T])
+		when ((S == $-) or (S == $/)), D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
+	iso8601hour({Year, Month, list_to_integer([D1, D2])}, T);
+iso8601day(Year, Month, [S, D | T])
+		when ((S == $-) or (S == $/)), D >= $1, D =< $9 ->
+	iso8601hour({Year, Month, list_to_integer([D])}, T).
 %% @hidden
 iso8601hour(Date, []) ->
 	DateTime = {Date, {0, 0, 0}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	(GS - ?EPOCH) * 1000;
-iso8601hour(Date, [$T]) ->
+iso8601hour(Date, [S]) when S == $T; S == $\s; S == $, ->
 	iso8601hour(Date, []);
-iso8601hour(Date, [$ ]) ->
-	iso8601hour(Date, []);
-iso8601hour(Date, [H1, $: | T]) ->
-	iso8601hour(Date, [$T, $0, H1, $: | T]);
-iso8601hour(Date, [$T, H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
-iso8601hour(Date, [$ , H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$ , H1, $0]);
-iso8601hour(Date, [$,, H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
-iso8601hour(Date, [$T, H, $- | T])
-		when H >= $1, H =< $9 ->
+iso8601hour(Date, [S, H1, H2 | T])
+		when ((S == $T) or(S == $\s) or (S == $,)),
+		H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
+	Hour = list_to_integer([H1, H2]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [S, H | T])
+		when ((S == $T) or(S == $\s) or (S == $,)),
+		H >= $0, H =< $9 ->
 	Hour = list_to_integer([H]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$,, H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$T, H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$ , $-, $ , H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$ , H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
 	iso8601minute(Date, Hour, T).
 %% @hidden
 iso8601minute(Date, Hour, []) ->
@@ -516,21 +463,14 @@ iso8601minute(Date, Hour, []) ->
 	(GS - ?EPOCH) * 1000;
 iso8601minute(Date, Hour, [$:]) ->
 	iso8601minute(Date, Hour, []);
-iso8601minute(Date, Hour, [$:, M1])
-		when M1 >= $0, M1 =< $5 ->
-	iso8601minute(Date, Hour, [$:, M1, $0]);
-iso8601minute(Date, Hour, [M1, $:, M2 | T])
-		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
-	Minute = list_to_integer([M1, M2]),
-	iso8601second(Date, Hour, Minute, T);
 iso8601minute(Date, Hour, [$:, M1, M2 | T])
 		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
 	Minute = list_to_integer([M1, M2]),
 	iso8601second(Date, Hour, Minute, T);
-iso8601minute(Date, Hour, _) ->
-	DateTime = {Date, {Hour, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
+iso8601minute(Date, Hour, [$:, M | T])
+		when M >= $0, M =< $9 ->
+	Minute = list_to_integer([M]),
+	iso8601second(Date, Hour, Minute, T).
 %% @hidden
 iso8601second(Date, Hour, Minute, []) ->
 	DateTime = {Date, {Hour, Minute, 0}},
@@ -538,9 +478,6 @@ iso8601second(Date, Hour, Minute, []) ->
 	(GS - ?EPOCH) * 1000;
 iso8601second(Date, Hour, Minute, [$:]) ->
 	iso8601second(Date, Hour, Minute, []);
-iso8601second(Date, Hour, Minute, [$:, S1])
-		when S1 >= $0, S1 =< $5 ->
-	iso8601second(Date, Hour, Minute, [$:, S1, $0]);
 iso8601second(Date, Hour, Minute, [$:, S1, S2 | T])
 		when S1 >= $0, S1 =< $5, S2 >= $0, S2 =< $9 ->
 	Second = list_to_integer([S1, S2]),
@@ -548,10 +485,13 @@ iso8601second(Date, Hour, Minute, [$:, S1, S2 | T])
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	EpocMilliseconds = (GS - ?EPOCH) * 1000,
 	iso8601millisecond(EpocMilliseconds, T);
-iso8601second(Date, Hour, Minute, _) ->
-	DateTime = {Date, {Hour, Minute, 0}},
+iso8601second(Date, Hour, Minute, [$:, S | T])
+		when S >= $0, S =< $9 ->
+	Second = list_to_integer([S]),
+	DateTime = {Date, {Hour, Minute, Second}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
+	EpocMilliseconds = (GS - ?EPOCH) * 1000,
+	iso8601millisecond(EpocMilliseconds, T).
 %% @hidden
 iso8601millisecond(EpocMilliseconds, []) ->
 	EpocMilliseconds;
