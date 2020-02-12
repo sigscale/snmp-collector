@@ -329,10 +329,15 @@ handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = fault(TargetName, NamesValues),
-		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		case fault(TargetName, NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				fault(TargetName, NamesValues),
+				snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+				snmp_collector_utils:log_event(Event)
+		end
 	of
 		ok ->
 			ignore;
@@ -356,8 +361,8 @@ handle_fault(TargetName, Varbinds) ->
 fault(TargetName, NameValuePair) ->
 	case lists:keyfind("iMAPNorthboundAlarmCategory", 1, NameValuePair) of
 		{_, "3"} ->
-			handle_notification(TargetName, NameValuePair);
-		Value ->
+			[{[],[]}];
+		{_, Value} ->
 			fault(NameValuePair, Value, [])
 	end.
 %% @hidden
@@ -516,92 +521,6 @@ fault([{_, []} | T], AC, Acc) ->
 fault([{Name, Value} | T], AC, Acc) ->
 	fault(T, AC, [{Name, Value} | Acc]);
 fault([], _, Acc) ->
-	Acc.
-
--spec handle_notification(TargetName, Varbinds) -> Result
-	when
-		TargetName :: string(),
-		Varbinds :: snmp:varbinds(),
-		Result :: ignore | {error, Reason},
-		Reason :: term().
-%% @doc Handle a fault fault.
-handle_notification(TargetName, Varbinds) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = notification(NamesValues),
-		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, notification),
-		snmp_collector_utils:log_event(Event)
-	of
-		ok ->
-			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
-	end.
-
--spec notification(OidNameValuePair) -> VesNameValuePair
-	when
-		OidNameValuePair :: [{OidName, OidValue}],
-		OidName :: string(),
-		OidValue :: string(),
-		VesNameValuePair :: [{VesName, VesValue}],
-		VesName :: string(),
-		VesValue :: string().
-%% @doc CODEC for event.
-notification(NameValuePair) ->
-	notification(NameValuePair, []).
-%% @hidden
-notification([{"iMAPNorthboundAlarmCategory", "3"} | T], Acc) ->
-	notification(T, [{"eventName", ?EN_NEW} | Acc]);
-notification([{"iMAPNorthboundAlarmDevCsn", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	notification(T, [{"sourceId", Value} | Acc]);
-notification([{"iMAPNorthboundAlarmNEDevID", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	notification(T, [{"sourceName", Value} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "1"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "2"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "3"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Communication_System} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "4"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Communication_System} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "5"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "6"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "7"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "8"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Communication_System} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "9"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "10"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "11"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "12"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Integrity_Violation} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "13"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Operational_Violation} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "14"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Physical_Violation} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "15"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
-notification([{"iMAPNorthboundAlarmType", "16"} | T], Acc) ->
-	notification(T, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
-notification([{_, [$ ]} | T], Acc) ->
-	notification(T, Acc);
-notification([{_, []} | T], Acc) ->
-	notification(T, Acc);
-notification([{Name, Value} | T], Acc) ->
-	notification(T, [{Name, Value} | Acc]);
-notification([], Acc) ->
 	Acc.
 
 -spec domain(Varbinds) -> Result
