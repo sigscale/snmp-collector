@@ -895,7 +895,7 @@ check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := ?ES_CLEARE
 check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := EventSeverity} = FF)
 		when is_list(EventSeverity), length(EventSeverity) > 0 ->
 	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
-check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+check_fields(#{"eventName" := _EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
 	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
 check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := EventSeverity} = FF)
 		when is_list(EventName), length(EventName) > 0,
