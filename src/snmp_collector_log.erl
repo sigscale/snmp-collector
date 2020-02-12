@@ -413,6 +413,12 @@ iso8601month(Year, [$-, $0]) ->
 	iso8601month(Year, [$-, $0, $1]);
 iso8601month(Year, [$-, $1]) ->
 	iso8601month(Year, [$-, $1, $0]);
+iso8601month(Year, [$-, M, $- | T])
+		when M >= $1, M =< $9 ->
+	iso8601day(Year, list_to_integer([M]), T);
+iso8601month(Year, [$/, M1, M2 | T])
+		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
+	iso8601day(Year, list_to_integer([M1, M2]), T);
 iso8601month(Year, [$-, M1, M2 | T])
 		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
 	iso8601day(Year, list_to_integer([M1, M2]), T).
@@ -428,6 +434,33 @@ iso8601day(Year, Month, [$-, $0]) ->
 iso8601day(Year, Month, [$-, D1])
 		when D1 >= $1, D1 =< $3 ->
 	iso8601day(Year, Month, [$-, D1, $0]);
+iso8601day(Year, Month, [$/, D])
+		when D >= $1, D =< $9 ->
+	iso8601day(Year, Month, [$-, D]);
+iso8601day(Year, Month, [$-, D, _ | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [$-, D, $, | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [D, $, | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [$-, D, $- | T])
+		when D >= $1, D =< $9 ->
+	Day = list_to_integer([D]),
+	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [$/, D1, D2 | T])
+		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
+	Day = list_to_integer([D1, D2]),
+	iso8601hour({Year, Month, Day}, T);
+iso8601day(Year, Month, [D1, D2, $, | T])
+		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
+	Day = list_to_integer([D1, D2]),
+	iso8601hour({Year, Month, Day}, T);
 iso8601day(Year, Month, [$-, D1, D2 | T])
 		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
 	Day = list_to_integer([D1, D2]),
@@ -439,10 +472,40 @@ iso8601hour(Date, []) ->
 	(GS - ?EPOCH) * 1000;
 iso8601hour(Date, [$T]) ->
 	iso8601hour(Date, []);
+iso8601hour(Date, [$ ]) ->
+	iso8601hour(Date, []);
+iso8601hour(Date, [H1, $: | T]) ->
+	iso8601hour(Date, [$T, $0, H1, $: | T]);
 iso8601hour(Date, [$T, H1])
 		when H1 >= $0, H1 =< $2 ->
 	iso8601hour(Date, [$T, H1, $0]);
+iso8601hour(Date, [$ , H1])
+		when H1 >= $0, H1 =< $2 ->
+	iso8601hour(Date, [$ , H1, $0]);
+iso8601hour(Date, [$,, H1])
+		when H1 >= $0, H1 =< $2 ->
+	iso8601hour(Date, [$T, H1, $0]);
+iso8601hour(Date, [$T, H, $- | T])
+		when H >= $1, H =< $9 ->
+	Hour = list_to_integer([H]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [$,, H1, H2 | T])
+		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
+	Hour = list_to_integer([H1, H2]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [H1, H2 | T])
+		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
+	Hour = list_to_integer([H1, H2]),
+	iso8601minute(Date, Hour, T);
 iso8601hour(Date, [$T, H1, H2 | T])
+		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
+	Hour = list_to_integer([H1, H2]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [$ , $-, $ , H1, H2 | T])
+		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
+	Hour = list_to_integer([H1, H2]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [$ , H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
 	iso8601minute(Date, Hour, T).
@@ -456,6 +519,10 @@ iso8601minute(Date, Hour, [$:]) ->
 iso8601minute(Date, Hour, [$:, M1])
 		when M1 >= $0, M1 =< $5 ->
 	iso8601minute(Date, Hour, [$:, M1, $0]);
+iso8601minute(Date, Hour, [M1, $:, M2 | T])
+		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
+	Minute = list_to_integer([M1, M2]),
+	iso8601second(Date, Hour, Minute, T);
 iso8601minute(Date, Hour, [$:, M1, M2 | T])
 		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
 	Minute = list_to_integer([M1, M2]),
@@ -490,17 +557,70 @@ iso8601millisecond(EpocMilliseconds, []) ->
 	EpocMilliseconds;
 iso8601millisecond(EpocMilliseconds, [$.]) ->
 	EpocMilliseconds;
-iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | _])
+iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | T])
 		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9,
 		N3 >= $0, N3 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2, N3]);
-iso8601millisecond(EpocMilliseconds, [$., N1, N2 | _])
+	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2, N3]), T);
+iso8601millisecond(EpocMilliseconds, [$., N1, N2 | T])
 		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2]) * 10;
-iso8601millisecond(EpocMilliseconds, [$., N | _])
+	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2]) * 10, T);
+iso8601millisecond(EpocMilliseconds, [$., N | T])
 		when N >= $0, N =< $9 ->
-	EpocMilliseconds + list_to_integer([N]) * 100;
-iso8601millisecond(EpocMilliseconds, _) ->
+	iso8601offset(EpocMilliseconds + list_to_integer([N]) * 100, T);
+iso8601millisecond(EpocMilliseconds, T) ->
+	iso8601offset(EpocMilliseconds, T).
+%% @hidden
+iso8601offset(EpocMilliseconds, [$, | T]) ->
+	iso8601offset(EpocMilliseconds, T);
+iso8601offset(EpocMilliseconds, [$+, H1])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds - (3600000 * H1);
+iso8601offset(EpocMilliseconds, [$-, H1])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds + (3600000 * H1);
+iso8601offset(EpocMilliseconds, [$+, H1, H2])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, $:, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1]));
+iso8601offset(EpocMilliseconds, [$-, H1, $:, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1]));
+iso8601offset(EpocMilliseconds, [$+, H1, $:, $3, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, $:, $3, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1])) + 1800000;
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, _Other) ->
 	EpocMilliseconds.
 
 %%----------------------------------------------------------------------
