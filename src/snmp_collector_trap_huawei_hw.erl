@@ -474,7 +474,7 @@ fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
 	fault(T, EN, [{"clearedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
 		when EN == "Acknowledge", is_list(Value), length(Value) > 0 ->
-	fault(T, EN, [{"ackTime", Value} | Acc]);
+	fault(T, EN, [{"alarmAckTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
 		when EN == "Unacknowledge", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"changeTime", Value} | Acc]);

@@ -383,7 +383,7 @@ fault([{"nbiAckSystemId", Value} | T], AC, Acc)
 	fault(T, AC, [{"alarmAckSystemId", Value} | Acc]);
 fault([{"nbiAckTime", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, AC, [{"ackTime", Value} | Acc]);
+	fault(T, AC, [{"alarmAckTime", Value} | Acc]);
 fault([{"nbiAckUser", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"ackUserId", Value} | Acc]);
