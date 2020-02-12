@@ -246,11 +246,11 @@
 -define(SYS_DEBUG, "DEBUG").
 
 % Event Names [3GPP TS 32.111-2 6.3.2.3]
--define(EN_NEW, notifyNewAlarm).
--define(EN_CHANGED, notifyChangedAlarm).
--define(EN_CLEARED, notifyClearedAlarm).
+-define(EN_NEW, "notifyNewAlarm").
+-define(EN_CHANGED, "notifyChangedAlarm").
+-define(EN_CLEARED, "notifyClearedAlarm").
 
 % Alarm Ack States [3GPP TS 32.111-2 Table 5.5.1]
--define(ACK_Acknowledged, acknowledged).
--define(ACK_Unacknowledged, unacknowledged).
+-define(ACK_Acknowledged, "acknowledged").
+-define(ACK_Unacknowledged," unacknowledged").
 

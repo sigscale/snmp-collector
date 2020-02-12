@@ -311,7 +311,7 @@ fault([{"snmpTrapOID", "compaq.[22005]"}, {"sysName", SysName},
 		{"cpqRackCommonEnclosureSparePartNumber", SparePartNumber},
 		{"cpqRackCommonEnclosureTrapSequenceNum", RackTrapSequenceNum} | T], Acc) ->
 	fault(T, [{"alarmId", RackTrapSequenceNum},
-			{"eventName", notifyNewAlarm},
+			{"eventName", ?EN_NEW},
 			{"sourceId", RackUid},
 			{"sourceName", RackName},
 			{"sysName", SysName},
@@ -2971,3 +2971,4 @@ domain1(_) ->
 
 flags(Flag) ->
 	Flag.
+

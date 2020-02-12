@@ -895,22 +895,19 @@ check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := ?ES_CLEARE
 check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := EventSeverity} = FF)
 		when is_list(EventSeverity), length(EventSeverity) > 0 ->
 	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
-check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF)
-		when is_atom(EventName), EventName /= undefined ->
+check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
 	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
 check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_atom(EventName), EventName /= undefined, is_list(EventSeverity), length(EventSeverity) > 0 ->
+		when is_list(EventName), length(EventName) > 0,
+		is_list(EventSeverity), length(EventSeverity) > 0 ->
 	check_fields1(CH, FF);
 check_fields(#{"eventName" := ?EN_CLEARED} = CH, FF) ->
 	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
 check_fields(#{"eventName" := EventName} = CH, FF)
-		when is_atom(EventName), EventName /= undefined ->
+		when is_list(EventName), length(EventName) > 0 ->
 	check_fields1(CH, FF);
 check_fields(CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
 	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
-check_fields(CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_list(EventSeverity), length(EventSeverity) > 0 ->
-	check_fields1(CH#{"eventName" => ?EN_NEW}, FF);
 check_fields(CH, FF) ->
 	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
 %% @hidden
