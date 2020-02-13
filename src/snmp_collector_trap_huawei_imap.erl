@@ -440,10 +440,10 @@ fault([{"iMAPNorthboundAlarmType", "15"} | T], AC, Acc) ->
 fault([{"iMAPNorthboundAlarmType", "16"} | T], AC, Acc) ->
 	fault(T, AC, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmProbablecause", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when is_list(Value), length(Value) > 0, Value =/= [], Value =/= [$ ] ->
 	fault(T, AC, [{"probableCause", ?PC_Indeterminate}, {"specificProblem", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0, value =/= [$ ] ->
+		when is_list(Value), length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"proposedRepairActions", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmConfirm", "1"} | T], AC, Acc) ->
 	fault(T, AC, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
