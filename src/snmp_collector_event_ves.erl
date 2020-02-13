@@ -266,13 +266,13 @@ post([{_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
 	Event1 = #{"event" => #{"commonEventHeader" => CommonEventHeader,
 			Domain ++ "Fields" => OtherFields2}},
 	RequestBody = zj:encode(Event1),
-	Request = {Url ++ "/eventListener/v5",
-			[Authorization], ContentType, RequestBody},
+	Path = Url ++ "/eventListener/v5",
+	Request = {Path, [Authorization], ContentType, RequestBody},
 	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
 	case httpc:request(post, Request, [], NewOptions) of
 		{error, Reason} ->
-			error_logger:info_report(["SNMP Manager POST Failed",
-					{error, Reason}]),
+			error_logger:error_report(["VES POST Failed",
+					{url, Path}, {error, Reason}]),
 			exit(Reason);
 		_RequestID ->
 			post(T, State)
@@ -289,17 +289,9 @@ post([], #state{delay = Delay} = State)
 %% @doc Check the response of a httpc request.
 %% @hidden
 check_response({_RequestId, {error, Reason}}) ->
-	error_logger:warning_report(["SNMP Manager POST Failed",
+	error_logger:warning_report(["VES POST Failed",
 			{error, Reason}]);
-check_response({_RequestId, {{"HTTP/1.1", 400, _BadRequest},_ , _}}) ->
-	error_logger:warning_report(["SNMP Manager POST Failed",
-			{error, "400, bad_request"}]);
-check_response({_RequestId, {{"HTTP/1.1", 500, _InternalError},_ , _}}) ->
-	error_logger:warning_report(["SNMP Manager POST Failed",
-			{error, "500, internal_server_error"}]);
-check_response({_RequestId, {{"HTTP/1.1", 502, _GateWayError},_ , _}}) ->
-	error_logger:warning_report(["SNMP Manager POST Failed",
-			{error, "502, bad_gateway"}]);
-check_response({_RequestId, {{"HTTP/1.1", 201, _Created},_ , _}}) ->
-	void.
+check_response({_RequestId, {{Version, Status, Reason}, _Headers, _Body}}) ->
+	error_logger:warning_report(["VES POST Failed",
+			{version, Version}, {status, Status}, {reason, Reason}]).
 
