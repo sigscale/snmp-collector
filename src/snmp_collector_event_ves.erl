@@ -258,7 +258,6 @@ post([{_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
 		= OtherFields1} |T], #state{authorization = Authorization,
 		uri = Url, options = Options} = State) ->
 	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
 	F = fun(Key, Value, Acc) ->
 				[#{"name" => Key, "value" => Value} | Acc]
 	end,
@@ -268,7 +267,7 @@ post([{_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
 			Domain ++ "Fields" => OtherFields2}},
 	RequestBody = zj:encode(Event1),
 	Request = {Url ++ "/eventListener/v5",
-			[Accept, Authorization], ContentType, RequestBody},
+			[Authorization], ContentType, RequestBody},
 	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
 	case httpc:request(post, Request, [], NewOptions) of
 		{error, Reason} ->
