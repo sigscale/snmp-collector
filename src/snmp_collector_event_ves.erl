@@ -294,6 +294,9 @@ post1(VES, #state{authorization = Authorization,
 check_response({_RequestId, {error, Reason}}) ->
 	error_logger:warning_report(["VES POST Failed",
 			{error, Reason}]);
+check_response({_RequestId, {{Version, Status, Reason}, _Headers, _Body}})
+		when Status >=  200, Status < 300 ->
+	ok;
 check_response({_RequestId, {{Version, Status, Reason}, _Headers, _Body}}) ->
 	error_logger:warning_report(["VES POST Failed",
 			{version, Version}, {status, Status}, {reason, Reason}]).
