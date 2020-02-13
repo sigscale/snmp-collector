@@ -443,7 +443,7 @@ fault([{"iMAPNorthboundAlarmProbablecause", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"probableCause", ?PC_Indeterminate}, {"specificProblem", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when is_list(Value), length(Value) > 0, value =/= [$ ] ->
 	fault(T, AC, [{"proposedRepairActions", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmConfirm", "1"} | T], AC, Acc) ->
 	fault(T, AC, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
@@ -497,7 +497,7 @@ fault([{"iMAPNorthboundAlarmID", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"id", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0; Value =/= [$ ] ->
+		when is_list(Value), length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmSpecificproblems", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "1" = AC} | T], AC, Acc) ->
 	fault(T, AC, [{"eventName", ?EN_NEW} | Acc]);
@@ -513,7 +513,7 @@ fault([{"iMAPNorthboundAlarmCategory", "9" = AC} | T], AC, Acc) ->
 fault([{"iMAPNorthboundAlarmOccurTime", Value} | T], AC, Acc)
 		when AC == "1", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"raisedTime", Value} | Acc]);
-fault([{"iMAPNorthboundAlarmOccurTime ", Value} | T], AC, Acc)
+fault([{"iMAPNorthboundAlarmOccurTime", Value} | T], AC, Acc)
 		when AC == "9", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"changedTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmRestoreTime", Value} | T], AC, Acc)
