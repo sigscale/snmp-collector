@@ -96,7 +96,7 @@ init([] = _Args) ->
 %% @private
 %%
 handle_event(Event, #state{delay = 0} = State) ->
-	post([Event], State);
+	post(Event, State);
 handle_event(Event, #state{timer = Timer} = State)
 		when is_reference(Timer) ->
 	erlang:cancel_timer(Timer),
@@ -253,19 +253,25 @@ gather1([], State, Acc) ->
 		Result :: {ok, State}.
 %% @doc POST VES events on northbound interface to ves_collector.
 %% @private
-post([{_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
-		#{"alarmAdditionalInformation" := AlarmAdditionalInformation} 
-		= OtherFields1} |T], #state{authorization = Authorization,
-		uri = Url, options = Options} = State) ->
+post({_TS, _N, _Node, #{"domain" := Domain} = CH, OF}, State) ->
+	post1(#{"event" => #{"commonEventHeader" => CH,
+			Domain ++ "Fields" => OF}}, State);
+post([{_TS, _N, _Node, #{"domain" := Domain} = CH, OF}], State) ->
+	post1(#{"event" => #{"commonEventHeader" => CH,
+			Domain ++ "Fields" => OF}}, State);
+post(Events, State) when is_list(Events) ->
+	post(Events, State, []).
+%% @hidden
+post([{_TS, _N, _Node, #{"domain" := Domain} = CH, OF} | T], State, Acc) ->
+	post(T, State,
+			[#{"commonEventHeader" => CH, Domain ++ "Fields" => OF} | Acc]);
+post([], State, Acc) ->
+	post1(#{"eventList" => Acc}, State).
+%% @hidden
+post1(VES, #state{authorization = Authorization,
+		uri = Url, options = Options, delay = Delay} = State) ->
 	ContentType = "application/json",
-	F = fun(Key, Value, Acc) ->
-				[#{"name" => Key, "value" => Value} | Acc]
-	end,
-	OtherFields2 = OtherFields1#{"alarmAdditionalInformation"
-			=> maps:fold(F, [], AlarmAdditionalInformation)},
-	Event1 = #{"event" => #{"commonEventHeader" => CommonEventHeader,
-			Domain ++ "Fields" => OtherFields2}},
-	RequestBody = zj:encode(Event1),
+	RequestBody = zj:encode(VES),
 	Path = Url ++ "/eventListener/v5",
 	Request = {Path, [Authorization], ContentType, RequestBody},
 	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
@@ -274,14 +280,11 @@ post([{_TS, _N, _Node, #{"domain" := Domain} = CommonEventHeader,
 			error_logger:error_report(["VES POST Failed",
 					{url, Path}, {error, Reason}]),
 			exit(Reason);
+		_RequestID when Delay =:= 0 ->
+			{ok, State};
 		_RequestID ->
-			post(T, State)
-	end;
-post([], #state{delay = 0} = State) ->
-	{ok, State};
-post([], #state{delay = Delay} = State)
-		when is_integer(Delay), Delay > 0 ->
-	{ok, State#state{timer = erlang:start_timer(Delay, self(), [])}}.
+			{ok, State#state{timer = erlang:start_timer(Delay, self(), [])}}
+	end.
 
 -spec check_response(ReplyInfo) -> any()
 	when
