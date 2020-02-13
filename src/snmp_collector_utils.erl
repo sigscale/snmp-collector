@@ -157,19 +157,43 @@ create_event(TargetName, AlarmDetails, notification) ->
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
 	create_event1(NewCommonEventHeader, NotificationFields).
 %% @hidden
+create_event1(#{"startEpochMicrosec" := _,
+		"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW,
+		"lastEpochMicrosec" := Last} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"startEpochMicrosec" => Last}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW,
+		"startEpochMicrosec" := Start} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"lastEpochMicrosec" => Start}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"startEpochMicrosec" => TS, "lastEpochMicrosec" => TS}, OtherFields};
 create_event1(#{"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
 	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
-	{TS, N, node(),
-			CommonEventHeader#{"eventId" => EventId}, OtherFields};
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId}, OtherFields};
 create_event1(CommonEventHeader, OtherFields) ->
 	TS = timestamp(),
 	N = erlang:unique_integer([positive]),
 	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
-	{TS, N, node(),
-			CommonEventHeader#{"eventId" => EventId, "lastEpochMicrosec" => TS},
-			OtherFields}.
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"lastEpochMicrosec" => TS}, OtherFields}.
 
 -spec security_params(EngineID, Address, SecName,
 		AuthParams, Packet, AuthPass, PrivPass) -> Result
@@ -895,22 +919,19 @@ check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := ?ES_CLEARE
 check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := EventSeverity} = FF)
 		when is_list(EventSeverity), length(EventSeverity) > 0 ->
 	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
-check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF)
-		when is_atom(EventName), EventName /= undefined ->
+check_fields(#{"eventName" := _EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
 	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
 check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_atom(EventName), EventName /= undefined, is_list(EventSeverity), length(EventSeverity) > 0 ->
+		when is_list(EventName), length(EventName) > 0,
+		is_list(EventSeverity), length(EventSeverity) > 0 ->
 	check_fields1(CH, FF);
 check_fields(#{"eventName" := ?EN_CLEARED} = CH, FF) ->
 	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
 check_fields(#{"eventName" := EventName} = CH, FF)
-		when is_atom(EventName), EventName /= undefined ->
+		when is_list(EventName), length(EventName) > 0 ->
 	check_fields1(CH, FF);
 check_fields(CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
 	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
-check_fields(CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_list(EventSeverity), length(EventSeverity) > 0 ->
-	check_fields1(CH#{"eventName" => ?EN_NEW}, FF);
 check_fields(CH, FF) ->
 	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
 %% @hidden
