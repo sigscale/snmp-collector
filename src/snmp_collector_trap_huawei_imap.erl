@@ -329,11 +329,11 @@ handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		case fault(TargetName, NamesValues) of
+		case fault(NamesValues) of
 			[{[],[]}] ->
 				ok;
 			AlarmDetails ->
-				fault(TargetName, NamesValues),
+				fault(NamesValues),
 				snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
 				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
 				snmp_collector_utils:log_event(Event)
@@ -348,9 +348,8 @@ handle_fault(TargetName, Varbinds) ->
 			{error, Reason}
 	end.
 
--spec fault(TargetName, OidNameValuePair) -> VesNameValuePair
+-spec fault(OidNameValuePair) -> VesNameValuePair
 	when
-		TargetName :: string(),
 		OidNameValuePair :: [{OidName, OidValue}],
 		OidName :: string(),
 		OidValue :: string(),
@@ -358,7 +357,7 @@ handle_fault(TargetName, Varbinds) ->
 		VesName :: string(),
 		VesValue :: string().
 %% @doc CODEC for event.
-fault(TargetName, NameValuePair) ->
+fault(NameValuePair) ->
 	case lists:keyfind("iMAPNorthboundAlarmCategory", 1, NameValuePair) of
 		{_, "3"} ->
 			[{[],[]}];
@@ -384,9 +383,18 @@ fault([{"iMAPNorthboundAlarmMOName", Value} | T], AC, Acc)
 fault([{"iMAPNorthboundAlarmObjectInstanceType", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"objectInstanceType", Value} | Acc]);
-fault([{"snmpTrapOID", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, AC, [{"alarmCondition", Value} | Acc]);
+fault([{"snmpTrapOID",
+		"iMAPNorthboundFaultAlarmQueryEndNotificationType"} | T], AC, Acc) ->
+	fault(T, AC, [{"alarmCondition", "queryEnd"} | Acc]);
+fault([{"snmpTrapOID",
+		"iMAPNorthboundFaultAlarmReportNotificationType"} | T], AC, Acc) ->
+	fault(T, AC, [{"alarmCondition", "report"} | Acc]);
+fault([{"snmpTrapOID",
+		"iMAPNorthboundFaultAlarmQueryBeginNotificationType"} | T], AC, Acc) ->
+	fault(T, AC, [{"alarmCondition", "queryBegin"} | Acc]);
+fault([{"snmpTrapOID",
+		"iMAPNorthboundFaultAlarmQueryNotificationType"} | T], AC, Acc) ->
+	fault(T, AC, [{"alarmCondition", "query"} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "1"} | T], AC, Acc) ->
 	fault(T, AC, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 fault([{"iMAPNorthboundAlarmLevel", "2"} | T], AC, Acc) ->
@@ -531,7 +539,7 @@ fault([], _, Acc) ->
 domain([_TimeTicks, {varbind, [1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0] , _, TrapName, _} | _T]) ->
 	domain1(snmp_collector_utils:oid_to_name(TrapName)).
 %% @hidden
-domain1("iMAPNorthboundFaultAlarmQueryEndNotificationType ") ->
+domain1("iMAPNorthboundFaultAlarmQueryEndNotificationType") ->
 	fault;
 domain1("iMAPNorthboundFaultAlarmReportNotificationType") ->
 	fault;

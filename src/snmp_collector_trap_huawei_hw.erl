@@ -270,6 +270,8 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
+		notification ->
+			ignore;
 		heartbeat ->
 			ignore;
 		fault ->
@@ -280,6 +282,8 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
+		notification ->
+			ignore;
 		heartbeat ->
 			ignore;
 		fault ->
@@ -367,9 +371,20 @@ fault([{"hwNmNorthboundDeviceType", Value} | T], EN, Acc)
 fault([{"hwNmNorthboundObjectInstance", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"objectInstance", Value} | Acc]);
-fault([{"snmpTrapOID", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, EN, [{"alarmCondition", Value} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotify"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notify"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyCritical"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyCritical"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyMajor"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyMajor"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyMinor"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyMinor"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyWarning"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyWarning"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyIndefinitely"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "NotifyIndefinitely"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyUnknownSeverity"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyUnknownSeverity"} | Acc]);
 fault([{"hwNmNorthboundSeverity", "Critical"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
 fault([{"hwNmNorthboundSeverity", "Major"} | T], EN, Acc) ->
@@ -510,11 +525,11 @@ domain1("hwNmNorthboundEventNotifyIndefinitely") ->
 domain1("hwNmNorthboundEventNotifyUnknownSeverity") ->
 	fault;
 domain1("hwNmNorthboundEventSynchronizationStartNotify") ->
-	fault;
+	notification;
 domain1("hwNmNorthboundEventSynchronizationQueryResultNotify") ->
 	fault;
 domain1("hwNmNorthboundEventSynchronizationEndNotify") ->
-	fault;
+	notification;
 domain1("hwNmNorthboundEventKeepAlive") ->
 	heartbeat;
 domain1(_) ->
