@@ -366,22 +366,22 @@ fault(NameValuePair) ->
 	end.
 %% @hidden
 fault([{"iMAPNorthboundAlarmCSN", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0, Value =/= [$ ] ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmId", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmDevCsn", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"sourceId", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmNEDevID", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"sourceName", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmNEType", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"eventSourceType", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmMOName", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"objectInstance", Value}| Acc]);
 fault([{"iMAPNorthboundAlarmObjectInstanceType", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"objectInstanceType", Value} | Acc]);
 fault([{"snmpTrapOID",
 		"iMAPNorthboundFaultAlarmQueryEndNotificationType"} | T], AC, Acc) ->
@@ -440,20 +440,20 @@ fault([{"iMAPNorthboundAlarmType", "15"} | T], AC, Acc) ->
 fault([{"iMAPNorthboundAlarmType", "16"} | T], AC, Acc) ->
 	fault(T, AC, [{"eventType", ?ET_Time_Domain_Violation} | Acc]);
 fault([{"iMAPNorthboundAlarmProbablecause", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0, Value =/= [], Value =/= [$ ] ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"probableCause", ?PC_Indeterminate}, {"specificProblem", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmProposedrepairactions", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0, Value =/= [$ ] ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"proposedRepairActions", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmConfirm", "1"} | T], AC, Acc) ->
 	fault(T, AC, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 fault([{"iMAPNorthboundAlarmConfirm", "2"} | T], AC, Acc) ->
 	fault(T, AC, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 fault([{"iMAPNorthboundAlarmExtendInfo", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"additionalText", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmAdditionalInfo", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmDetails", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmClearType", "0"} | T], AC, Acc) ->
 	fault(T, AC, Acc);
@@ -476,28 +476,28 @@ fault([{"iMAPNorthboundAlarmRestore", "1"} | T], AC, Acc) ->
 fault([{"iMAPNorthboundAlarmRestore", "2"} | T], AC, Acc) ->
 	fault(T, AC, [{"alarmRestore", "uncleared"} | Acc]);
 fault([{"iMAPNorthboundAlarmServiceAffectFlag", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"serviceAffectFlag", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmClearOperator", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"clearUser", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmOperator", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmOperator", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmRestore", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmRestore", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmProductID", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmProductID", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmExtendInfo", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmSerialNumber", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmID", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"id", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmSpecificproblems", Value} | T], AC, Acc)
-		when is_list(Value), length(Value) > 0, Value =/= [$ ] ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmSpecificproblems", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmCategory", "1" = AC} | T], AC, Acc) ->
 	fault(T, AC, [{"eventName", ?EN_NEW} | Acc]);
@@ -511,16 +511,16 @@ fault([{"iMAPNorthboundAlarmCategory", "5" = AC} | T], AC, Acc) ->
 fault([{"iMAPNorthboundAlarmCategory", "9" = AC} | T], AC, Acc) ->
 	fault(T, AC, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"iMAPNorthboundAlarmOccurTime", Value} | T], AC, Acc)
-		when AC == "1", is_list(Value), length(Value) > 0 ->
+		when AC == "1", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"raisedTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmOccurTime", Value} | T], AC, Acc)
-		when AC == "9", is_list(Value), length(Value) > 0 ->
+		when AC == "9", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"changedTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmRestoreTime", Value} | T], AC, Acc)
-		when AC == "2", is_list(Value), length(Value) > 0 ->
+		when AC == "2", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"clearedTime", Value} | Acc]);
 fault([{"iMAPNorthboundAlarmAckTime", Value} | T], AC, Acc)
-		when AC == "4", is_list(Value), length(Value) > 0 ->
+		when AC == "4", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmAckTime", Value} | Acc]);
 fault([{_, [$ ]} | T], AC, Acc) ->
 	fault(T, AC, Acc);

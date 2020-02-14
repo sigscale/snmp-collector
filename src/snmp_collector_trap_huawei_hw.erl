@@ -357,19 +357,19 @@ fault(NameValuePair) ->
 	fault(NameValuePair, Value, []).
 %% @hidden
 fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"alarmId", Value} | Acc]);
 fault([{"hwNmNorthboundResourceIDs", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"sourceId", Value} | Acc]);
 fault([{"hwNmNorthboundNEName", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"sourceName", Value} | Acc]);
 fault([{"hwNmNorthboundDeviceType", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"eventSourceType", Value} | Acc]);
 fault([{"hwNmNorthboundObjectInstance", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"objectInstance", Value} | Acc]);
 fault([{"snmpTrapOID", "hwNmNorthboundEventNotify"} | T], EN, Acc) ->
 	fault(T, EN, [{"alarmCondition", "notify"} | Acc]);
@@ -420,53 +420,53 @@ fault([{"hwNmNorthboundEventType", "Relay"} | T], EN, Acc) ->
 fault([{"hwNmNorthboundEventType", _} | T], EN, Acc) ->
 	fault(T, EN, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"hwNmNorthboundProbableCause", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"specificProblem", Value}, {"probableCause", ?PC_Indeterminate} | Acc]);
 fault([{"hwNmNorthboundProbableRepair", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"proposedRepairActions", Value} | Acc]);
 fault([{"hwNmNorthboundConfirmStatus", 1} | T], EN, Acc) ->
 	fault(T, EN, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
 fault([{"hwNmNorthboundConfirmStatus", 2} | T], EN, Acc) ->
 	fault(T, EN, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
 fault([{"hwNmNorthboundNEType", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"networkElementType", Value} | Acc]);
 fault([{"hwNmNorthboundAdditionalInfo", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"additionalText", Value} | Acc]);
 fault([{"hwNmNorthboundFaultFunction", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"eventFunction", Value} | Acc]);
 fault([{"hwNmNorthboundDeviceIP", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"deviceIP", Value} | Acc]);
 fault([{"hwNmNorthboundResourceIds", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"resourceIds", Value} | Acc]);
 fault([{"hwNmNorthboundTrailName", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"trailName", Value} | Acc]);
 fault([{"hwNmNorthboundRootAlarm", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"rootAlarm", Value} | Acc]);
 fault([{"hwNmNorthboundGroupId", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"groupId", Value} | Acc]);
 fault([{"hwNmNorthboundMaintainStatus", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"maintainStatus", Value} | Acc]);
 fault([{"hwNmNorthboundEventName", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"alarmEventName", Value} | Acc]);
 fault([{"hwNmNorthboundFaultID", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"eventId", Value} | Acc]);
 fault([{"hwNmNorthboundGroupID", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"groupId", Value} | Acc]);
 fault([{"hwNmNorthboundEventDetail", Value} | T], EN, Acc)
-		when is_list(Value), length(Value) > 0 ->
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"eventDetail", Value} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Fault"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventName", ?EN_NEW} | Acc]);
@@ -479,19 +479,19 @@ fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], EN, Acc) ->
 fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"hwNmNorthbound}EventTime", Value} | T], EN, Acc)
-		when EN == "Fault", is_list(Value), length(Value) > 0 ->
+		when EN == "Fault", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == "Change", is_list(Value), length(Value) > 0 ->
+		when EN == "Change", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"changedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == "Recovery", is_list(Value), length(Value) > 0 ->
+		when EN == "Recovery", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"clearedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == "Acknowledge", is_list(Value), length(Value) > 0 ->
+		when EN == "Acknowledge", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"alarmAckTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
-		when EN == "Unacknowledge", is_list(Value), length(Value) > 0 ->
+		when EN == "Unacknowledge", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"changeTime", Value} | Acc]);
 fault([{_, [$ ]} | T], EN, Acc) ->
 	fault(T, EN, Acc);
