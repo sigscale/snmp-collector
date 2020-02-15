@@ -39,7 +39,8 @@
 		profile :: atom(),
 		delay :: non_neg_integer(),
 		buffer = [] :: [fault_event()],
-		timer :: reference() | undefined}).
+		timer :: reference() | undefined,
+		sync = true :: boolean()}).
 -type state() :: #state{}.
 
 %% support deprecated_time_unit()
@@ -268,17 +269,47 @@ post([{_TS, _N, _Node, #{"domain" := Domain} = CH, OF} | T], State, Acc) ->
 post([], State, Acc) ->
 	post1(#{"eventList" => Acc}, State).
 %% @hidden
-post1(VES, #state{authorization = Authorization,
+post1(VES, #state{sync = true, authorization = Authorization,
 		uri = Url, profile = Profile, delay = Delay} = State) ->
 	ContentType = "application/json",
 	RequestBody = zj:encode(VES),
 	Path = Url ++ "/eventListener/v5",
 	Request = {Path, [Authorization], ContentType, RequestBody},
-	Options = [{sync, false}, {receiver, fun check_response/1}],
-	case httpc:request(post, Request, [], Options, Profile) of
+	HTTPOptions =  [{timeout, 4000}],
+	Options = [{sync, true}],
+	case httpc:request(post, Request, HTTPOptions, Options, Profile) of
 		{error, Reason} ->
 			error_logger:error_report(["VES POST Failed",
-					{url, Path}, {error, Reason}]),
+					{url, Path}, {sync, true}, {error, Reason}]),
+			exit(Reason);
+		{{_Version, Status, _Reason}, _Headers, _Body}
+				when Status >=  200, Status < 300, Delay =:= 0 ->
+			{ok, State#state{sync = false}};
+		{{_Version, Status, _Reason}, _Headers, _Body}
+				when Status >=  200, Status < 300 ->
+			{ok, State#state{sync = false,
+					timer = erlang:start_timer(Delay, self(), [])}};
+		{{_Version, _Status, _Reason}, _Headers, _Body} when Delay =:= 0 ->
+			{ok, State#state{sync = false}};
+		{{Version, Status, Reason}, _Headers, _Body} ->
+			error_logger:warning_report(["VES POST Failed",
+					{url, Path}, {sync, true}, {version, Version},
+					{status, Status}, {reason, Reason}]),
+			{ok, State#state{sync = false,
+					timer = erlang:start_timer(Delay, self(), [])}}
+	end;
+post1(VES, #state{sync = false, authorization = Authorization,
+		uri = Url, profile = Profile, delay = Delay} = State) ->
+	ContentType = "application/json",
+	RequestBody = zj:encode(VES),
+	Path = Url ++ "/eventListener/v5",
+	Request = {Path, [Authorization], ContentType, RequestBody},
+	HTTPOptions =  [{timeout, 4000}],
+	Options = [{sync, false}, {receiver, fun check_response/1}],
+	case httpc:request(post, Request, HTTPOptions, Options, Profile) of
+		{error, Reason} ->
+			error_logger:error_report(["VES POST Failed",
+					{url, Path}, {sync, false}, {error, Reason}]),
 			exit(Reason);
 		_RequestID when Delay =:= 0 ->
 			{ok, State};
@@ -294,7 +325,7 @@ post1(VES, #state{authorization = Authorization,
 check_response({_RequestId, {error, Reason}}) ->
 	error_logger:warning_report(["VES POST Failed",
 			{error, Reason}]);
-check_response({_RequestId, {{Version, Status, Reason}, _Headers, _Body}})
+check_response({_RequestId, {{_Version, Status, _Reason}, _Headers, _Body}})
 		when Status >=  200, Status < 300 ->
 	ok;
 check_response({_RequestId, {{Version, Status, Reason}, _Headers, _Body}}) ->
