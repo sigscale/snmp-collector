@@ -287,16 +287,16 @@ post1(VES, #state{sync = true, authorization = Authorization,
 					{url, Path}, {profile, Profile},
 					{sync, true}, {error, Reason}]),
 			exit(Reason);
-		{{_Version, Status, _Reason}, _Headers, _Body}
+		{ok, {{_Version, Status, _Reason}, _Headers, _Body}}
 				when Status >=  200, Status < 300, Delay =:= 0 ->
 			{ok, State#state{sync = false}};
-		{{_Version, Status, _Reason}, _Headers, _Body}
+		{ok, {{_Version, Status, _Reason}, _Headers, _Body}}
 				when Status >=  200, Status < 300 ->
 			{ok, State#state{sync = false,
 					timer = erlang:start_timer(Delay, self(), [])}};
-		{{_Version, _Status, _Reason}, _Headers, _Body} when Delay =:= 0 ->
+		{ok, {{_Version, _Status, _Reason}, _Headers, _Body}} when Delay =:= 0 ->
 			{ok, State#state{sync = false}};
-		{{Version, Status, Reason}, _Headers, _Body} ->
+		{ok, {{Version, Status, Reason}, _Headers, _Body}} ->
 			error_logger:warning_report(["VES POST Failed",
 					{url, Path}, {profile, Profile},
 					{sync, true}, {version, Version},
@@ -318,9 +318,9 @@ post1(VES, #state{sync = false, authorization = Authorization,
 					{url, Path}, {profile, Profile},
 					{sync, false}, {error, Reason}]),
 			exit(Reason);
-		_RequestID when Delay =:= 0 ->
+		{ok, _RequestID} when Delay =:= 0 ->
 			{ok, State};
-		_RequestID ->
+		{ok, _RequestID} ->
 			{ok, State#state{timer = erlang:start_timer(Delay, self(), [])}}
 	end.
 
