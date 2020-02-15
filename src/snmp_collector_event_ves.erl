@@ -36,7 +36,7 @@
 -record(state,
 		{authorization :: tuple(),
 		uri :: string(),
-		options :: list(),
+		profile :: atom(),
 		delay :: non_neg_integer(),
 		buffer = [] :: [fault_event()],
 		timer :: reference() | undefined}).
@@ -69,13 +69,13 @@
 init([] = _Args) ->
 	{ok, UserName} = application:get_env(snmp_collector, ves_username),
 	{ok, Password} = application:get_env(snmp_collector, ves_password),
-	{ok, Options} = application:get_env(snmp_collector, ves_options),
 	{ok, Url} = application:get_env(snmp_collector, ves_url),
+	{ok, Profile} = application:get_env(snmp_collector, ves_profile),
 	{ok, Delay} = application:get_env(snmp_collector, ves_reorder_delay),
 	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
 	Authorization = {"authorization", EncodeKey},
 	{ok, #state{authorization = Authorization,
-			uri = Url, options = Options, delay = Delay}}.
+			uri = Url, profile = Profile, delay = Delay}}.
 
 -spec handle_event(Event, State) -> Result
 	when
@@ -269,13 +269,13 @@ post([], State, Acc) ->
 	post1(#{"eventList" => Acc}, State).
 %% @hidden
 post1(VES, #state{authorization = Authorization,
-		uri = Url, options = Options, delay = Delay} = State) ->
+		uri = Url, profile = Profile, delay = Delay} = State) ->
 	ContentType = "application/json",
 	RequestBody = zj:encode(VES),
 	Path = Url ++ "/eventListener/v5",
 	Request = {Path, [Authorization], ContentType, RequestBody},
-	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
-	case httpc:request(post, Request, [], NewOptions) of
+	Options = [{sync, false}, {receiver, fun check_response/1}],
+	case httpc:request(post, Request, [], Options, Profile) of
 		{error, Reason} ->
 			error_logger:error_report(["VES POST Failed",
 					{url, Path}, {error, Reason}]),

@@ -105,38 +105,73 @@ start2() ->
 	end.
 %% @hidden
 start3() ->
+	case inets:services_info() of
+		ServicesInfo when is_list(ServicesInfo) ->
+			{ok, Profile} = application:get_env(ves_profile),
+			start4(Profile, ServicesInfo);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start4(Profile, [{httpc, _Pid, Info} | T]) ->
+	case proplists:lookup(profile, Info) of
+		{profile, Profile} ->
+			start5(Profile);
+		_ ->
+			start4(Profile, T)
+	end;
+start4(Profile, [_ | T]) ->
+	start4(Profile, T);
+start4(Profile, []) ->
+	case inets:start(httpc, [{profile, Profile}]) of
+		{ok, _Pid} ->
+			start5(Profile);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start5(Profile) ->
+	{ok, Options} = application:get_env(ves_options),
+	case httpc:set_options(Options, Profile) of
+		ok ->
+			start6();
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start6() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
 			Children = supervisor:which_children(TopSup),
 			{ok, ManagerPorts} = application:get_env(manager_ports),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
-			start4(TopSup, ManagerSup, DebugSup, ManagerPorts);
+			start7(TopSup, ManagerSup, DebugSup, ManagerPorts);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start4(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
+start7(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(ManagerSup, [[Port]]) of
 		{ok, _ManagerServerSup} ->
-			start4(TopSup, ManagerSup, DebugSup, T);
+			start7(TopSup, ManagerSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start4(TopSup, _ManangerSup, DebugSup, []) ->
+start7(TopSup, _ManangerSup, DebugSup, []) ->
 	{ok, DebugPorts} = application:get_env(debug_ports),
-	start5(TopSup, DebugSup, DebugPorts).
+	start8(TopSup, DebugSup, DebugPorts).
 %% @hidden
-start5(TopSup, DebugSup, [Port | T] = _DebugPorts)
+start8(TopSup, DebugSup, [Port | T] = _DebugPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(DebugSup, [[Port], []]) of
 		{ok, _DebugServer} ->
-			start5(TopSup, DebugSup, T);
+			start8(TopSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start5(TopSup, _DebugSup, []) ->
+start8(TopSup, _DebugSup, []) ->
 	StartMods = [snmp_collector_get_sup, [[], []]],
 	case timer:apply_interval(?INTERVAL, supervisor,
 			start_child, StartMods) of
@@ -145,7 +180,6 @@ start5(TopSup, _DebugSup, []) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
-%% @hidden
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
 	when
