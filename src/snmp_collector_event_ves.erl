@@ -264,8 +264,8 @@ post(Events, State) when is_list(Events) ->
 	post(Events, State, []).
 %% @hidden
 post([{_TS, _N, _Node, #{"domain" := Domain} = CH, OF} | T], State, Acc) ->
-	post(T, State,
-			[#{"commonEventHeader" => CH, Domain ++ "Fields" => OF} | Acc]);
+	post(T, State, [#{"event" => #{"commonEventHeader" => CH,
+			Domain ++ "Fields" => OF}} | Acc]);
 post([], #state{delay = 0} = State, []) ->
 	{ok, State};
 post([], #state{delay = Delay} = State, []) ->
