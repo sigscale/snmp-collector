@@ -807,7 +807,7 @@ common_event_header([], _TargetName, CH, AD) ->
 %% @doc Create the fault fields map.
 notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
 	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"notificaionFieldsVersion" => 1},
+			"notificationFieldsVersion" => 1},
 	notification_fields(AlarmDetails, DefaultMap).
 %% @hidden
 notification_fields([{"id", Value} | T], Acc) ->
