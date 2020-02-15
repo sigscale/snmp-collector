@@ -266,6 +266,10 @@ post(Events, State) when is_list(Events) ->
 post([{_TS, _N, _Node, #{"domain" := Domain} = CH, OF} | T], State, Acc) ->
 	post(T, State,
 			[#{"commonEventHeader" => CH, Domain ++ "Fields" => OF} | Acc]);
+post([], #state{delay = 0} = State, []) ->
+	{ok, State};
+post([], #state{delay = Delay} = State, []) ->
+	{ok, State#state{timer = erlang:start_timer(Delay, self(), [])}};
 post([], State, Acc) ->
 	post1(#{"eventList" => Acc}, State).
 %% @hidden
@@ -280,7 +284,8 @@ post1(VES, #state{sync = true, authorization = Authorization,
 	case httpc:request(post, Request, HTTPOptions, Options, Profile) of
 		{error, Reason} ->
 			error_logger:error_report(["VES POST Failed",
-					{url, Path}, {sync, true}, {error, Reason}]),
+					{url, Path}, {profile, Profile},
+					{sync, true}, {error, Reason}]),
 			exit(Reason);
 		{{_Version, Status, _Reason}, _Headers, _Body}
 				when Status >=  200, Status < 300, Delay =:= 0 ->
@@ -293,7 +298,8 @@ post1(VES, #state{sync = true, authorization = Authorization,
 			{ok, State#state{sync = false}};
 		{{Version, Status, Reason}, _Headers, _Body} ->
 			error_logger:warning_report(["VES POST Failed",
-					{url, Path}, {sync, true}, {version, Version},
+					{url, Path}, {profile, Profile},
+					{sync, true}, {version, Version},
 					{status, Status}, {reason, Reason}]),
 			{ok, State#state{sync = false,
 					timer = erlang:start_timer(Delay, self(), [])}}
@@ -309,7 +315,8 @@ post1(VES, #state{sync = false, authorization = Authorization,
 	case httpc:request(post, Request, HTTPOptions, Options, Profile) of
 		{error, Reason} ->
 			error_logger:error_report(["VES POST Failed",
-					{url, Path}, {sync, false}, {error, Reason}]),
+					{url, Path}, {profile, Profile},
+					{sync, false}, {error, Reason}]),
 			exit(Reason);
 		_RequestID when Delay =:= 0 ->
 			{ok, State};
