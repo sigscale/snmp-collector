@@ -252,5 +252,5 @@
 
 % Alarm Ack States [3GPP TS 32.111-2 Table 5.5.1]
 -define(ACK_Acknowledged, "acknowledged").
--define(ACK_Unacknowledged," unacknowledged").
+-define(ACK_Unacknowledged, "unacknowledged").
 

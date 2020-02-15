@@ -766,7 +766,8 @@ common_event_header(TargetName, AlarmDetails, Domain)
 			"priority" => "Normal",
 			"reportingEntityName" => TargetName,
 			"sequence" => 0,
-			"version" => 1},
+			"vesEventListenerVersion" => "7.0.1",
+			"version" => "4.0.1"},
 	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
 %% @hidden
 common_event_header([{"reportingEntityId", Value} | T], TargetName, CH, AD) ->
