@@ -110,8 +110,9 @@ handle_event({Now, _, _, _, _} = Event,
 				false
 	end,
 	{Events, #state{buffer = NewBuffer} = NewState}
-			= gather(lists:dropwhile(F, Buffer), State),
-	post(Events, NewState#state{buffer = [Event | NewBuffer]}).
+			= gather(lists:dropwhile(F, Buffer),
+			State#state{buffer = [Event | Buffer]}),
+	post(Events, NewState#state{buffer = NewBuffer}).
 
 -spec handle_call(Request, State) -> Result
 	when
