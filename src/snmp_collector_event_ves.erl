@@ -204,7 +204,7 @@ gather(Events, State) ->
 	gather(Events, State, []).
 %% @hidden
 gather([{_, _, _, #{"domain" := "fault", "reportingEntityId" := AgentId},
-		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
+		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} = Event | T],
 		#state{buffer = Buffer} = State, Acc) ->
 	F = fun({_, _, _, #{"reportingEntityId" := Agent},
 					#{"alarmAdditionalInformation" := #{"alarmId" := ID}}})
@@ -214,9 +214,10 @@ gather([{_, _, _, #{"domain" := "fault", "reportingEntityId" := AgentId},
 				false
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
-	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
+	gather(T, State#state{buffer  = NewBuffer},
+			[lists:reverse([Event | Events]) | Acc]);
 gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
-		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
+		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} = Event | T],
 		#state{buffer = Buffer} = State, Acc) ->
 	F = fun({_, _, _, #{"reportingEntityName" := Agent},
 					#{"alarmAdditionalInformation" := #{"alarmId" := ID}}})
@@ -226,7 +227,8 @@ gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
 				false
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
-	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
+	gather(T, State#state{buffer  = NewBuffer},
+			[lists:reverse([Event | Events]) | Acc]);
 gather([H | T], State, Acc) ->
 	gather(T, State, [H | Acc]);
 gather([], State, Acc) ->
