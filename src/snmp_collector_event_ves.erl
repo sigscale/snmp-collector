@@ -279,7 +279,7 @@ post1(VES, #state{sync = true, authorization = Authorization,
 	RequestBody = zj:encode(VES),
 	Path = Url ++ "/eventListener/v5",
 	Request = {Path, [Authorization], ContentType, RequestBody},
-	HTTPOptions =  [{timeout, 4000}],
+	HTTPOptions =  [{connect_timeout, 4000}],
 	Options = [{sync, true}],
 	case httpc:request(post, Request, HTTPOptions, Options, Profile) of
 		{error, Reason} ->
@@ -310,7 +310,7 @@ post1(VES, #state{sync = false, authorization = Authorization,
 	RequestBody = zj:encode(VES),
 	Path = Url ++ "/eventListener/v5",
 	Request = {Path, [Authorization], ContentType, RequestBody},
-	HTTPOptions =  [{timeout, 4000}],
+	HTTPOptions =  [{connect_timeout, 4000}],
 	Options = [{sync, false}, {receiver, fun check_response/1}],
 	case httpc:request(post, Request, HTTPOptions, Options, Profile) of
 		{error, Reason} ->
