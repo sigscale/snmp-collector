@@ -330,7 +330,7 @@ post1(VES, #state{sync = false, authorization = Authorization,
 %% @doc Check the response of a httpc request.
 %% @hidden
 check_response({_RequestId, {error, Reason}}) ->
-	error_logger:warning_report(["VES POST Failed",
+	error_logger:error_report(["VES POST Failed",
 			{error, Reason}]);
 check_response({_RequestId, {{_Version, Status, _Reason}, _Headers, _Body}})
 		when Status >=  200, Status < 300 ->
