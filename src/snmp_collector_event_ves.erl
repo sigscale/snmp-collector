@@ -234,10 +234,10 @@ gather([], State, Acc) ->
 	gather1(Acc, State, []).
 %% @hidden
 gather1([H | T], State, Acc) when is_list(H) ->
-	F = fun({_, _, _, #{"eventName" := notifyNewAlarm}, _}, _) ->
+	F = fun({_, _, _, #{"eventName" := "notifyNewAlarm"}, _}, _) ->
 				true;
-			({_, _, _, #{"eventName" := notifyChangedAlarm}, _},
-					{_, _, _, #{"eventName" := notifyClearedAlarm}, _}) ->
+			({_, _, _, #{"eventName" := "notifyChangedAlarm"}, _},
+					{_, _, _, #{"eventName" := "notifyClearedAlarm"}, _}) ->
 				true;
 			({_, _, _, _, _}, {_, _, _, _, _}) ->
 				false
