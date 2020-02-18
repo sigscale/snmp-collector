@@ -382,7 +382,7 @@ fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyMinor"} | T], EN, Acc) ->
 fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyWarning"} | T], EN, Acc) ->
 	fault(T, EN, [{"alarmCondition", "notifyWarning"} | Acc]);
 fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyIndefinitely"} | T], EN, Acc) ->
-	fault(T, EN, [{"alarmCondition", "NotifyIndefinitely"} | Acc]);
+	fault(T, EN, [{"alarmCondition", "notifyIndefinitely"} | Acc]);
 fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyUnknownSeverity"} | T], EN, Acc) ->
 	fault(T, EN, [{"alarmCondition", "notifyUnknownSeverity"} | Acc]);
 fault([{"hwNmNorthboundSeverity", "Critical"} | T], EN, Acc) ->
