@@ -368,7 +368,7 @@ arrange_list(Varbinds)
 	arrange_list(Varbinds, []).
 %% @hidden
 arrange_list([{varbind, [1,3,6,1,2,1,1,3,0], 'TimeTicks', Value, _Seqnum},
-		{varbind, [1,3,6,1,6,3,1,1,4,1], _, Value1, _Seqnum} | T], Acc) ->
+		{varbind, [1,3,6,1,6,3,1,1,4,1,0], _, Value1, _Seqnum1} | T], Acc) ->
 	arrange_list(T, [{[1,3,6,1,6,3,1,1,4,1], Value1}, {[1,3,6,1,2,1,1,3,0], Value} | Acc]);
 arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
