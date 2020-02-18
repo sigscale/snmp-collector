@@ -388,7 +388,7 @@ fault([{"nbiAckUser", Value} | T], AC, Acc)
 	fault(T, AC, [{"ackUserId", Value} | Acc]);
 fault([{"nbiAdditionalText", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, AC, [{"additionalText", Value} | Acc]);
+	fault(T, AC, [{"supplementaryInfo", Value} | Acc]);
 fault([{"nbiCommentText", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"eventComment", Value} | Acc]);
