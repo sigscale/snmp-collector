@@ -545,7 +545,7 @@ domain1("iMAPNorthboundFaultAlarmReportNotificationType") ->
 	fault;
 domain1("iMAPNorthboundFaultAlarmQueryBeginNotificationType") ->
 	fault;
-domain1("iMAPNorthboundFaultAlarmQueryNotificationTyp") ->
+domain1("iMAPNorthboundFaultAlarmQueryNotificationType") ->
 	fault;
 domain1("iMAPNorthboundHeartbeatNotificationType") ->
 	heartbeat;
