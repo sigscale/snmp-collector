@@ -228,8 +228,8 @@ gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
 	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
-gather([H | T], i#state{buffer = Buffer} = State, Acc) ->
-	gather(T, State#state{buffer = lists:delete(H, Buffer}, [H | Acc]);
+gather([H | T], #state{buffer = Buffer} = State, Acc) ->
+	gather(T, State#state{buffer = lists:delete(H, Buffer)}, [H | Acc]);
 gather([], State, Acc) ->
 	gather1(Acc, State, []).
 %% @hidden
