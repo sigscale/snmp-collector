@@ -215,7 +215,7 @@ gather([{_, _, _, #{"domain" := "fault", "reportingEntityId" := AgentId},
 				false
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
-	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
+	gather(T, State#state{buffer  = NewBuffer}, sort(Events) ++ Acc);
 gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
 		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
 		#state{buffer = Buffer} = State, Acc) ->
@@ -227,13 +227,19 @@ gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
 				false
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
-	gather(T, State#state{buffer  = NewBuffer}, [lists:reverse(Events) | Acc]);
+	gather(T, State#state{buffer  = NewBuffer}, sort(Events) ++ Acc);
 gather([H | T], #state{buffer = Buffer} = State, Acc) ->
 	gather(T, State#state{buffer = lists:delete(H, Buffer)}, [H | Acc]);
 gather([], State, Acc) ->
-	gather1(Acc, State, []).
+	{Acc, State}.
+
+-spec sort(Events) -> Result
+	when
+		Events :: [fault_event()],
+		Result :: [fault_event()].
+%% @doc Sort events semantically.
 %% @hidden
-gather1([H | T], State, Acc) when is_list(H) ->
+sort(Events) ->
 	F = fun({_, _, _, #{"eventName" := "notifyNewAlarm"}, _}, _) ->
 				true;
 			({_, _, _, #{"eventName" := "notifyChangedAlarm"}, _},
@@ -242,11 +248,7 @@ gather1([H | T], State, Acc) when is_list(H) ->
 			({_, _, _, _, _}, {_, _, _, _, _}) ->
 				false
 	end,
-	gather1(T, State, [lists:sort(F, H) | Acc]);
-gather1([H | T], State, Acc) ->
-	gather1(T, State, [H | Acc]);
-gather1([], State, Acc) ->
-	{lists:flatten(Acc), State}.
+	lists:sort(F, lists:reverse(Events)).
 
 -spec post(Events, State) -> Result
 	when
@@ -272,7 +274,7 @@ post([], #state{delay = 0} = State, []) ->
 post([], #state{delay = Delay} = State, []) ->
 	{ok, State#state{timer = erlang:start_timer(Delay, self(), [])}};
 post([], State, Acc) ->
-	post1(#{"eventList" => Acc}, State).
+	post1(#{"eventList" => lists:reverse(Acc)}, State).
 %% @hidden
 post1(VES, #state{sync = true, authorization = Authorization,
 		uri = Url, profile = Profile, delay = Delay} = State) ->
