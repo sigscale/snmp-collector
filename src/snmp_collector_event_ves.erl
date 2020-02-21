@@ -215,7 +215,7 @@ gather([{_, _, _, #{"domain" := "fault", "reportingEntityId" := AgentId},
 				false
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
-	gather(T, State#state{buffer  = NewBuffer}, sort(Events) ++ Acc);
+	gather(T, State#state{buffer  = NewBuffer}, [sort(Events) | Acc]);
 gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
 		#{"alarmAdditionalInformation" := #{"alarmId" := AlarmId}}} | T],
 		#state{buffer = Buffer} = State, Acc) ->
@@ -227,11 +227,11 @@ gather([{_, _, _, #{"domain" := "fault", "reportingEntityName" := AgentName},
 				false
 	end,
 	{Events, NewBuffer} = lists:partition(F, Buffer),
-	gather(T, State#state{buffer  = NewBuffer}, sort(Events) ++ Acc);
+	gather(T, State#state{buffer  = NewBuffer}, [sort(Events) | Acc]);
 gather([H | T], #state{buffer = Buffer} = State, Acc) ->
 	gather(T, State#state{buffer = lists:delete(H, Buffer)}, [H | Acc]);
 gather([], State, Acc) ->
-	{Acc, State}.
+	{lists:flatten(lists:reverse(Acc)), State}.
 
 -spec sort(Events) -> Result
 	when
