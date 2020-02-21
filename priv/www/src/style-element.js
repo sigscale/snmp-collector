@@ -180,6 +180,22 @@ styleElement.innerHTML = `<template>
 				--paper-item-icon-width: 32px;
 				--paper-item-min-height: 1em;
 			}
+         polyline{
+            opacity: .3;
+            stroke: black;
+            stroke-width: 2px;
+            fill: none;
+         }
+         .labelName {
+            font-style: normal;
+            font-weight: 700;
+         }
+         .arc text {
+            text-anchor: middle;
+         }
+         .arc path {
+            stroke: #fff;
+         }
 		</style>
 	</template>`;
 
