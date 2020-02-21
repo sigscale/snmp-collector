@@ -15,37 +15,35 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @doc This module normalizes Generic Traps.
 %%%
-
-%% @doc This module normalizes Generic Traps.
-%%
-%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
-%% and to VES attributes.
-%%
-%%	The following table shows the mapping between CISCO MIB attributes
-%%	and VES attributes.
-%%
-%% <h3> MIB Values and VNF Event Stream (VES) </h3>
-%%
-%% <p><table id="mt">
-%% <thead>
-%% 	<tr id="mt">
-%% 		<th id="mt">MIB Values</th>
-%%			<th id="mt">VNF Event Stream (VES)</th>
-%%			<th id="mt">VES Value Type</th>
-%% 	</tr>
-%% </thead>
-%% <tbody>
-%%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%% </tbody>
-%% </table></p>
-
+%%% Varbinds are mapped to alarm attributes, using the MIBs avaialable,
+%%% and to VES attributes.
+%%%
+%%%	The following table shows the mapping between ALARM-MIB attributes
+%%%	and VES attributes.
+%%%
+%%% <h3>MIB Values and VNF Event Stream (VES)</h3>
+%%%
+%%% <p><table id="mt">
+%%% <thead>
+%%% 	<tr id="mt">
+%%% 		<th id="mt">MIB Values</th>
+%%%			<th id="mt">VNF Event Stream (VES)</th>
+%%%			<th id="mt">VES Value Type</th>
+%%% 	</tr>
+%%% </thead>
+%%% <tbody>
+%%%		<tr id="mt">
+%%% 		<td id="mt"></td>
+%%% 		<td id="mt"></td>
+%%%			<td id="mt"></td>
+%%% 	</tr>
+%%% </tbody>
+%%% </table></p>
+%%%
 -module(snmp_collector_trap_generic).
--copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
 
@@ -183,8 +181,8 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(generic, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -213,7 +211,7 @@ fault([{"snmpTrapOID", "linkDown"}, {"ifIndex", InterfaceIndex},
 	fault(T, [{"alarmId", InterfaceIndex},
 			{"sourceName", InterfaceDescripton},
 			{"alarmMocObjectInstance", InterfaceType},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"eventName", ?EN_NEW},
 			{"alarmCondition", "linkup"},
 			{"probableCause", ?PC_External_If_Device_Problem},
@@ -226,7 +224,7 @@ fault([{"snmpTrapOID", "linkUp"}, {"ifIndex", InterfaceIndex},
 	fault(T, [{"alarmId", InterfaceIndex},
 			{"sourceName", InterfaceDescripton},
 			{"alarmMocObjectInstance", InterfaceType},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"eventName", ?EN_CLEARED},
 			{"alarmCondition", "linkup"},
 			{"probableCause", ?PC_External_If_Device_Problem},
@@ -234,10 +232,8 @@ fault([{"snmpTrapOID", "linkUp"}, {"ifIndex", InterfaceIndex},
 			{"eventSeverity", ?ES_CLEARED},
 			{"specificProblem", StatusChangeReason} | Acc]);
 fault([{Name, Value} | T], Acc)
-      when is_list(Value), length(Value) > 0 ->
+      when length(Value) > 0 ->
 	fault(T, [{Name, Value} | Acc]);
-fault([_H | T], Acc) ->
-	fault(T, Acc);
 fault([], Acc) ->
 	Acc.
 
@@ -253,8 +249,8 @@ handle_notification(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = notification(NamesValues),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, notification),
-		snmp_collector_utils:log_events(Event)
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, notification),
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -286,12 +282,10 @@ notification([{"snmpTrapOID", "authenticationFailure"}, {"authAddar", AuthAddres
 			{"notificationFieldsVersion", 1},
 			{"syslogMsg", "authenticationFailure"},
 			{"syslogSev", ?SYS_WARNING},
-			{"raisedTime", erlang:system_time(milli_seconds)} | Acc]);
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))} | Acc]);
 notification([{Name, Value} | T], Acc)
-      when is_list(Value), length(Value) > 0 ->
+      when length(Value) > 0 ->
 	notification(T, [{Name, Value} | Acc]);
-notification([_H | T], Acc) ->
-	notification(T, Acc);
 notification([], Acc) ->
 	Acc.
 

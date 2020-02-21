@@ -14,7 +14,8 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Test suite for the snmp_collector API.
+%%%  @doc Test suite for public API in the
+%%% 	{@link //snmp_collector. snmp_collector} application.
 %%%
 -module(snmp_collector_api_SUITE).
 -copyright('Copyright (c) 2018 SigScale Global Inc.').

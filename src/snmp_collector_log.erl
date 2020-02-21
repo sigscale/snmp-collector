@@ -17,10 +17,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 -module(snmp_collector_log).
--copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
+-copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 %% export the snmp_collector_log_public API.
--export([fault_open/0, fault_close/0, fault_query/6]).
+-export([fault_open/0, fault_log/1, fault_close/0, fault_query/6]).
 -export([httpd_logname/1, http_query/8, http_file/2, last/2]).
 -export([dump_file/2, date/1, iso8601/1]).
 
@@ -31,8 +31,6 @@
 -export_type([fault_event/0, http_event/0]).
 
 -include("snmp_collector_log.hrl").
-
--define(FAULTLOG, fault).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -53,9 +51,25 @@
 fault_open() ->
 	{ok, Directory} = application:get_env(snmp_collector, queue_dir),
 	{ok, LogSize} = application:get_env(snmp_collector, queue_size),
-	{ok, LogFiles} = application:get_env(snmp_collector, queue_size),
+	{ok, Name} = application:get_env(snmp_collector, queue_name),
+	{ok, LogFiles} = application:get_env(snmp_collector, queue_files),
 	{ok, LogNodes} = application:get_env(snmp_collector, queue_nodes),
-	open_log(Directory, ?FAULTLOG, LogSize, LogFiles, LogNodes).
+	open_log(Directory, Name, LogSize, LogFiles, LogNodes).
+
+-spec fault_log(Event) -> Result
+   when
+		Event :: fault_event(),	
+      Result :: ok | {error, Reason},
+      Reason :: term().
+%% @doc Write an event to fault log.
+fault_log(Event) ->
+	{ok, Name} = application:get_env(snmp_collector, queue_name),
+	case disk_log:log(Name, Event) of 
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec fault_close() -> Result
 	when
@@ -63,7 +77,8 @@ fault_open() ->
 		Reason :: term().
 %% @doc Close the fault disk log.
 fault_close() ->
-	close_log(?FAULTLOG).
+	{ok, Name} = application:get_env(snmp_collector, queue_name),
+	close_log(Name).
 
 -record(event,
 		{host :: string(),
@@ -312,7 +327,7 @@ open_log1(Directory, Log, LogSize, LogFiles, LogNodes) ->
 	FileName = Directory ++ "/" ++ atom_to_list(Log),
 	case disk_log:open([{name, Log}, {file, FileName},
 					{type, wrap}, {size, {LogSize, LogFiles}},
-					{distributed, [node() | LogNodes]}]) of
+					{distributed, [node() | LogNodes]}, {repair, true}]) of
 		{ok, _} = Result ->
 			open_log2(Log, [{node(), Result}], [], undefined);
 		{repaired, _, _, _} = Result ->
@@ -358,8 +373,9 @@ open_log2(_Log, OkNodes, [], Reason) ->
 %% @doc Query fault log events with filters.
 %%
 fault_query(Continuation, _Size, Start, End, HeaderMatch, FieldsMatch) ->
+	{ok, Name} = application:get_env(snmp_collector, queue_name),
 	MFA = {?MODULE, fault_filter, [HeaderMatch, FieldsMatch]},
-	query_log(Continuation, Start, End, ?FAULTLOG, MFA).
+	query_log(Continuation, Start, End, Name, MFA).
 
 -spec date(MilliSeconds) -> Result
 	when
@@ -391,44 +407,51 @@ iso8601month(Year, []) ->
 	DateTime = {{Year, 1, 1}, {0, 0, 0}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	(GS - ?EPOCH) * 1000;
-iso8601month(Year, [$-]) ->
-	iso8601month(Year, []);
-iso8601month(Year, [$-, $0]) ->
-	iso8601month(Year, [$-, $0, $1]);
-iso8601month(Year, [$-, $1]) ->
-	iso8601month(Year, [$-, $1, $0]);
-iso8601month(Year, [$-, M1, M2 | T])
+iso8601month(Year, [S | T]) when S == $-; S == $/; S == $\s ->
+	iso8601month(Year, T);
+iso8601month(Year, [M]) when M >= $0; M =< $9 ->
+	Month =  list_to_integer([M]),
+	DateTime = {{Year, Month, 1}, {0, 0, 0}},
+	GS = calendar:datetime_to_gregorian_seconds(DateTime),
+	(GS - ?EPOCH) * 1000;
+iso8601month(Year, [M1, M2 | T])
 		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
-	iso8601day(Year, list_to_integer([M1, M2]), T).
+	iso8601day(Year, list_to_integer([M1, M2]), T);
+iso8601month(Year, [M | T])
+		when M >= $1, M =< $9 ->
+	iso8601day(Year, list_to_integer([M]), T).
 %% @hidden
 iso8601day(Year, Month, []) ->
 	DateTime = {{Year, Month, 1}, {0, 0, 0}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	(GS - ?EPOCH) * 1000;
-iso8601day(Year, Month, [$-]) ->
-	iso8601day(Year, Month, []);
-iso8601day(Year, Month, [$-, $0]) ->
-	iso8601day(Year, Month, [$-, $1, $0]);
-iso8601day(Year, Month, [$-, D1])
-		when D1 >= $1, D1 =< $3 ->
-	iso8601day(Year, Month, [$-, D1, $0]);
-iso8601day(Year, Month, [$-, D1, D2 | T])
+iso8601day(Year, Month, [S | T]) when S == $-; S == $/; S == $\s  ->
+	iso8601day(Year, Month, T);
+iso8601day(Year, Month, [D]) ->
+	Day  = list_to_integer([D]),
+	DateTime = {{Year, Month, Day}, {0, 0, 0}},
+	GS = calendar:datetime_to_gregorian_seconds(DateTime),
+	(GS - ?EPOCH) * 1000;
+iso8601day(Year, Month, [D1, D2 | T])
 		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T).
+	iso8601hour({Year, Month, list_to_integer([D1, D2])}, T);
+iso8601day(Year, Month, [D | T])
+		when D >= $1, D =< $9 ->
+	iso8601hour({Year, Month, list_to_integer([D])}, T).
 %% @hidden
 iso8601hour(Date, []) ->
 	DateTime = {Date, {0, 0, 0}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	(GS - ?EPOCH) * 1000;
-iso8601hour(Date, [$T]) ->
-	iso8601hour(Date, []);
-iso8601hour(Date, [$T, H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
-iso8601hour(Date, [$T, H1, H2 | T])
+iso8601hour(Date, [S | T]) when S == $T; S == $\s; S == $,; S == $- ->
+	iso8601hour(Date, T);
+iso8601hour(Date, [H1, H2 | T])
 		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
 	Hour = list_to_integer([H1, H2]),
+	iso8601minute(Date, Hour, T);
+iso8601hour(Date, [H | T])
+		when H >= $0, H =< $9 ->
+	Hour = list_to_integer([H]),
 	iso8601minute(Date, Hour, T).
 %% @hidden
 iso8601minute(Date, Hour, []) ->
@@ -437,17 +460,14 @@ iso8601minute(Date, Hour, []) ->
 	(GS - ?EPOCH) * 1000;
 iso8601minute(Date, Hour, [$:]) ->
 	iso8601minute(Date, Hour, []);
-iso8601minute(Date, Hour, [$:, M1])
-		when M1 >= $0, M1 =< $5 ->
-	iso8601minute(Date, Hour, [$:, M1, $0]);
 iso8601minute(Date, Hour, [$:, M1, M2 | T])
 		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
 	Minute = list_to_integer([M1, M2]),
 	iso8601second(Date, Hour, Minute, T);
-iso8601minute(Date, Hour, _) ->
-	DateTime = {Date, {Hour, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
+iso8601minute(Date, Hour, [$:, M | T])
+		when M >= $0, M =< $9 ->
+	Minute = list_to_integer([M]),
+	iso8601second(Date, Hour, Minute, T).
 %% @hidden
 iso8601second(Date, Hour, Minute, []) ->
 	DateTime = {Date, {Hour, Minute, 0}},
@@ -455,9 +475,6 @@ iso8601second(Date, Hour, Minute, []) ->
 	(GS - ?EPOCH) * 1000;
 iso8601second(Date, Hour, Minute, [$:]) ->
 	iso8601second(Date, Hour, Minute, []);
-iso8601second(Date, Hour, Minute, [$:, S1])
-		when S1 >= $0, S1 =< $5 ->
-	iso8601second(Date, Hour, Minute, [$:, S1, $0]);
 iso8601second(Date, Hour, Minute, [$:, S1, S2 | T])
 		when S1 >= $0, S1 =< $5, S2 >= $0, S2 =< $9 ->
 	Second = list_to_integer([S1, S2]),
@@ -465,26 +482,82 @@ iso8601second(Date, Hour, Minute, [$:, S1, S2 | T])
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
 	EpocMilliseconds = (GS - ?EPOCH) * 1000,
 	iso8601millisecond(EpocMilliseconds, T);
-iso8601second(Date, Hour, Minute, _) ->
-	DateTime = {Date, {Hour, Minute, 0}},
+iso8601second(Date, Hour, Minute, [$:, S | T])
+		when S >= $0, S =< $9 ->
+	Second = list_to_integer([S]),
+	DateTime = {Date, {Hour, Minute, Second}},
 	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
+	EpocMilliseconds = (GS - ?EPOCH) * 1000,
+	iso8601millisecond(EpocMilliseconds, T).
 %% @hidden
 iso8601millisecond(EpocMilliseconds, []) ->
 	EpocMilliseconds;
 iso8601millisecond(EpocMilliseconds, [$.]) ->
 	EpocMilliseconds;
-iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | _])
+iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | T])
 		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9,
 		N3 >= $0, N3 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2, N3]);
-iso8601millisecond(EpocMilliseconds, [$., N1, N2 | _])
+	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2, N3]), T);
+iso8601millisecond(EpocMilliseconds, [$., N1, N2 | T])
 		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2]) * 10;
-iso8601millisecond(EpocMilliseconds, [$., N | _])
+	iso8601offset(EpocMilliseconds + list_to_integer([N1, N2]) * 10, T);
+iso8601millisecond(EpocMilliseconds, [$., N | T])
 		when N >= $0, N =< $9 ->
-	EpocMilliseconds + list_to_integer([N]) * 100;
-iso8601millisecond(EpocMilliseconds, _) ->
+	iso8601offset(EpocMilliseconds + list_to_integer([N]) * 100, T);
+iso8601millisecond(EpocMilliseconds, T) ->
+	iso8601offset(EpocMilliseconds, T).
+%% @hidden
+iso8601offset(EpocMilliseconds, [$, | T]) ->
+	iso8601offset(EpocMilliseconds, T);
+iso8601offset(EpocMilliseconds, [$+, H1])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds - (3600000 * H1);
+iso8601offset(EpocMilliseconds, [$-, H1])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds + (3600000 * H1);
+iso8601offset(EpocMilliseconds, [$+, H1, H2])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, $:, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1]));
+iso8601offset(EpocMilliseconds, [$-, H1, $:, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1]));
+iso8601offset(EpocMilliseconds, [$+, H1, $:, $3, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, $:, $3, $0])
+		when H1 >= $0, H1 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1])) + 1800000;
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $:, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $:, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $0, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2]));
+iso8601offset(EpocMilliseconds, [$+, H1, H2, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds - (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, [$-, H1, H2, $3, $0])
+		when H1 >= $0, H1 =< $1, H2 >= $0, H2 =< $9 ->
+	EpocMilliseconds + (3600000 * list_to_integer([H1, H2])) + 1800000;
+iso8601offset(EpocMilliseconds, _Other) ->
 	EpocMilliseconds.
 
 %%----------------------------------------------------------------------

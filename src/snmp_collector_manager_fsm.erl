@@ -15,7 +15,9 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @docfile "{@docsrc supervision.edoc}"
+%%% @doc This {@link //stdlib/gen_fsm. gen_fsm} behaviour callback
+%%%     module implements a PDU handler in the
+%%%     {@link //snmp_collector. snmp_collector} application.
 %%%
 -module(snmp_collector_manager_fsm).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').

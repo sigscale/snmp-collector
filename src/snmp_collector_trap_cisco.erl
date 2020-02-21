@@ -129,7 +129,6 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 %% @doc Handle a trap/notification message from an agent.
 %% @private
 handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
@@ -140,7 +139,6 @@ erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 			handle_syslog(TargetName, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
-erlang:display({?MODULE, ?LINE, TargetName, Varbinds}),
 	case domain(Varbinds) of
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName,
@@ -192,8 +190,8 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(cisco, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -224,7 +222,7 @@ fault([{"snmpTrapOID", "cefcPowerSupplyOutputChange"},
 			{"sourceName", PhysicalName},
 			{"modelName", ModelName},
 			{"outputModeCurrent", OutputModeCurrent},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "powerSupplyOutputChange"},
 			{"probableCause", ?PC_Power_Problem},
 			{"eventType", ?ET_Equipment_Alarm} ,
@@ -234,7 +232,7 @@ fault([{"snmpTrapOID", "ciscoEnvMonSuppStatusChangeNotif"},
 		{"ciscoEnvMonSupplyState", SupplyState} | T], Acc) ->
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "powerSupplyOutputChange"},
 			{"probableCause", ?PC_Power_Problem},
 			{"eventType", ?ET_Environmental_Alarm} ,
@@ -244,7 +242,7 @@ fault([{"snmpTrapOID", "ciscoEnvMonSuppStatusChangeNotif"},
 fault([{"snmpTrapOID", "ciscoEnvMonShutdownNotification"} | T], Acc) ->
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "envMonShutdownNotification"},
 			{"probableCause", ?ET_Environmental_Alarm},
 			{"specificProblem", "environmental monitor detected a testpoint reaching a
@@ -256,7 +254,7 @@ fault([{"snmpTrapOID", "ciscoEnvMonTempStatusChangeNotif"},
 		{"ciscoEnvMonTemperatureState", TempState} | T], Acc) ->
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "envMonTempStatusChangeNotif"},
 			{"probableCause", ?PC_Temperature_Unacceptable},
 			{"eventType", ?ET_Environmental_Alarm} ,
@@ -270,7 +268,7 @@ fault([{"snmpTrapOID", "ciscoEnvMonVoltStatusChangeNotif"},
 		{"ciscoEnvMonVoltageState", VoltageState} | T], Acc) ->
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "envMonVoltStatusChangeNotif"},
 			{"probableCause", ?PC_Rectifier_High_Voltage},
 			{"eventType", ?ET_Environmental_Alarm} ,
@@ -283,7 +281,7 @@ fault([{"snmpTrapOID", "ciscoEnvMonFanStatusChangeNotif"},
 		{"ciscoEnvMonFanState", FanState} | T], Acc) ->
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "envMonFanStatusChangeNotif"},
 			{"probableCause", ?PC_Threshold_Crossed},
 			{"eventType", ?ET_Environmental_Alarm} ,
@@ -294,7 +292,7 @@ fault([{"snmpTrapOID", "cErrDisableInterfaceEventRev1"},
 		{"cErrDisableIfStatusCause", SpecificProblem} | T], Acc) ->
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "errDisableInterfaceEvent"},
 			{"probableCause", "Interface Error-Disabled"},
 			{"eventType", ?ET_Operational_Violation} ,
@@ -306,7 +304,7 @@ fault([{"snmpTrapOID", "ciscoMemoryPoolLowMemoryNotif"},
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
 			{"sourceName", MemoryPoolName},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "memoryPoolLowMemoryNotif"},
 			{"probableCause", ?PC_Out_Of_Memory},
 			{"memoryUsed", MemoryPoolUsed},
@@ -319,7 +317,7 @@ fault([{"snmpTrapOID", "ciscoMemoryPoolLowMemoryRecoveryNotif"},
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_CLEARED},
 			{"sourceName", MemoryPoolName},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "memoryPoolLowMemoryNotif"},
 			{"probableCause", "Memory Pool Recovered"},
 			{"memoryUsed", MemoryPoolUsed},
@@ -331,7 +329,7 @@ fault([{"snmpTrapOID", "cswStackPowerInsufficientPower"},
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
 			{"sourceName", StackPowerName},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "stackPowerInsufficientPower"},
 			{"probableCause", ?PC_Power_Problem},
 			{"eventType", ?ET_Equipment_Alarm} ,
@@ -345,7 +343,7 @@ fault([{"snmpTrapOID", "cswStackPowerInvalidInputCurrent"},
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
 			{"sourceId", SwitchNum},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "stackPowerInvalidInputCurrent"},
 			{"probableCause", ?PC_Power_Problem},
 			{"eventType", ?ET_Equipment_Alarm} ,
@@ -363,7 +361,7 @@ fault([{"snmpTrapOID", "cswStackPowerInvalidOutputCurrent"},
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
 			{"sourceId", SwitchNum},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "stackPowerInvalidOutputCurrent"},
 			{"probableCause", ?PC_Power_Problem},
 			{"eventType", ?ET_Equipment_Alarm} ,
@@ -379,7 +377,7 @@ fault([{"snmpTrapOID", "cswStackPowerPriorityConflict"},
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
 			{"sourceName", StackPowerName},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "stackPowerPriorityConflict"},
 			{"probableCause", ?PC_Power_Problem},
 			{"eventType", ?ET_Equipment_Alarm} ,
@@ -391,15 +389,16 @@ fault([{"snmpTrapOID", "cswStackPowerUnbalancedPowerSupplies"},
 	fault(T, [{"alarmId",  snmp_collector_utils:generate_identity(7)},
 			{"eventName", ?EN_NEW},
 			{"sourceName", StackPowerName},
-			{"raisedTime", erlang:system_time(milli_seconds)},
+			{"raisedTime", snmp_collector_log:iso8601(erlang:system_time(milli_seconds))},
 			{"alarmCondition", "stackPowerUnbalancedPowerSupplies"},
 			{"probableCause", ?PC_Power_Problem},
 			{"eventType", ?ET_Equipment_Alarm} ,
 			{"specificProblem", "The switch has no power supply but another switch
 					in the same stack has more than one power supply"},
 			{"eventSeverity", ?ES_MINOR} | Acc]);
-fault([_H | T], Acc) ->
-	fault(T, Acc);
+fault([{Name, Value} | T], Acc)
+      when length(Value) > 0 ->
+	fault(T, [{Name, Value} | Acc]);
 fault([], Acc) ->
 	Acc.
 
@@ -415,8 +414,8 @@ handle_syslog(TargetName, Varbinds) ->
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = syslog(NamesValues),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, syslog),
-		snmp_collector_utils:log_events(Event)
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, syslog),
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -450,8 +449,9 @@ syslog([{"snmpTrapOID", "clogMessageGenerated"},
 			{"syslogSev", snmp_collector_trap_generic:syslog_severity(SysLogSeverity)},
 			{"syslogTag", MessageName},
 			{"raisedTime", TimeStamp} | Acc]);
-syslog([_H | T], Acc) ->
-	syslog(T, Acc);
+syslog([{Name, Value} | T], Acc)
+      when length(Value) > 0 ->
+	syslog(T, [{Name, Value} | Acc]);
 syslog([], Acc) ->
 	Acc.
 

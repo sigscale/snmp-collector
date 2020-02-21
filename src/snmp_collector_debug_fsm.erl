@@ -15,7 +15,6 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @docfile "{@docsrc supervision.edoc}"
 %%%
 -module(snmp_collector_debug_fsm).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').

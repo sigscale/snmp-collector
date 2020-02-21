@@ -20,11 +20,12 @@
 -copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
 
 -include("snmp_collector.hrl").
+-include("snmp_collector_log.hrl").
 
--export([iso8601/1, oid_to_name/1, get_name/1, generate_identity/1,
-		arrange_list/1, stringify/1, log_events/1, security_params/7,
-		agent_name/1, oids_to_names/2, generate_maps/3, engine_id/0,
-		authenticate_v1_v2/2, update_counters/3]).
+-export([oid_to_name/1, get_name/1, generate_identity/1,
+		arrange_list/1, stringify/1, log_event/1, security_params/7,
+		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
+		authenticate_v1_v2/2, update_counters/3, timestamp/0]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -40,202 +41,6 @@
 %%----------------------------------------------------------------------
 %%  The snmp_collector_utilites public API
 %%----------------------------------------------------------------------
-
--spec date(MilliSeconds) -> DateTime
-	when
-		MilliSeconds :: pos_integer(),
-		DateTime :: calendar:datetime().
-%% @doc Convert timestamp to date and time.
-date(MilliSeconds) when is_integer(MilliSeconds) ->
-	Seconds = ?EPOCH + (MilliSeconds div 1000),
-	calendar:gregorian_seconds_to_datetime(Seconds).
-
--spec iso8601(DateTime) -> DateTime
-	when
-		DateTime :: pos_integer() | string().
-%% @doc Convert between ISO 8601 and Unix epoch milliseconds.
-%% 	Parsing is not strict to allow prefix matching.
-iso8601(DateTime) when is_integer(DateTime) ->
-	{{Year, Month, Day}, {Hour, Minute, Second}} = date(DateTime),
-	DateFormat = "~4.10.0b-~2.10.0b-~2.10.0b",
-	TimeFormat = "T~2.10.0b:~2.10.0b:~2.10.0b.~3.10.0bZ",
-	Chars = io_lib:fwrite(DateFormat ++ TimeFormat,
-			[Year, Month, Day, Hour, Minute, Second, DateTime rem 1000]),
-	lists:flatten(Chars);
-iso8601([Y1, Y2, Y3, Y4 | T])
-		when Y1 >= $0, Y1 =< $9, Y2 >= $0, Y2 =< $9,
-		Y3 >= $0, Y3 =< $9, Y4 >= $0, Y4 =< $9 ->
-	iso8601month(list_to_integer([Y1, Y2, Y3, Y4]), T).
-%% @hidden
-iso8601month(Year, []) ->
-	DateTime = {{Year, 1, 1}, {0, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601month(Year, [$-]) ->
-	iso8601month(Year, []);
-iso8601month(Year, [$-, $0]) ->
-	iso8601month(Year, [$-, $0, $1]);
-iso8601month(Year, [$-, $1]) ->
-	iso8601month(Year, [$-, $1, $0]);
-iso8601month(Year, [$-, M, $- | T])
-		when M >= $1, M =< $9 ->
-	iso8601day(Year, list_to_integer([M]), T);
-iso8601month(Year, [$/, M1, M2 | T])
-		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
-	iso8601day(Year, list_to_integer([M1, M2]), T);
-iso8601month(Year, [$-, M1, M2 | T])
-		when M1 >= $0, M1 =< $1, M2 >= $0, M2 =< $9 ->
-	iso8601day(Year, list_to_integer([M1, M2]), T).
-%% @hidden
-iso8601day(Year, Month, []) ->
-	DateTime = {{Year, Month, 1}, {0, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601day(Year, Month, [$-]) ->
-	iso8601day(Year, Month, []);
-iso8601day(Year, Month, [$-, $0]) ->
-	iso8601day(Year, Month, [$-, $1, $0]);
-iso8601day(Year, Month, [$-, D1])
-		when D1 >= $1, D1 =< $3 ->
-	iso8601day(Year, Month, [$-, D1, $0]);
-iso8601day(Year, Month, [$/, D])
-		when D >= $1, D =< $9 ->
-	iso8601day(Year, Month, [$-, D]);
-iso8601day(Year, Month, [$-, D, _ | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D, $, | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [D, $, | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D, $- | T])
-		when D >= $1, D =< $9 ->
-	Day = list_to_integer([D]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$/, D1, D2 | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [D1, D2, $, | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T);
-iso8601day(Year, Month, [$-, D1, D2 | T])
-		when D1 >= $0, D1 =< $3, D2 >= $0, D2 =< $9 ->
-	Day = list_to_integer([D1, D2]),
-	iso8601hour({Year, Month, Day}, T).
-%% @hidden
-iso8601hour(Date, []) ->
-	DateTime = {Date, {0, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601hour(Date, [$T]) ->
-	iso8601hour(Date, []);
-iso8601hour(Date, [$ ]) ->
-	iso8601hour(Date, []);
-iso8601hour(Date, [H1, $:])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
-iso8601hour(Date, [$T, H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$T, H1, $0]);
-iso8601hour(Date, [$ , H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$ , H1, $0]);
-iso8601hour(Date, [$, , H1])
-		when H1 >= $0, H1 =< $2 ->
-	iso8601hour(Date, [$ , H1, $0]);
-iso8601hour(Date, [$T, H, $- | T])
-		when H >= $1, H =< $9 ->
-	Hour = list_to_integer([H]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$, , H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$T, H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$ , $- , $ , H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, [$ , H1, H2 | T])
-		when H1 >= $0, H1 =< $2, H2 >= $0, H2 =< $9 ->
-	Hour = list_to_integer([H1, H2]),
-	iso8601minute(Date, Hour, T);
-iso8601hour(Date, Other) ->
-erlang:display({?MODULE, ?LINE, Date, Other}), exit(badarg).
-%% @hidden
-iso8601minute(Date, Hour, []) ->
-	DateTime = {Date, {Hour, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601minute(Date, Hour, [$:]) ->
-	iso8601minute(Date, Hour, []);
-iso8601minute(Date, Hour, [$:, M1])
-		when M1 >= $0, M1 =< $5 ->
-	iso8601minute(Date, Hour, [$:, M1, $0]);
-iso8601minute(Date, Hour, [M1, $:, M2 | T])
-		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
-	Minute = list_to_integer([M1, M2]),
-	iso8601second(Date, Hour, Minute, T);
-iso8601minute(Date, Hour, [$:, M1, M2 | T])
-		when M1 >= $0, M1 =< $5, M2 >= $0, M2 =< $9 ->
-	Minute = list_to_integer([M1, M2]),
-	iso8601second(Date, Hour, Minute, T);
-iso8601minute(Date, Hour, _) ->
-	DateTime = {Date, {Hour, 0, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
-%% @hidden
-iso8601second(Date, Hour, Minute, []) ->
-	DateTime = {Date, {Hour, Minute, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000;
-iso8601second(Date, Hour, Minute, [$:]) ->
-	iso8601second(Date, Hour, Minute, []);
-iso8601second(Date, Hour, Minute, [$:, S1])
-		when S1 >= $0, S1 =< $5 ->
-	iso8601second(Date, Hour, Minute, [$:, S1, $0]);
-iso8601second(Date, Hour, Minute, [$:, S1, S2 | T])
-		when S1 >= $0, S1 =< $5, S2 >= $0, S2 =< $9 ->
-	Second = list_to_integer([S1, S2]),
-	DateTime = {Date, {Hour, Minute, Second}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	EpocMilliseconds = (GS - ?EPOCH) * 1000,
-	iso8601millisecond(EpocMilliseconds, T);
-iso8601second(Date, Hour, Minute, _) ->
-	DateTime = {Date, {Hour, Minute, 0}},
-	GS = calendar:datetime_to_gregorian_seconds(DateTime),
-	(GS - ?EPOCH) * 1000.
-%% @hidden
-iso8601millisecond(EpocMilliseconds, []) ->
-	EpocMilliseconds;
-iso8601millisecond(EpocMilliseconds, [$.]) ->
-	EpocMilliseconds;
-iso8601millisecond(EpocMilliseconds, [$., N1, N2, N3 | _])
-		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9,
-		N3 >= $0, N3 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2, N3]);
-iso8601millisecond(EpocMilliseconds, [$., N1, N2 | _])
-		when N1 >= $0, N1 =< $9, N2 >= $0, N2 =< $9 ->
-	EpocMilliseconds + list_to_integer([N1, N2]) * 10;
-iso8601millisecond(EpocMilliseconds, [$., N | _])
-		when N >= $0, N =< $9 ->
-	EpocMilliseconds + list_to_integer([N]) * 100;
-iso8601millisecond(EpocMilliseconds, _) ->
-	EpocMilliseconds.
 
 -spec oid_to_name(OID) -> Name
 	when
@@ -327,168 +132,68 @@ generate_identity(<<N, Rest/binary>>, Charset, NumChars, Acc) ->
 generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	Acc.
 
--spec generate_maps(TargetName, AlarmDetails, Domain) -> Result
+-spec create_event(TargetName, AlarmDetails, Domain) -> Result
 	when
 		TargetName :: list(),
 		AlarmDetails :: [{Name, Value}],
 		Domain :: fault | syslog | notification,
 		Name :: list(),
 		Value :: list(),
-		Result :: {CommonEventHeader, OtherFields},
-		CommonEventHeader :: map(),
-		OtherFields :: map().
+		Result :: fault_event().
 %% @doc Generate the Common event header and Fault Fields maps.
-generate_maps(TargetName, AlarmDetails, fault) ->
+create_event(TargetName, AlarmDetails, fault) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "fault"),
 	FaultFields = fault_fields(Remainder),
 	{NewCommonEventHeader, NewFaultFields} = check_fields(CommonEventHeader, FaultFields),
-	{NewCommonEventHeader, NewFaultFields};
-generate_maps(TargetName, AlarmDetails, syslog) ->
+	create_event1(NewCommonEventHeader, NewFaultFields);
+create_event(TargetName, AlarmDetails, syslog) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "syslog"),
 	SyslogFields = syslog_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
-	{NewCommonEventHeader, SyslogFields};
-generate_maps(TargetName, AlarmDetails, notification) ->
+	create_event1(NewCommonEventHeader, SyslogFields);
+create_event(TargetName, AlarmDetails, notification) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notification"),
-	NotificaitonFields = notification_fields(Remainder),
+	NotificationFields = notification_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
-	{NewCommonEventHeader, NotificaitonFields}.
-
--spec common_event_header(TargetName, AlarmDetails, Domain) -> Result
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		TargetName :: string(),
-		Domain :: string(),
-		Value :: list(),
-		Result :: {map(), AlarmDetails}.
-%% @doc Create the VES common event header map.
-common_event_header(TargetName, AlarmDetails, Domain)
-		when is_list(TargetName), is_list(AlarmDetails) ->
-	DefaultMap = #{"domain" => Domain,
-			"eventId" => event_id(),
-			"lastEpochMicrosec" => timestamp(),
-			"priority" => "Normal",
-			"reportingEntityName" => TargetName,
-			"sequence" => 0,
-			"version" => 1},
-	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
+	create_event1(NewCommonEventHeader, NotificationFields).
 %% @hidden
-common_event_header([{"reportingEntityId", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"reportingEntityId" => Value}, AD);
-common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
-common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"sourceId" => Value}, AD);
-common_event_header([{"sourceName", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"sourceName" => Value}, AD);
-common_event_header([{"priority", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"priority" => Value}, AD);
-common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"sequence" => Value}, AD);
-common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"version" => Value}, AD);
-common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
-common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => iso8601(Value)}, AD);
-common_event_header([H | T], TargetName, CH, AD) ->
-	common_event_header(T, TargetName, CH, [H | AD]);
-common_event_header([], _TargetName, CH, AD) ->
-	{CH, AD}.
-
--spec notification_fields(AlarmDetails) -> NotificationFields
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		Value :: list(),
-		NotificationFields :: map().
-%% @doc Create the fault fields map.
-notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"notificaionFieldsVersion" => 1},
-	notification_fields(AlarmDetails, DefaultMap).
-%% @hidden
-notification_fields([{"id", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"description", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"status", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"name", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"priority", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"eventType", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"stateInterface", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{"changeType", Value} | T], Acc) ->
-	notification_fields(T, Acc#{"" => Value});
-notification_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
-notification_fields([], Acc) ->
-	Acc.
-
--spec syslog_fields(AlarmDetails) -> SysLogFields
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		Value :: list(),
-		SysLogFields :: map().
-%% @doc Create the fault fields map.
-syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"syslogFieldsVersion" => 1},
-	syslog_fields(AlarmDetails, DefaultMap).
-%% @hidden
-syslog_fields([{"sysSourceType", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"eventSourceType" => Value});
-syslog_fields([{"sysSourceHost", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"eventSourceHost" => Value});
-syslog_fields([{"syslogMsg", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"syslogMsg" => Value});
-syslog_fields([{"syslogSev", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"syslogSev" => Value});
-syslog_fields([{"syslogTag", Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"syslogTag" => Value});
-syslog_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
-syslog_fields([], Acc) ->
-	Acc.
-
--spec fault_fields(AlarmDetails) -> FaultFields
-	when
-		AlarmDetails :: [{Name, Value}],
-		Name :: list(),
-		Value :: list(),
-		FaultFields :: map().
-%% @doc Create the fault fields map.
-fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
-			"faultFieldsVersion" => 1},
-	fault_fields(AlarmDetails, DefaultMap).
-%% @hidden
-fault_fields([{"alarmCondition", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"alarmCondition" => Value});
-fault_fields([{"eventCategory", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"eventCategory" => Value});
-fault_fields([{"eventSeverity", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"eventSeverity" => Value});
-fault_fields([{"eventSourceType", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"eventSourceType" => Value});
-fault_fields([{"specificProblem", Value} | T], Acc) ->
-	fault_fields(T, Acc#{"specificProblem" => Value});
-fault_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
-fault_fields([], Acc) ->
-	Acc.
+create_event1(#{"startEpochMicrosec" := _,
+		"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW,
+		"lastEpochMicrosec" := Last} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"startEpochMicrosec" => Last}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW,
+		"startEpochMicrosec" := Start} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"lastEpochMicrosec" => Start}, OtherFields};
+create_event1(#{"eventName" := ?EN_NEW} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"startEpochMicrosec" => TS, "lastEpochMicrosec" => TS}, OtherFields};
+create_event1(#{"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId}, OtherFields};
+create_event1(CommonEventHeader, OtherFields) ->
+	TS = timestamp(),
+	N = erlang:unique_integer([positive]),
+	EventId = integer_to_list(TS) ++ "-" ++ integer_to_list(N),
+	{TS, N, node(), CommonEventHeader#{"eventId" => EventId,
+			"lastEpochMicrosec" => TS}, OtherFields}.
 
 -spec security_params(EngineID, Address, SecName,
 		AuthParams, Packet, AuthPass, PrivPass) -> Result
@@ -618,63 +323,32 @@ agent_name(Address) ->
 			{error, target_name_not_found}
 	end.
 
--spec log_events(Maps) -> Result
+-spec log_event(Event) -> Result
    when
-		Maps :: {CommonEventHeader, OtherFields},
+		Event :: {TS, N, Node, CommonEventHeader, OtherFields},
+		TS :: pos_integer(),
+		N :: pos_integer(),
+		Node :: node(),
 		CommonEventHeader :: map(),
 		OtherFields :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Log the event to disk.
 %% @private
-log_events({CommonEventHeader, OtherFields}) ->
-	TimeStamp = erlang:system_time(milli_seconds),
-	Identifer = erlang:unique_integer([positive]),
-	Node = node(),
-	Event = {TimeStamp, Identifer, Node, CommonEventHeader, OtherFields},
-	{ok, Url} = application:get_env(snmp_collector, ves_url),
-	{ok, LogName} = application:get_env(snmp_collector, queue_name),
-	case disk_log:log(LogName, Event) of
+log_event({TS, N, Node, CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalInformation}
+		= OtherFields}) ->
+	try
+		Event1 = {TS, N, Node, CommonEventHeader,
+				OtherFields#{"alarmAdditionalInformation" => alarm_additional_information(AlarmAdditionalInformation)}},
+		gen_event:notify(snmp_collector_event, Event1) 
+	of
 		ok ->
-			Event1 = {CommonEventHeader, OtherFields},
-			post_event(Event1, Url);
-		{error, Reason} ->
+			ok
+	catch
+		_:Reason ->
 			error_logger:info_report(["SNMP Manager Event Logging Failed",
-					{timestamp, TimeStamp},
-					{identifier, Identifer},
-					{node, Node},
 					{reason, Reason}]),
 			{error, Reason}
-	end.
-
--spec post_event(Event, Url) -> ok
-   when
-		Event :: {CommonEventHeader, OtherFields},
-		CommonEventHeader :: map(),
-		OtherFields :: map(),
-		Url :: inet:ip_address() | [].
-%% @doc Log the event to disk.
-post_event(_Event, []) ->
-	ok;
-post_event({#{"domain" := Domain} = CommonEventHeader, OtherFields}, Url)
-		when is_map(CommonEventHeader), is_map(OtherFields), is_list(Url) ->
-	{ok, UserName } = application:get_env(snmp_collector, ves_username),
-	{ok, Password} = application:get_env(snmp_collector, ves_password),
-	{ok, Options} = application:get_env(snmp_collector, ves_options),
-	ContentType = "application/json",
-	Accept = {"accept", "application/json"},
-	EncodeKey = "Basic" ++ base64:encode_to_string(string:concat(UserName ++ ":", Password)),
-	Authentication = {"authorization", EncodeKey},
-	Event = #{"event" => #{"commonEventHeader" => CommonEventHeader, Domain ++ "Fields" => OtherFields}},
-	RequestBody = zj:encode(Event),
-	Request = {Url ++ "/eventListener/v5", [Accept, Authentication], ContentType, RequestBody},
-	NewOptions = [{sync, false}, {receiver, fun check_response/1} | Options],
-	case httpc:request(post, Request, [], NewOptions) of
-			{error, Reason} ->
-				error_logger:info_report(["SNMP Manager POST Failed",
-						{error, Reason}]);
-			_RequestID ->
-				ok
 	end.
 
 -spec arrange_list(Varbinds) -> Result
@@ -693,8 +367,9 @@ arrange_list(Varbinds)
 		when is_list(Varbinds) ->
 	arrange_list(Varbinds, []).
 %% @hidden
-arrange_list([{vabind, [1,3,6,1,2,1,1,3,0], 'TimeTicks', _Value, _Seqnum} | T], Acc) ->
-	arrange_list(T, Acc);
+arrange_list([{varbind, [1,3,6,1,2,1,1,3,0], 'TimeTicks', Value, _Seqnum},
+		{varbind, [1,3,6,1,6,3,1,1,4,1,0], _, Value1, _Seqnum1} | T], Acc) ->
+	arrange_list(T, [{[1,3,6,1,2,1,1,3,0], Value}, {[1,3,6,1,6,3,1,1,4,1,0], oid_to_name(Value1)} | Acc]);
 arrange_list([{varbind, OID, Type, Value, _Seqnum} | T], Acc)
 		when Type == 'OCTET STRING', is_list(Value) ->
 	case unicode:characters_to_list(Value, utf8) of
@@ -906,79 +581,11 @@ engine_id4(PEN, Acc) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec check_response(ReplyInfo) -> any()
-	when
-		ReplyInfo :: tuple().
-%% @doc Check the response of a httpc request.
-check_response({_RequestId, {error, Reason}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, Reason}]);
-check_response({_RequestId, {{"HTTP/1.1",400, _BadRequest},_ , _}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, "400, bad_request"}]);
-check_response({_RequestId, {{"HTTP/1.1",500, _InternalError},_ , _}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, "500, internal_server_error"}]);
-check_response({_RequestId, {{"HTTP/1.1",502, _GateWayError},_ , _}}) ->
-	error_logger:info_report(["SNMP Manager POST Failed",
-			{error, "502, bad_gateway"}]);
-check_response({_RequestId, {{"HTTP/1.1",201, _Created},_ , _}}) ->
-	void.
-
--spec check_fields(CommonEventHeader, FaultFields) -> Result
-	when
-		CommonEventHeader :: map(),
-		FaultFields :: map(),
-		Result :: {NewCommonEventHeader, NewFaultFields},
-		NewCommonEventHeader :: map(),
-		NewFaultFields :: map().
-%% @doc Normalize mandatory fields.
-check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
-	check_fields1(CH, FF);
-check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_list(EventSeverity), length(EventSeverity) > 0 ->
-	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
-check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF)
-		when is_atom(EventName), EventName /= undefined ->
-	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
-check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_atom(EventName), EventName /= undefined, is_list(EventSeverity), length(EventSeverity) > 0 ->
-	check_fields1(CH, FF);
-check_fields(#{"eventName" := ?EN_CLEARED} = CH, FF) ->
-	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
-check_fields(#{"eventName" := EventName} = CH, FF)
-		when is_atom(EventName), EventName /= undefined ->
-	check_fields1(CH, FF);
-check_fields(CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
-	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
-check_fields(CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_list(EventSeverity), length(EventSeverity) > 0 ->
-	check_fields1(CH#{"eventName" => ?EN_NEW}, FF);
-check_fields(CH, FF) ->
-	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
-%% @hidden
-check_fields1(CH, #{"eventSeverity" := EventSeverity} = FF)
-		when is_list(EventSeverity), length(EventSeverity) > 0 ->
-	check_fields2(CH, FF);
-check_fields1(CH, FF) ->
-	check_fields2(CH#{"eventSeverity" => ?ES_MINOR}, FF).
-%% @hidden
-check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
-		when is_list(EventType), length(EventType) > 0 ->
-	check_fields3(CH, FF);
-check_fields2(CH, FF) ->
-	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
-%% @hidden
-check_fields3(#{"probableCause" := ProbableCause} = CH, FF)
-		when is_list(ProbableCause), length(ProbableCause) > 0 ->
-	{CH, FF};
-check_fields3(CH, FF) ->
-	{CH#{"probableCause" => ?PC_Indeterminate}, FF}.
-
 -spec strip_name(Name) -> Name
 	when
 		Name :: string().
 %% @doc Removes the index from required names.
+%% @hidden
 strip_name(Name) ->
 	case string:tokens(Name, ".") of
 		[StripedName, _Index] ->
@@ -987,119 +594,12 @@ strip_name(Name) ->
 			Name
 	end.
 
--spec event_id() -> EventId
-	when
-		EventId :: string().
-%% @doc Create unique event id.
-event_id() ->
-	Ts = erlang:system_time(?MILLISECOND),
-	N = erlang:unique_integer([positive]),
-	integer_to_list(Ts) ++ "-" ++ integer_to_list(N).
-
 -spec timestamp() -> TimeStamp
 	when
 		TimeStamp :: integer().
 %% @doc Create time stamp.
 timestamp() ->
 	erlang:system_time(?MILLISECOND).
-
--spec authenticate_v3(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
-	when
-		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
-		AuthKey :: [byte()],
-		AuthParams :: list(),
-		Packet :: [byte()],
-		Result :: true | false.
-%% @doc Authenticate the SNMP agent.
-authenticate_v3(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
-	case snmp_collector_snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) of
-		true ->
-			true;
-		false ->
-			false
-	end;
-authenticate_v3(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
-	case snmp_collector_snmp_usm:auth_in(usmHMACSHAAuthProtocol, AuthKey, AuthParams, Packet) of
-		true ->
-			true;
-		false ->
-			false
-	end;
-authenticate_v3(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
-	true.
-
--spec add_usm_user(EngineID, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
-	when
-		EngineID :: list(),
-		UserName :: list(),
-		SecName :: list(),
-		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
-		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
-		AuthPass :: list(),
-		PrivPass :: list(),
-		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
-		Reason :: term().
-%% @doc Add a new usm user to the snmp_usm table.
-add_usm_user(EngineID, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
-	add_usm_user1(EngineID, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
-			{auth_key, AuthKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
-			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
-			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmNoPrivProtocol}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
-	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
-	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
-	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
-	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
-%% @hidden
-add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
-		when is_list(EngineID), is_list(UserName) ->
-	case snmpm:register_usm_user(EngineID, UserName, Conf) of
-		ok ->
-			{usm_user_added, AuthProtocol, PrivProtocol};
-		{error, Reason} ->
-			{error, Reason}
-	end.
-
 -spec update_counters(AgentName, TargetName, AlarmDetails) -> Result
 	when
 		AgentName :: atom(),
@@ -1246,6 +746,306 @@ update_counters(AgentName, TargetName, [_H | T]) ->
 	update_counters(AgentName, TargetName, T);
 update_counters(_, _, []) ->
 	ok.
+
+%%----------------------------------------------------------------------
+%%  The internal functions
+%%----------------------------------------------------------------------
+
+-spec common_event_header(TargetName, AlarmDetails, Domain) -> Result
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		TargetName :: string(),
+		Domain :: string(),
+		Value :: list(),
+		Result :: {map(), AlarmDetails}.
+%% @doc Create the VES common event header map.
+common_event_header(TargetName, AlarmDetails, Domain)
+		when is_list(TargetName), is_list(AlarmDetails) ->
+	DefaultMap = #{"domain" => Domain,
+			"priority" => "Normal",
+			"reportingEntityName" => TargetName,
+			"sequence" => 0,
+			"vesEventListenerVersion" => "7.0.1",
+			"version" => "4.0.1"},
+	common_event_header(AlarmDetails, TargetName, DefaultMap, []).
+%% @hidden
+common_event_header([{"reportingEntityId", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"reportingEntityId" => Value}, AD);
+common_event_header([{"eventName", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"eventName" => Value}, AD);
+common_event_header([{"sourceId", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"sourceId" => Value}, AD);
+common_event_header([{"sourceName", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"sourceName" => Value}, AD);
+common_event_header([{"priority", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"priority" => Value}, AD);
+common_event_header([{"sequence", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"sequence" => Value}, AD);
+common_event_header([{"version", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"version" => Value}, AD);
+common_event_header([{"eventType", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"eventType" => Value}, AD);
+common_event_header([{"raisedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"startEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
+common_event_header([{"changedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
+common_event_header([{"clearedTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
+common_event_header([{"alarmAckTime", Value} | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH#{"lastEpochMicrosec" => snmp_collector_log:iso8601(Value)}, AD);
+common_event_header([H | T], TargetName, CH, AD) ->
+	common_event_header(T, TargetName, CH, [H | AD]);
+common_event_header([], _TargetName, CH, AD) ->
+	{CH, AD}.
+
+-spec notification_fields(AlarmDetails) -> NotificationFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		NotificationFields :: map().
+%% @doc Create the fault fields map.
+notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"notificationFieldsVersion" => 1},
+	notification_fields(AlarmDetails, DefaultMap).
+%% @hidden
+notification_fields([{"id", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"id" => Value});
+notification_fields([{"description", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"description" => Value});
+notification_fields([{"status", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"status" => Value});
+notification_fields([{"name", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"name" => Value});
+notification_fields([{"priority", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"priority" => Value});
+notification_fields([{"eventType", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"eventType" => Value});
+notification_fields([{"stateInterface", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"stateInterface" => Value});
+notification_fields([{"changeType", Value} | T], Acc) ->
+	notification_fields(T, Acc#{"changeType" => Value});
+notification_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+notification_fields([], Acc) ->
+	Acc.
+
+-spec syslog_fields(AlarmDetails) -> SysLogFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		SysLogFields :: map().
+%% @doc Create the fault fields map.
+syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"syslogFieldsVersion" => 1},
+	syslog_fields(AlarmDetails, DefaultMap).
+%% @hidden
+syslog_fields([{"sysSourceType", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"eventSourceType" => Value});
+syslog_fields([{"sysSourceHost", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"eventSourceHost" => Value});
+syslog_fields([{"syslogMsg", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogMsg" => Value});
+syslog_fields([{"syslogSev", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogSev" => Value});
+syslog_fields([{"syslogTag", Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"syslogTag" => Value});
+syslog_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+syslog_fields([], Acc) ->
+	Acc.
+
+-spec fault_fields(AlarmDetails) -> FaultFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		FaultFields :: map().
+%% @doc Create the fault fields map.
+fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => [],
+			"faultFieldsVersion" => 1},
+	fault_fields(AlarmDetails, DefaultMap).
+%% @hidden
+fault_fields([{"alarmCondition", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"alarmCondition" => Value});
+fault_fields([{"eventCategory", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"eventCategory" => Value});
+fault_fields([{"eventSeverity", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"eventSeverity" => Value});
+fault_fields([{"eventSourceType", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"eventSourceType" => Value});
+fault_fields([{"specificProblem", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"specificProblem" => Value});
+fault_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+fault_fields([], Acc) ->
+	Acc.
+
+-spec alarm_additional_information(AlarmAdditionalInformation) -> Result
+	when
+		AlarmAdditionalInformation :: [map()],
+		Result :: map().
+%% @doc CODEC for alarm additional information.
+%% @hidden
+alarm_additional_information(AlarmAdditionalInformation) ->
+	alarm_additional_information(AlarmAdditionalInformation, #{}).
+%% @hidden
+alarm_additional_information([#{"name" := Name, "value" := Value} | T], Acc) ->
+	alarm_additional_information(T, Acc#{Name => Value});
+alarm_additional_information([], Acc) ->
+	Acc.
+
+-spec check_fields(CommonEventHeader, FaultFields) -> Result
+	when
+		CommonEventHeader :: map(),
+		FaultFields :: map(),
+		Result :: {NewCommonEventHeader, NewFaultFields},
+		NewCommonEventHeader :: map(),
+		NewFaultFields :: map().
+%% @doc Normalize mandatory fields.
+%% @hidden
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+	check_fields1(CH, FF);
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
+check_fields(#{"eventName" := _EventName} = CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
+check_fields(#{"eventName" := EventName} = CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventName), length(EventName) > 0,
+		is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields1(CH, FF);
+check_fields(#{"eventName" := ?EN_CLEARED} = CH, FF) ->
+	check_fields1(CH, FF#{"eventSeverity" =>  ?ES_CLEARED});
+check_fields(#{"eventName" := EventName} = CH, FF)
+		when is_list(EventName), length(EventName) > 0 ->
+	check_fields1(CH, FF);
+check_fields(CH, #{"eventSeverity" := ?ES_CLEARED} = FF) ->
+	check_fields1(CH#{"eventName" => ?EN_CLEARED}, FF);
+check_fields(CH, FF) ->
+	check_fields1(CH#{"eventName" => ?EN_NEW}, FF).
+%% @hidden
+check_fields1(CH, #{"eventSeverity" := EventSeverity} = FF)
+		when is_list(EventSeverity), length(EventSeverity) > 0 ->
+	check_fields2(CH, FF);
+check_fields1(CH, FF) ->
+	check_fields2(CH#{"eventSeverity" => ?ES_INDETERMINATE}, FF).
+%% @hidden
+check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
+		when is_list(EventType), length(EventType) > 0 ->
+	{CH, FF};
+check_fields2(CH, FF) ->
+	{CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF}.
+
+-spec authenticate_v3(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
+	when
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		AuthKey :: [byte()],
+		AuthParams :: list(),
+		Packet :: [byte()],
+		Result :: true | false.
+%% @doc Authenticate the SNMP agent.
+%% @hidden
+authenticate_v3(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) ->
+	case snmp_collector_snmp_usm:auth_in(usmHMACMD5AuthProtocol, AuthKey, AuthParams, Packet) of
+		true ->
+			true;
+		false ->
+			false
+	end;
+authenticate_v3(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
+	case snmp_collector_snmp_usm:auth_in(usmHMACSHAAuthProtocol, AuthKey, AuthParams, Packet) of
+		true ->
+			true;
+		false ->
+			false
+	end;
+authenticate_v3(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
+	true.
+
+-spec add_usm_user(EngineID, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
+	when
+		EngineID :: list(),
+		UserName :: list(),
+		SecName :: list(),
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+		AuthPass :: list(),
+		PrivPass :: list(),
+		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
+		Reason :: term().
+%% @doc Add a new usm user to the snmp_usm table.
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
+	add_usm_user1(EngineID, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
+			{auth_key, AuthKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
+			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
+	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
+			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
+	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmNoPrivProtocol}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
+	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
+	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
+%% @hidden
+add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineID), is_list(UserName) ->
+	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
+	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
+	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
+			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
+	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
+%% @hidden
+add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
+		when is_list(EngineID), is_list(UserName) ->
+	case snmpm:register_usm_user(EngineID, UserName, Conf) of
+		ok ->
+			{usm_user_added, AuthProtocol, PrivProtocol};
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 -spec generate_key(Protocol, Pass, EngineID) -> Key
 	when

@@ -270,6 +270,8 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
+		notification ->
+			ignore;
 		heartbeat ->
 			ignore;
 		fault ->
@@ -280,6 +282,8 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 		other ->
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
+		notification ->
+			ignore;
 		heartbeat ->
 			ignore;
 		fault ->
@@ -327,8 +331,8 @@ handle_fault(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:generate_maps(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_events(Event)
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+		snmp_collector_utils:log_event(Event)
 	of
 		ok ->
 			ignore;
@@ -349,128 +353,153 @@ handle_fault(TargetName, Varbinds) ->
 		VesValue :: string().
 %% @doc CODEC for event.
 fault(NameValuePair) ->
-	fault(NameValuePair, []).
+	{_, Value} = lists:keyfind("hwNmNorthboundFaultFlag", 1, NameValuePair),
+	fault(NameValuePair, Value, []).
 %% @hidden
-fault([{"hwNmNorthboundSerialNo", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmId", Value} | Acc]);
-fault([{"hwNmNorthboundEventTime", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"raisedTime", Value} | Acc]);
-fault([{"hwNmNorthboundResourceIDs", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"sourceId", Value} | Acc]);
-fault([{"hwNmNorthboundNEName", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"sourceName", Value} | Acc]);
-fault([{"hwNmNorthboundDeviceType", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"eventSourceType", Value} | Acc]);
-fault([{"hwNmNorthboundObjectInstance", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"objectInstance", Value} | Acc]);
-fault([{"snmpTrapOID", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmCondition", Value} | Acc]);
-fault([{"hwNmNorthboundSeverity", "Critical"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
-fault([{"hwNmNorthboundSeverity", "Major"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_MAJOR} | Acc]);
-fault([{"hwNmNorthboundSeverity", "Minor"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_MINOR} | Acc]);
-fault([{"hwNmNorthboundSeverity", "Warning"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_WARNING} | Acc]);
-fault([{"hwNmNorthboundSeverity", "Cleared"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_CLEARED} | Acc]);
-fault([{"hwNmNorthboundSeverity", "Indeterminate"} | T], Acc) ->
-	fault(T, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Fault"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_NEW} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Change"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CHANGED} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Recovery"} | T], Acc) ->
-	fault(T, [{"eventName", ?EN_CLEARED} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], Acc) ->
-	fault(T, [{"eventName", ?ACK_Acknowledged} | Acc]);
-fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], Acc) ->
-	fault(T, [{"eventName", ?ACK_Unacknowledged} | Acc]);
-fault([{"hwNmNorthboundEventType", "Environment"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
-fault([{"hwNmNorthboundEventType", "Communication"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
-fault([{"hwNmNorthboundEventType", "Service"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-fault([{"hwNmNorthboundEventType", "Processerror"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-fault([{"hwNmNorthboundEventType", "Hardware"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
-fault([{"hwNmNorthboundEventType", "Software"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-fault([{"hwNmNorthboundEventType", "Run"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Processing_Error} | Acc]);
-fault([{"hwNmNorthboundEventType", "Power"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
-fault([{"hwNmNorthboundEventType", "Signal"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
-fault([{"hwNmNorthboundEventType", "Relay"} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Communication_System} | Acc]);
-fault([{"hwNmNorthboundEventType", _} | T], Acc) ->
-	fault(T, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
-fault([{"hwNmNorthboundProbableCause", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"specificProblem", Value}, {"probableCause", ?PC_Indeterminate} | Acc]);
-fault([{"hwNmNorthboundProbableRepair", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"proposedRepairActions", Value} | Acc]);
-fault([{"hwNmNorthboundConfirmStatus", 1} | T], Acc) ->
-	fault(T, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
-fault([{"hwNmNorthboundConfirmStatus", 2} | T], Acc) ->
-	fault(T, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
-fault([{"hwNmNorthboundNEType", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"networkElementType", Value} | Acc]);
-fault([{"hwNmNorthboundAdditionalInfo", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"additionalText", Value} | Acc]);
-fault([{"hwNmNorthboundFaultFunction", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"eventFunction", Value} | Acc]);
-fault([{"hwNmNorthboundDeviceIP", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"deviceIP", Value} | Acc]);
-fault([{"hwNmNorthboundResourceIds", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"resourceIds", Value} | Acc]);
-fault([{"hwNmNorthboundTrailName", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"trailName", Value} | Acc]);
-fault([{"hwNmNorthboundRootAlarm", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"rootAlarm", Value} | Acc]);
-fault([{"hwNmNorthboundGroupId", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"groupId", Value} | Acc]);
-fault([{"hwNmNorthboundMaintainStatus", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"maintainStatus", Value} | Acc]);
-fault([{"hwNmNorthboundEventName", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"alarmEventName", Value} | Acc]);
-fault([{"hwNmNorthboundFaultID", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"eventId", Value} | Acc]);
-fault([{"hwNmNorthboundGroupID", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"groupId", Value} | Acc]);
-fault([{"hwNmNorthboundEventDetail", Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{"eventDetail", Value} | Acc]);
-fault([{Name, Value} | T], Acc)
-		when is_list(Value), length(Value) > 0 ->
-	fault(T, [{Name, Value} | Acc]);
-fault([_H | T], Acc) ->
-	fault(T, Acc);
-fault([], Acc) ->
+fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"alarmId", Value} | Acc]);
+fault([{"hwNmNorthboundResourceIDs", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"sourceId", Value} | Acc]);
+fault([{"hwNmNorthboundNEName", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"sourceName", Value} | Acc]);
+fault([{"hwNmNorthboundDeviceType", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"eventSourceType", Value} | Acc]);
+fault([{"hwNmNorthboundObjectInstance", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"objectInstance", Value} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotify"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notify"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyCritical"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyCritical"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyMajor"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyMajor"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyMinor"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyMinor"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyWarning"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyWarning"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyIndefinitely"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyIndefinitely"} | Acc]);
+fault([{"snmpTrapOID", "hwNmNorthboundEventNotifyUnknownSeverity"} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmCondition", "notifyUnknownSeverity"} | Acc]);
+fault([{"hwNmNorthboundSeverity", "Critical"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
+fault([{"hwNmNorthboundSeverity", "Major"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_MAJOR} | Acc]);
+fault([{"hwNmNorthboundSeverity", "Minor"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_MINOR} | Acc]);
+fault([{"hwNmNorthboundSeverity", "Warning"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_WARNING} | Acc]);
+fault([{"hwNmNorthboundSeverity", "Indeterminate"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
+fault([{"hwNmNorthboundRestoreStatus", 1} | T], EN, Acc) ->
+	fault(T, EN, [{"eventSeverity", ?ES_CLEARED} | Acc]);
+fault([{"hwNmNorthboundEventType", "Environment"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
+fault([{"hwNmNorthboundEventType", "Communication"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Communication_System} | Acc]);
+fault([{"hwNmNorthboundEventType", "Service"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+fault([{"hwNmNorthboundEventType", "Processerror"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Processing_Error} | Acc]);
+fault([{"hwNmNorthboundEventType", "Hardware"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Equipment_Alarm} | Acc]);
+fault([{"hwNmNorthboundEventType", "Software"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Processing_Error} | Acc]);
+fault([{"hwNmNorthboundEventType", "Run"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Processing_Error} | Acc]);
+fault([{"hwNmNorthboundEventType", "Power"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Environmental_Alarm} | Acc]);
+fault([{"hwNmNorthboundEventType", "Signal"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Communication_System} | Acc]);
+fault([{"hwNmNorthboundEventType", "Relay"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Communication_System} | Acc]);
+fault([{"hwNmNorthboundEventType", _} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
+fault([{"hwNmNorthboundProbableCause", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"specificProblem", Value}, {"probableCause", ?PC_Indeterminate} | Acc]);
+fault([{"hwNmNorthboundProbableRepair", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"proposedRepairActions", Value} | Acc]);
+fault([{"hwNmNorthboundConfirmStatus", 1} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmAckState", ?ACK_Acknowledged} | Acc]);
+fault([{"hwNmNorthboundConfirmStatus", 2} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmAckState", ?ACK_Unacknowledged} | Acc]);
+fault([{"hwNmNorthboundNEType", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"networkElementType", Value} | Acc]);
+fault([{"hwNmNorthboundAdditionalInfo", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"additionalText", Value} | Acc]);
+fault([{"hwNmNorthboundFaultFunction", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"eventFunction", Value} | Acc]);
+fault([{"hwNmNorthboundDeviceIP", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"deviceIP", Value} | Acc]);
+fault([{"hwNmNorthboundResourceIds", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"resourceIds", Value} | Acc]);
+fault([{"hwNmNorthboundTrailName", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"trailName", Value} | Acc]);
+fault([{"hwNmNorthboundRootAlarm", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"rootAlarm", Value} | Acc]);
+fault([{"hwNmNorthboundGroupId", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"groupId", Value} | Acc]);
+fault([{"hwNmNorthboundMaintainStatus", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"maintainStatus", Value} | Acc]);
+fault([{"hwNmNorthboundEventName", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"alarmEventName", Value} | Acc]);
+fault([{"hwNmNorthboundFaultID", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"eventId", Value} | Acc]);
+fault([{"hwNmNorthboundGroupID", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"groupId", Value} | Acc]);
+fault([{"hwNmNorthboundEventDetail", Value} | T], EN, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"eventDetail", Value} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Fault"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_NEW} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Change"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Recovery"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CLEARED} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
+fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
+fault([{"hwNmNorthbound}EventTime", Value} | T], EN, Acc)
+		when EN == "Fault", length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"raisedTime", Value} | Acc]);
+fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
+		when EN == "Change", length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"changedTime", Value} | Acc]);
+fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
+		when EN == "Recovery", length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"clearedTime", Value} | Acc]);
+fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
+		when EN == "Acknowledge", length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"alarmAckTime", Value} | Acc]);
+fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
+		when EN == "Unacknowledge", length(Value) > 0, Value =/= [$ ] ->
+	fault(T, EN, [{"changeTime", Value} | Acc]);
+fault([{_, [$ ]} | T], EN, Acc) ->
+	fault(T, EN, Acc);
+fault([{_, []} | T], EN, Acc) ->
+	fault(T, EN, Acc);
+fault([{Name, Value} | T], EN, Acc) ->
+	fault(T, EN, [{Name, Value} | Acc]);
+fault([], _EN, Acc) ->
 	Acc.
 
 -spec domain(Varbinds) -> Result
@@ -496,43 +525,13 @@ domain1("hwNmNorthboundEventNotifyIndefinitely") ->
 domain1("hwNmNorthboundEventNotifyUnknownSeverity") ->
 	fault;
 domain1("hwNmNorthboundEventSynchronizationStartNotify") ->
-	fault;
+	notification;
 domain1("hwNmNorthboundEventSynchronizationQueryResultNotify") ->
 	fault;
 domain1("hwNmNorthboundEventSynchronizationEndNotify") ->
-	fault;
+	notification;
 domain1("hwNmNorthboundEventKeepAlive") ->
 	heartbeat;
 domain1(_) ->
 	other.
-
--spec probable_cause(ReasonId) -> ProbableCause
-	when
-		ReasonId :: string(),
-		ProbableCause :: string().
-%% @doc Look up a probable cause.
-probable_cause("1") ->
-	?PC_LOS;
-probable_cause("2") ->
-	?PC_LOS;
-probable_cause("3") ->
-	?PC_Clock_Synchronization_Problem;
-probable_cause("4") ->
-	?PC_Clock_Synchronization_Problem;
-probable_cause("5") ->
-	?PC_LOF;
-probable_cause("6") ->
-	?PC_Replaceable_Unit_Missing;
-probable_cause("7") ->
-	?PC_Replaceable_Unit_Type_Mismatch;
-probable_cause("8") ->
-	?PC_LOF;
-probable_cause("9") ->
-	?PC_Transmission_Error;
-probable_cause("10") ->
-	?PC_Performance_Degraded;
-probable_cause("11") ->
-	?PC_Performance_Degraded;
-probable_cause(_EventDetail) ->
-	"fault".
 

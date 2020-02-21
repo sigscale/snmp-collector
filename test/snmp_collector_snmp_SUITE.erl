@@ -29,7 +29,6 @@
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
 
--define(INTERVAL, interval).
 -define(sigscalePEN, 50386).
 
 -include_lib("inets/include/mod_auth.hrl").
@@ -683,19 +682,6 @@ engine_id(PEN, Acc) ->
    engine_id(PEN, [rand:uniform(255) | Acc]).
 
 init_snmp(Config) ->
-	PrivDir = ?config(priv_dir, Config),
-	DbDir = PrivDir ++ "db",
-	case file:make_dir(DbDir) of
-		ok ->
-			ok = application:set_env(mnesia, dir, DbDir),
-			init_snmp1(Config);
-		{error, eexist} ->
-			ok = application:set_env(mnesia, dir, DbDir),
-			init_snmp1(Config);
-		{error, Reason} ->
-			{error, Reason}
-	end.
-init_snmp1(Config) ->
 	DataDir = ?config(data_dir, Config),
 	TrapMib = DataDir ++ "CT-TRAP-MIB.bin",
 	ok = snmp_collector_test_lib:initialize_db(Config),

@@ -1,11 +1,31 @@
 @copyright 2018 SigScale Global Inc.
 @version %VERSION%
 @title %DESCRIPTION%
-@doc This application implements a proxy for SNMP agents.
+@doc This application implements a 3GPP SNMP manager.
 
 ==Introduction==
+SigScale SNMP Collector is used by communications service providers
+(CSP) to terminate the fault management (FM) north bound interfaces
+(NBI) of various vendors&apos; Element Management Systems (EMS).
 
-====TM Forum Open APIs and VES====
+==Information Model==
+FM events are received as SNMP (v1, v2c, v3) TRAPs which are decoded
+using installed MIBs and vendor plugin modules. Vendor specific NBIs
+are normalized to the information model of ITU-T
+<a href="http://www.itu.int/itu-t/recommendations/rec.aspx?rec=3060">X.721</a>
+/<a href="http://www.itu.int/itu-t/recommendations/rec.aspx?rec=3071">X.733</a>
+and 3GPP Alarm Integration Reference Point (IRP)
+(<a href="https://webapp.etsi.org/key/key.asp?GSMSpecPart1=32&amp;GSMSpecPart2=111&amp;Search=search">32.111-2</a>)
+and are adapted to the Virtual Event Streaming
+(<a href="https://wiki.onap.org/display/DW/VES+7.1">VES</a>) API to be
+sent northbound.  The
+<a href="https://wiki.onap.org/display/DW/Data+Movement+as+a+Platform+Project">
+DMaaP</a> service of <a href="https://www.onap.org/">ONAP</a>
+<a href="https://wiki.onap.org/display/DW/Data+Collection+Analytics+and+Events+Project">
+DCAE</a> subsystem may be used to distribute fault events or they may be sent
+directly to SigScale&apos;s VES Collector, part of our Fault Surveillance project.
+
+==== 3GPP Alarm IRP and ONAP VES ====
 The following table shows the mapping between the alarm attributes and VES attributes.
 
 <p><table id="mt">
@@ -141,13 +161,13 @@ should be initialized. Create a schema and start mnesia on all nodes
 where the application {@link //snmp_collector. snmp_collector} application will run.
 
 The following command will initialize {@link //snmp_collector. snmp_collector}
-on the current node and create a default REST user
-"admin" with password "admin".
+on the current node and create a default REST user "admin" with password "admin".
 
 e.g &#058;
    ```
    (snmp_collector@h)1> snmp_collector_app:install().
    {ok, [httpd_group, httpd_user, alarm]}
+	'''
 
 ===HTTP Authentication===
 To use the {@link //inets/mod_auth. mod_auth} module for authentication
@@ -160,21 +180,15 @@ e.g &#058;
    {ok,{1501829429047,149}}
    2> snmp_collector:add_user("bss", "nfc9xgp32xha", "en").
    {ok,{1501829458220,157}}
-
-   '''
-
-===Internationalization (i18n)===
-The web user interface (UI) may be internationalized by specifying `Locale' in
-{@link //snmp_collector/snmp_collector:add_user/3. snmp_collector:add_user/3} where `Locale'
-is a two letter ISO-639-1 language code. A corresponding message file
-should be provided in `priv/www/locales'.
-   ```
-   3> snmp_collector:add_user("alejandro", "sjjymz5prtcd", "es").
-   {ok,{1500544430723584044,90}}
-
    '''
 
 ==Operation==
+
+===Graphical User Interface (GUI)===
+A web front end built with Google [Polymer](https://www.polymer-project.org)
+web components for
+[material design](https://material.io/guidelines/material-design/introduction.html)
+provides event views and MIB management.
 
 ==Configuration==
 

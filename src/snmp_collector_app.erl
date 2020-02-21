@@ -54,14 +54,9 @@
 		Reason :: term().
 %% @doc Starts the application processes.
 start(normal = _StartType, _Args) ->
-	{ok, Name} = application:get_env(queue_name),
-	{ok, Type} = application:get_env(queue_type),
-	{ok, Size} = application:get_env(queue_size),
-	{ok, File} = application:get_env(queue_files),
-	{ok, Dir} = application:get_env(queue_dir),
 	{ok, MibDir} = application:get_env(mib_dir),
 	{ok, BinDir} = application:get_env(bin_dir),
-	case open_log(Dir, Name, Type ,File, Size) of
+	case snmp_collector_log:fault_open() of
 		ok ->
 			case create_dirs(MibDir, BinDir) of
 				ok ->
@@ -110,38 +105,73 @@ start2() ->
 	end.
 %% @hidden
 start3() ->
+	case inets:services_info() of
+		ServicesInfo when is_list(ServicesInfo) ->
+			{ok, Profile} = application:get_env(ves_profile),
+			start4(Profile, ServicesInfo);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start4(Profile, [{httpc, _Pid, Info} | T]) ->
+	case proplists:lookup(profile, Info) of
+		{profile, Profile} ->
+			start5(Profile);
+		_ ->
+			start4(Profile, T)
+	end;
+start4(Profile, [_ | T]) ->
+	start4(Profile, T);
+start4(Profile, []) ->
+	case inets:start(httpc, [{profile, Profile}]) of
+		{ok, _Pid} ->
+			start5(Profile);
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start5(Profile) ->
+	{ok, Options} = application:get_env(ves_options),
+	case httpc:set_options(Options, Profile) of
+		ok ->
+			start6();
+		{error, Reason} ->
+			{error, Reason}
+	end.
+%% @hidden
+start6() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
 			Children = supervisor:which_children(TopSup),
 			{ok, ManagerPorts} = application:get_env(manager_ports),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
-			start4(TopSup, ManagerSup, DebugSup, ManagerPorts);
+			start7(TopSup, ManagerSup, DebugSup, ManagerPorts);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start4(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
+start7(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(ManagerSup, [[Port]]) of
 		{ok, _ManagerServerSup} ->
-			start4(TopSup, ManagerSup, DebugSup, T);
+			start7(TopSup, ManagerSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start4(TopSup, _ManangerSup, DebugSup, []) ->
+start7(TopSup, _ManangerSup, DebugSup, []) ->
 	{ok, DebugPorts} = application:get_env(debug_ports),
-	start5(TopSup, DebugSup, DebugPorts).
+	start8(TopSup, DebugSup, DebugPorts).
 %% @hidden
-start5(TopSup, DebugSup, [Port | T] = _DebugPorts)
+start8(TopSup, DebugSup, [Port | T] = _DebugPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(DebugSup, [[Port], []]) of
 		{ok, _DebugServer} ->
-			start5(TopSup, DebugSup, T);
+			start8(TopSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start5(TopSup, _DebugSup, []) ->
+start8(TopSup, _DebugSup, []) ->
 	StartMods = [snmp_collector_get_sup, [[], []]],
 	case timer:apply_interval(?INTERVAL, supervisor,
 			start_child, StartMods) of
@@ -150,7 +180,6 @@ start5(TopSup, _DebugSup, []) ->
 		{error, Reason} ->
 			{error, Reason}
 	end.
-%% @hidden
 
 -spec start_phase(Phase, StartType, PhaseArgs) -> Result
 	when
@@ -467,60 +496,6 @@ create_dirs(MibDir, BinDir) ->
 		{error, eexist} ->
 			ok;
 		{error, Reason} ->
-			{error, Reason}
-	end.
-
--spec open_log(Dir, Name, Type ,File, Size) -> Result
-	when
-		Dir :: string(),
-		Name :: atom(),
-		Type :: atom(),
-		File :: integer(),
-		Size :: integer(),
-		Result :: ok | {error, Reason},
-		Reason :: term().
-%% @doc Open a disk log file.
-open_log(Dir, Name, Type, File, Size) ->
-	case file:make_dir(Dir) of
-		ok ->
-			open_log1(Dir, Name, Type ,File, Size);
-		{error, eexist} ->
-			open_log1(Dir, Name, Type ,File, Size);
-		{error, Reason} ->
-			{error, Reason}
-	end.
-open_log1(Dir, Name, Type ,File, Size) ->
-	FileName = Dir ++ "/" ++ atom_to_list(Name),
-	case disk_log:open([{name, Name},
-			{file, FileName},
-			{type, Type}, {size, {Size, File}}]) of
-		{ok, _} = Result ->
-			open_log2(Name, [{node(), Result}], [], undefined);
-		{repaired, _, _, _} = Result ->
-			open_log2(Name, [{node(), Result}], [], undefined);
-		{error, _} = Result ->
-			open_log2(Name, [], [{node(), Result}], undefined);
-		{OkNodes, ErrNodes} ->
-			open_log2(Name, OkNodes, ErrNodes, undefined)
-	end.
-%% @hidden
-open_log2(Name, OkNodes,
-		[{Node, {error, {node_already_open, _}}} | T], Reason)
-		when Node == node() ->
-	open_log2(Name, [{Node, {ok, Name}} | OkNodes], T, Reason);
-open_log2(Name, OkNodes, [{_, {error, {node_already_open, _}}} | T], Reason) ->
-	open_log2(Name, OkNodes, T, Reason);
-open_log2(Name, OkNodes, [{Node, Reason1} | T], Reason2) ->
-	Descr = lists:flatten(disk_log:format_error(Reason1)),
-	Trunc = lists:sublist(Descr, length(Descr) - 1),
-	error_logger:error_report([Trunc, {module, ?MODULE},
-		{log, Name}, {node, Node}, {error, Reason1}]),
-	open_log2(Name, OkNodes, T, Reason2);
-open_log2(_Name, OkNodes, [], Reason) ->
-	case lists:keymember(node(), 1, OkNodes) of
-		true ->
-			ok;
-		false ->
 			{error, Reason}
 	end.
 

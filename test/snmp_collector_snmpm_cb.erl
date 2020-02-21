@@ -15,6 +15,9 @@
 %%% See the License for the specific language governing permissions and
 %%% limitations under the License.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%  @doc This {@link //snmp/snmpm_user, snmpm_user} behaviour callback
+%%% 	module implements SNMP manager functions for test SUITES in the
+%%% 	{@link //snmp_collector. snmp_collector} application.
 %%%
 -module(snmp_collector_snmpm_cb).
 -copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
