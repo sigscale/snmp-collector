@@ -24,7 +24,7 @@
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
-		get_agent_count/3]).
+		get_agent_count/3, start_synch/1]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -523,6 +523,20 @@ query_users2({like, String} = _MatchLocale, Cont, Users)
 			end
 	end,
 	{Cont, lists:filter(F, Users)}.
+
+-spec start_synch(AgentName) -> ok
+	when
+		AgentName :: string().
+%% @doc Start Alarm Synchronization.
+start_synch(AgentName)
+		when is_list(AgentName) ->
+	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
+		[[Module, _]] ->
+			Module:synchronization(AgentName);
+		[] ->
+			error_logger:info_report(["SNMP Manager Agent Not Found",
+				{address, AgentName}])
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
