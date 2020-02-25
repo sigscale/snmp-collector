@@ -551,3 +551,4 @@ domain1("iMAPNorthboundHeartbeatNotificationType") ->
 	heartbeat;
 domain1(_) ->
 	other.
+
