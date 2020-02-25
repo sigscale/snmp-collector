@@ -532,7 +532,7 @@ start_synch(AgentName)
 		when is_list(AgentName) ->
 	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 		[[Module, _]] ->
-			Module:synchronization(AgentName);
+			Module:start_synchronization(AgentName);
 		[] ->
 			error_logger:info_report(["SNMP Manager Agent Not Found",
 				{address, AgentName}])
