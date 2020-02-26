@@ -12,6 +12,8 @@ import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { select, selectAll } from 'd3-selection';
 import { arc, pie, stack } from 'd3-shape';
 import { scaleOrdinal, scaleBand, scaleLinear, scaleQuantize } from 'd3-scale';
+import { axisBottom, axisLeft } from 'd3-axis';
+import { max, descending } from 'd3-array';
 import "@polymer/paper-card/paper-card.js";
 import "@polymer/paper-item/paper-icon-item.js";
 import '@polymer/iron-ajax/iron-ajax.js';
@@ -22,6 +24,11 @@ class systemBoard extends PolymerElement {
 		return html`
 			<style include="style-element">
 			</style>
+			<paper-card heading="Vendor">
+				<div class="card-content">
+					<svg id="vendor" width="500" height="260"></svg>
+				</div>
+			</paper-card>
 			<paper-card heading="Event Type">
 				<div class="card-content">
 					<svg id="metric" width="800" height="260"></svg>
@@ -32,6 +39,11 @@ class systemBoard extends PolymerElement {
 					<svg id="severity" width="500" height="260"></svg>
 				</div>
 			</paper-card>
+         <paper-card heading="Total">
+            <div class="card-content">
+               <svg id="total" width="500" height="260"></svg>
+            </div>
+         </paper-card>
 			<iron-ajax
 				id="getDashAjax"
 				url="/counters/v1/snmp"
@@ -47,6 +59,14 @@ class systemBoard extends PolymerElement {
 				notify: true,
 				value: false
 			},
+         history: {
+            type: Array,
+            readOnly: true,
+            notify: false,
+            value: function() {
+               return []
+            }
+         }
 		}
 	}
 
@@ -61,6 +81,69 @@ class systemBoard extends PolymerElement {
 			if (request) {
 				var dataArray = new Array();
 				var req = request.response;
+				var totSystem = {"name": "total", "count": request.response.total};
+				var history = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').history;
+				var root1 = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot;
+				var color1 = scaleOrdinal(["#ff1744"]);
+				var svg1 = select(root1).select("#total");
+				draw_bar(svg1, [totSystem], color1);
+
+				function draw_bar(svg, data, color) {
+					svg.selectAll("*").remove();
+					var width = +svg.attr('width'),
+						height = +svg.attr('height'),
+					g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+					history.push(data);
+					var historyI = history.map(addIndex);
+					var margin = ({top: 20, right: 0, bottom: 30, left: 40});
+					var x = scaleBand()
+						.domain(historyI.map(d => d[0].index))
+						.range([margin.left, width - margin.right])
+						.padding(0.1);
+					var y = scaleLinear()
+						.domain([0, max(data, d => d.count)]).nice()
+						.range([height - margin.bottom, margin.top]);
+					var xAxis = g => g
+						.attr("transform", `translate(0,${height - margin.bottom})`)
+						.call(axisBottom(x).tickValues([]));
+					var yAxis = g => g
+						.attr("transform", `translate(${margin.left},0)`)
+						.call(axisLeft(y))
+						.call(g => g.select(".domain").remove());
+					svg.append("g")
+						.selectAll("g")
+						.data(historyI)
+						.enter().append("g")
+						.selectAll("rect")
+						.data(d => d.sort((x, y) => descending(x.count, y.count)))
+						.enter().append("rect")
+						.attr("fill", d => color(d.severity))
+						.attr("x", d => x(d.index))
+						.attr("y", d => y(d.count))
+						.attr("height", d => y(0) - y(d.count))
+						.attr("width", 30);
+					svg.append("g").call(xAxis);
+					svg.append("g").call(yAxis);
+				}
+				function addIndex(h, i) {
+					h.map(function(d){
+						return d.index = i;
+					})
+					return h;
+				};
+
+				var sysEventType = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList');
+				if(req.vendor) {
+					var dataVen = {"huawei": req.vendor.huawei.total,
+					"zte": req.vendor.zte.total,
+					"nokia": req.vendor.nokia.total};
+					var dataVendor1 = Object.keys(dataVen).map(k => ({ name: k, count: dataVen[k] }));
+				}			
+				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot;
+				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00"]);
+				var svg = select(root).select("#vendor");
+				sysEventType.draw_pie(svg, dataVendor1, color);
+
 				var dataEventType = Object.keys(req.eventType).map(k => ({ name: k, count: req.eventType[k] }));
 				var sysEventType = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList');
 				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot;
