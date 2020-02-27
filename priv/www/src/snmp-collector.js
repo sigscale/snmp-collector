@@ -91,11 +91,11 @@ class SnmpCollector extends PolymerElement {
 								loading="{{systemLoading}}"
 								name="systemView">
 						</snmp-systemboard>
-						<vendor-list
+						<snmp-vendorboard
 								id="vendorList"
 								loading="{{vendorLoading}}"
 								name="vendorView">
-						</vendor-list>
+						</snmp-vendorboard>
 						<agent-list
 								id="agentList"
 								loading="{{agentLoading}}"
@@ -221,9 +221,17 @@ class SnmpCollector extends PolymerElement {
 	refreshClick() {
 		switch(this.$.load.selected) {
          case "systemView":
-            var dash = this.shadowRoot.getElementById('systemList').clearCache();
+            var dash = this.shadowRoot.getElementById('systemList');
             if (!dash.loading) {
                dash._load();
+            } else {
+               console.log('Have patience dude!');
+            }
+            break;
+         case "vendorView":
+            var ven = this.shadowRoot.getElementById('vendorList');
+            if (!ven.loading) {
+               ven._load();
             } else {
                console.log('Have patience dude!');
             }
@@ -255,6 +263,10 @@ class SnmpCollector extends PolymerElement {
 			},
 			routeData: Object,
 			ubroute: Object,
+         loading: {
+            type: String,
+            value: false
+         },
 			logLoading: {
 				type: String,
 			},
@@ -323,6 +335,7 @@ class SnmpCollector extends PolymerElement {
 		// statement, so break it up.
 		switch (page) {
 			case 'vendorView':
+				import('./snmp-vendorboard.js');
 				break;
 			case 'systemView':
 				import('./snmp-systemboard.js');

@@ -15,35 +15,51 @@ import { scaleOrdinal, scaleBand, scaleLinear, scaleQuantize } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { max, descending } from 'd3-array';
 import "@polymer/paper-card/paper-card.js";
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-listbox/paper-listbox.js';
 import "@polymer/paper-item/paper-icon-item.js";
 import '@polymer/iron-ajax/iron-ajax.js';
 import './style-element.js';
 
-class systemBoard extends PolymerElement {
+class vendorBoard extends PolymerElement {
 	static get template() {
 		return html`
 			<style include="style-element">
 			</style>
-			<paper-card heading="Vendor">
+			<paper-card>
+				<paper-dropdown-menu label="Event Type" no-animations="true">
+					<paper-listbox id="vendorSelect" slot="dropdown-content" selected="2">
+						<paper-item>Huawei</paper-item>
+						<paper-item>ZTE</paper-item>
+						<paper-item>Nokia</paper-item>
+					</paper-listbox>
+				</paper-dropdown-menu>
 				<div class="card-content">
-					<svg id="vendor" width="500" height="260"></svg>
+					<svg id="vendorEvent" width="700" height="300"></svg>
 				</div>
 			</paper-card>
-			<paper-card heading="Event Type">
+			<paper-card>
+				<paper-dropdown-menu label="Severity" no-animations="true">
+					<paper-listbox id="severeSelect" slot="dropdown-content" selected="2">
+						<paper-item>Huawei</paper-item>
+						<paper-item>ZTE</paper-item>
+						<paper-item>Nokia</paper-item>
+					</paper-listbox>
+				</paper-dropdown-menu>
 				<div class="card-content">
-					<svg id="metric" width="800" height="260"></svg>
+					<svg id="vendorSeverity" width="700" height="300"></svg>
 				</div>
 			</paper-card>
-			<paper-card heading="Severity">
+			<paper-card heading="Agent">
 				<div class="card-content">
-					<svg id="severity" width="500" height="260"></svg>
+					<svg id="agent" width="500" height="260"></svg>
 				</div>
 			</paper-card>
-         <paper-card heading="Total">
-            <div class="card-content">
-               <svg id="total" width="500" height="260"></svg>
-            </div>
-         </paper-card>
+			<paper-card heading="Total">
+				<div class="card-content">
+					<svg id="total" width="500" height="260"></svg>
+				</div>
+			</paper-card>
 			<iron-ajax
 				id="getDashAjax"
 				url="/counters/v1/snmp"
@@ -59,14 +75,14 @@ class systemBoard extends PolymerElement {
 				notify: true,
 				value: false
 			},
-         history: {
-            type: Array,
-            readOnly: true,
-            notify: false,
-            value: function() {
-               return []
-            }
-         }
+			history: {
+				type: Array,
+				readOnly: true,
+				notify: false,
+				value: function() {
+					return []
+				}
+			}
 		}
 	}
 
@@ -76,14 +92,14 @@ class systemBoard extends PolymerElement {
 	}
 
 	_load() {
-		var ajax = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot.getElementById('getDashAjax');
+		var ajax = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot.getElementById('getDashAjax');
 		var handleAjaxResponse = function(request) {
 			if (request) {
 				var dataArray = new Array();
 				var req = request.response;
 				var totSystem = {"name": "total", "count": request.response.total};
-				var history = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').history;
-				var root1 = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot;
+				var history = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').history;
+				var root1 = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
 				var color1 = scaleOrdinal(["#ff1744"]);
 				var svg1 = select(root1).select("#total");
 				draw_bar(svg1, [totSystem], color1);
@@ -118,7 +134,7 @@ class systemBoard extends PolymerElement {
 						.data(d => d.sort((x, y) => descending(x.count, y.count)))
 						.enter().append("rect")
 						.attr("fill", d => color(d.severity))
-						.attr("x", d => x(d.index))
+						.attr("x", d => x(d.index)).attr("y", d => y(d.count))
 						.attr("y", d => y(d.count))
 						.attr("height", d => y(0) - y(d.count))
 						.attr("width", 30);
@@ -132,31 +148,48 @@ class systemBoard extends PolymerElement {
 					return h;
 				};
 
-				var sysEventType = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList');
+				var sysEventType = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList');
 				if(req.vendor) {
-					var dataVen = {"huawei": req.vendor.huawei.total,
-					"zte": req.vendor.zte.total,
-					"nokia": req.vendor.nokia.total};
-					var dataVendor1 = Object.keys(dataVen).map(k => ({ name: k, count: dataVen[k] }));
-				}			
-				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot;
-				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00"]);
-				var svg = select(root).select("#vendor");
-				sysEventType.draw_pie(svg, dataVendor1, color);
+					var dataVen = {"huawei": req.vendor.huawei.agent.total,
+						"zte": req.vendor.zte.agent.total,
+						"nokia": req.vendor.nokia.agent.total};
+					var dataAgent = Object.keys(dataVen).map(k => ({ name: k, count: dataVen[k] }));
+				}
+				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
+				var color2 = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00"]);
+				var svg2 = select(root).select("#agent");
+				sysEventType.draw_pie(svg2, dataAgent, color2);
 
-				var dataEventType = Object.keys(req.eventType).map(k => ({ name: k, count: req.eventType[k] }));
-				var sysEventType = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList');
-				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot;
+				var selected = sysEventType.shadowRoot.getElementById('vendorSelect').selected;
+				if(selected == 0) {
+					var dataEventType = Object.keys(req.vendor.huawei.eventType).map(k => ({ name: k, count: req.vendor.huawei.eventType[k] }));
+				}
+				if(selected == 1) {
+					var dataEventType = Object.keys(req.vendor.zte.eventType).map(k => ({ name: k, count: req.vendor.zte.eventType[k] }));
+				}
+				if(selected == 2) {
+					var dataEventType = Object.keys(req.vendor.nokia.eventType).map(k => ({ name: k, count: req.vendor.nokia.eventType[k] }));
+				}
+				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
 				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00", "#00b0ff", "#33DCFF", "#33B2FF", "#FF33F7", "#FF338F", "#793030", "#2CF3FF"]);
-				var svg = select(root).select("#metric");
+				var svg = select(root).select("#vendorEvent");
 				sysEventType.draw_pie(svg, dataEventType, color);
 
-				var dataSeverity = Object.keys(req.perceivedSeverity).map(k1 => ({ name: [k1], count: req.perceivedSeverity[k1] }));
-				var sysSev = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList');
-				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('systemList').shadowRoot;
-				var colorSev = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00"]);
-				var svgSev = select(root).select("#severity");
-				sysSev.draw_pie(svgSev, dataSeverity, colorSev);
+				var selectedVen = sysEventType.shadowRoot.getElementById('severeSelect').selected;
+				if(selectedVen == 0) {
+					var dataEventType = Object.keys(req.vendor.huawei.perceivedSeverity).map(k => ({ name: k, count: req.vendor.huawei.perceivedSeverity[k] }));
+				}
+				if(selectedVen == 1) {
+					var dataEventType = Object.keys(req.vendor.zte.perceivedSeverity).map(k => ({ name: k, count: req.vendor.zte.perceivedSeverity[k] }));
+				}
+				if(selectedVen == 2) {
+					var dataEventType = Object.keys(req.vendor.nokia.perceivedSeverity).map(k => ({ name: k, count: req.vendor.nokia.perceivedSeverity[k] }));
+				}
+				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
+				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00", "#00b0ff", "#33DCFF", "#33B2FF", "#FF33F7", "#FF338F", "#793030", "#2CF3FF"]);
+				var svg1 = select(root).select("#vendorSeverity");
+				sysEventType.draw_pie(svg1, dataEventType, color);
+				
 			}
 		}
 		var handleAjaxError = function(error) {
@@ -237,4 +270,4 @@ class systemBoard extends PolymerElement {
 	}
 }
 
-window.customElements.define('snmp-systemboard', systemBoard);
+window.customElements.define('snmp-vendorboard', vendorBoard);
