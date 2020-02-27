@@ -24,7 +24,7 @@
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
-		get_agent_count/3, start_synch/1]).
+		get_agent_count/3, start_synch/1, add_agent/8]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -246,14 +246,14 @@ get_count() ->
 			{'==', '$1', integrityViolation},  {'==', '$1', operationalViolation},
 			{'==', '$1', physicalViolation},
 			{'==', '$1', securityServiceOrMechanismViolation},
-			{'==', '$1', timeDomainViolation}}], ['$2']}], 
+			{'==', '$1', timeDomainViolation}}], ['$2']}],
 	lists:sum(ets:select(counters, MatchSpec)).
 
 -spec get_count(Metric) -> Result
 	when
 		Metric :: eventType | perceivedResult,
 		Result :: map().
-%% @doc Get current of alarms on system by `metric'. 
+%% @doc Get current of alarms on system by `metric'.
 get_count(Metric) ->
 	MatchSpec = [{{'$1', '$2'}, [{'==', '$1', Metric}], ['$2']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
@@ -261,7 +261,7 @@ get_count(Metric) ->
 
 -spec get_vendor_count(Vendor) -> Result
 	when
-		Vendor :: huawei | nokia | zte | emc | nec | hpe, 
+		Vendor :: huawei | nokia | zte | emc | nec | hpe,
 		Result :: non_neg_integer().
 %% @doc Get current of alarms for `vendor'.
 get_vendor_count(Vendor) ->
@@ -538,6 +538,54 @@ start_synch(AgentName)
 				{address, AgentName}])
 	end.
 
+-spec add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, Version, SecName) -> Result
+	when
+		UserId :: string(),
+		TargetName :: string(),
+		Community :: string(),
+		Tdomain :: transportDomainUdpIpv4 | transportDomainUdpIpv6,
+		Address :: {inet:ip_address(), inet:port_number()},
+		EngineId :: string(),
+		Version :: v1 | v2c | v3,
+		SecName :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Add and load new agent configuration.
+add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v1, SecName)
+		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
+			is_list(EngineId), is_list(SecName) ->
+	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
+			infinity, 484, v1, v1, SecName, noAuthNoPriv},
+	{ok, AgentConfigDir} = application:get_env(snmp_collector, agent_config_dir),
+	ok = snmpm_conf:append_agents_config(AgentConfigDir, [AgentConf]),
+	add_agent1(UserId, TargetName, EngineId, Address);
+add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v2c, SecName)
+		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
+			is_list(EngineId), is_list(SecName) ->
+	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
+			infinity, 484, v2, v2c, SecName, noAuthNoPriv},
+	{ok, AgentConfigDir} = application:get_env(snmp_collector, agent_config_dir),
+	ok =snmpm_conf:append_agents_config(AgentConfigDir, [AgentConf]),
+	add_agent1(UserId, TargetName, EngineId, Address);
+add_agent(UserId, TargetName, _Community, Tdomain, Address, EngineId, v3, SecName)
+		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
+			is_list(EngineId), is_list(SecName) ->
+	AgentConf = {UserId, TargetName, "", Tdomain, Address, EngineId,
+			infinity, 484, v3, usm, SecName, authPriv},
+	{ok, AgentConfigDir} = application:get_env(snmp_collector, agent_config_dir),
+	ok = snmpm_conf:append_agents_config(AgentConfigDir, [AgentConf]),
+	add_agent1(UserId, TargetName, EngineId, Address).
+%% @hidden
+add_agent1(UserId, TargetName, EngineId, Address) ->
+	case snmpm:register_agent(UserId, TargetName,
+			[{engine_id, EngineId}, {taddress, Address}]) of
+		ok ->
+			ok;
+		{error,Reason} ->
+			{error, Reason}
+	end.
+
+		
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
