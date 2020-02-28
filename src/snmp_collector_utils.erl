@@ -241,7 +241,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
-					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
+					case snmp_collector:add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
@@ -257,7 +257,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
-					case add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
+					case snmp_collector:add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
@@ -973,79 +973,6 @@ authenticate_v3(usmHMACSHAAuthProtocol, AuthKey, AuthParams ,Packet) ->
 	end;
 authenticate_v3(usmNoAuthProtocol, _AuthKey, _AuthParams, _Packet) ->
 	true.
-
--spec add_usm_user(EngineID, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
-	when
-		EngineID :: list(),
-		UserName :: list(),
-		SecName :: list(),
-		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
-		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
-		AuthPass :: list(),
-		PrivPass :: list(),
-		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
-		Reason :: term().
-%% @doc Add a new usm user to the snmp_usm table.
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
-	add_usm_user1(EngineID, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
-			{auth_key, AuthKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
-			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineID),
-	PrivKey = generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
-			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
-	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmNoPrivProtocol}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
-	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
-	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
-%% @hidden
-add_usm_user(EngineID, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
-		when is_list(EngineID), is_list(UserName) ->
-	AuthKey = generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineID),
-	PrivKey = lists:sublist(generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineID), 16),
-	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
-	add_usm_user1(EngineID, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
-%% @hidden
-add_usm_user1(EngineID, UserName, Conf, AuthProtocol, PrivProtocol)
-		when is_list(EngineID), is_list(UserName) ->
-	case snmpm:register_usm_user(EngineID, UserName, Conf) of
-		ok ->
-			{usm_user_added, AuthProtocol, PrivProtocol};
-		{error, Reason} ->
-			{error, Reason}
-	end.
 
 -spec generate_key(Protocol, Pass, EngineID) -> Key
 	when
