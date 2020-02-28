@@ -24,7 +24,7 @@
 		update_user/3, query_users/4, add_mib/1, get_mibs/0, get_mib/1,
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
-		get_agent_count/3, start_synch/1, add_agent/8]).
+		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -556,24 +556,24 @@ add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v1, SecName
 			is_list(EngineId), is_list(SecName) ->
 	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
 			infinity, 484, v1, v1, SecName, noAuthNoPriv},
-	{ok, AgentConfigDir} = application:get_env(snmp_collector, agent_config_dir),
-	ok = snmpm_conf:append_agents_config(AgentConfigDir, [AgentConf]),
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
 	add_agent1(UserId, TargetName, EngineId, Address);
 add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v2c, SecName)
 		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
 			is_list(EngineId), is_list(SecName) ->
 	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
 			infinity, 484, v2, v2c, SecName, noAuthNoPriv},
-	{ok, AgentConfigDir} = application:get_env(snmp_collector, agent_config_dir),
-	ok =snmpm_conf:append_agents_config(AgentConfigDir, [AgentConf]),
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
 	add_agent1(UserId, TargetName, EngineId, Address);
 add_agent(UserId, TargetName, _Community, Tdomain, Address, EngineId, v3, SecName)
 		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
 			is_list(EngineId), is_list(SecName) ->
 	AgentConf = {UserId, TargetName, "", Tdomain, Address, EngineId,
 			infinity, 484, v3, usm, SecName, authPriv},
-	{ok, AgentConfigDir} = application:get_env(snmp_collector, agent_config_dir),
-	ok = snmpm_conf:append_agents_config(AgentConfigDir, [AgentConf]),
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
 	add_agent1(UserId, TargetName, EngineId, Address).
 %% @hidden
 add_agent1(UserId, TargetName, EngineId, Address) ->
@@ -585,7 +585,26 @@ add_agent1(UserId, TargetName, EngineId, Address) ->
 			{error, Reason}
 	end.
 
-		
+-spec add_snmpm_user(UserId, UserMod, UserData) -> Result
+	when
+		UserId :: string(),
+		UserMod :: atom(),
+		UserData :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Add and load new snmpm user configuration.
+add_snmpm_user(UserId, UserMod, UserData)
+		when is_list(UserId), is_atom(UserMod) ->
+	UserConf = {UserId, UserMod, UserData},
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	ok = snmpm_conf:append_users_config(Dir, UserConf),
+	case snmpm:register_user(UserId, UserMod, UserData) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
