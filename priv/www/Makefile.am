@@ -14,6 +14,7 @@ MODULES = snmp-collector.js \
 		snmp-collector-help.js \
 		snmp-systemboard.js \
 		snmp-vendorboard.js \
+		snmp-agentboard.js \
 		style-element.js
 
 $(abs_builddir)/index.html:
