@@ -96,11 +96,11 @@ class SnmpCollector extends PolymerElement {
 								loading="{{vendorLoading}}"
 								name="vendorView">
 						</snmp-vendorboard>
-						<agent-list
+						<snmp-agentboard
 								id="agentList"
 								loading="{{agentLoading}}"
 								name="agentView">
-						</agent-list>
+						</snmp-agentboard>
 						<mib-list
 								id="mibList"
 								finished-loading="{{progress}}"
@@ -236,6 +236,14 @@ class SnmpCollector extends PolymerElement {
                console.log('Have patience dude!');
             }
             break;
+         case "agentView":
+            var age = this.shadowRoot.getElementById('agentList');
+            if (!age.loading) {
+               age._load();
+            } else {
+               console.log('Have patience dude!');
+            }
+            break;
 			case "mibView":
 				this.shadowRoot.getElementById('mibList').shadowRoot.getElementById('mibGrid').clearCache();
 				break;
@@ -341,6 +349,7 @@ class SnmpCollector extends PolymerElement {
 				import('./snmp-systemboard.js');
 				break;
 			case 'agentView':
+				import('./snmp-agentboard.js');
 				break;
 			case 'mibView':
 				import('./mib-list.js');
