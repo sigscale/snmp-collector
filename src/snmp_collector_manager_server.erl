@@ -57,10 +57,8 @@
 %% @private
 %%
 init([Port]) ->
-	{ok, [{recbuf, RecSize}, {sndbuf, SendSize}]} =
-			application:get_env(snmp_collector, sock_opts),
-	case gen_udp:open(Port, [{active, once}, {recbuf, RecSize},
-			{sndbuf, SendSize}]) of
+	{ok, Options} = application:get_env(snmp_collector, sock_opts),
+	case gen_udp:open(Port, [{active, once} | Options]) of
 		{ok, Socket} ->
 			{ok, #state{socket = Socket}};
 		{error, Reason} ->
