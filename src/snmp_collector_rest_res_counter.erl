@@ -115,7 +115,7 @@ get_counters() ->
 				(_F3, [], Sum, Acc1) ->
 					{Sum, Acc1}
 			end,
-			AgentList = lists:usort(ets:select(counters, [{{{nokia, '_', '_'}, '_'}, [], ['$_']}])),
+			AgentList = lists:usort(ets:select(counters, [{{{nokia, '$1', '_'}, '_'}, [], ['$1']}])),
 			FAgent = fun F5([Age | TAgent], MList, SList, AgentAcc) ->
 			F4 = fun Fmet([Met | T], Acc1) ->
 					Fmet(T, maps:merge(Acc1, snmp_collector:get_agent_count(nokia, Age, Met)));
@@ -144,7 +144,7 @@ get_counters() ->
 					(_F3, [], Sum, Acc1) ->
 						{Sum, Acc1}
 				end,
-				AgentList = lists:usort(ets:select(counters, [{{{zte, '_', '_'}, '_'}, [], ['$_']}])),
+				AgentList = lists:usort(ets:select(counters, [{{{zte, '$1', '_'}, '_'}, [], ['$1']}])),
 				FAgent = fun F5([Age | TAgent], MList, SList, AgentAcc) ->
 				F4 = fun Fmet([Met | T], Acc1) ->
 						Fmet(T, maps:merge(Acc1, snmp_collector:get_agent_count(zte, Age, Met)));
