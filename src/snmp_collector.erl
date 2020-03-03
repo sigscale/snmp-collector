@@ -286,9 +286,8 @@ get_vendor_count(Vendor, Metric) ->
 		Agent :: string(),
 		Result :: non_neg_integer().
 %% @doc Get current count of alarms for `vendor' by `agent'
-get_agent_count(Vendor, _Agent) ->
-	MatchSpec = [{{{'$1', '$2', '$3'}, '$4'}, [{'==', '$1', Vendor},
-		{'==', '$2', '$2'}], ['$4']}],
+get_agent_count(Vendor, Agent) ->
+	MatchSpec = [{{{Vendor, Agent, '_'}, '$4'}, [], ['$4']}],
 	lists:sum(ets:select(counters, MatchSpec)).
 
 -spec get_agent_count(Vendor, Agent, Metric) -> Result
@@ -298,9 +297,8 @@ get_agent_count(Vendor, _Agent) ->
 		Metric :: eventType | perceivedResult,
 		Result :: map().
 %% @doc Get current alarms for `vendor' by `agent' and `metric'
-get_agent_count(Vendor, _Agent, Metric) ->
-	MatchSpec = [{{{'$1', '$2', '$3'}, '$4'}, [{'==', '$1', Vendor},
-		{'==', '$2', '$2'},{'==', '$3', Metric}], ['$4']}],
+get_agent_count(Vendor, Agent, Metric) ->
+	MatchSpec = [{{{Vendor, Agent, Metric}, '$4'}, [], ['$4']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
 
