@@ -25,6 +25,7 @@ beam_DATA = snmp_collector_app.beam \
 			snmp_collector_trap_cisco.beam \
 			snmp_collector_trap_emc.beam \
 			snmp_collector_trap_huawei_servers.beam \
+			snmp_collector_trap_rfc3877.beam \
 			snmp_collector_trap_generic.beam \
 			snmp_collector_debug_sup.beam \
 			snmp_collector_debug_fsm.beam \

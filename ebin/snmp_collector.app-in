@@ -19,6 +19,7 @@
 					snmp_collector_trap_cisco,
 					snmp_collector_trap_emc,
 					snmp_collector_trap_huawei_servers,
+					snmp_collector_trap_rfc3877,
 					snmp_collector_trap_generic,
 					snmp_collector,
 					snmp_collector_snmpm_user_default,
@@ -68,5 +69,6 @@
 				{ves_reorder_delay, 1000},
 				{rest_page_size, 1000},
 				{rest_page_timeout, 60000},
-				{sock_opts, []}]},
+				{sock_opts, []},
+				{agent_config_dir, "snmp/conf/"}]},
 		{mod, {snmp_collector_app, []}}]}.
