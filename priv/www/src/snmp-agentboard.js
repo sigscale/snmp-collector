@@ -92,7 +92,22 @@ class agentBoard extends PolymerElement {
 			if (request) {
 				var dataArray = new Array();
 				var req = request.response;
-				var totSystem = {"name": "total", "count": request.response.total};
+				for(var index in req.vendor.huawei.agent) {
+					var huwObj = request.response.vendor.huawei.agent[index];
+					if(huwObj.total) {
+						var huwTotal = huwObj.total;
+					}
+					var nokObj = request.response.vendor.nokia.agent[index];
+					if(nokObj.total) {
+						var nokTotal = nokObj.total;
+					}
+					var zteObj = request.response.vendor.zte.agent[index];
+					if(zteObj.total) {
+						var zteTotal = zteObj.total;
+					}
+				}
+				var totAge = huwTotal + nokTotal + zteTotal
+				var totSystem = {"name": "total", "count": totAge};
 				var history = document.body.querySelector('snmp-collector').shadowRoot.getElementById('agentList').history;
 				var root1 = document.body.querySelector('snmp-collector').shadowRoot.getElementById('agentList').shadowRoot;
 				var color1 = scaleOrdinal(["#ff1744"]);

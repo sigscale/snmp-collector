@@ -77,75 +77,97 @@ get_counters() ->
 
 	MetricVendor = [huawei, nokia, zte],
 	MatchSpecAgent = ets:select(counters, [{'_', [], ['$_']}]),
-   F2 = fun(F2, [huawei | T1], MatchSpecAgent1, MetricList1, MetricSeverity1, Acc) ->
-				F3 = fun(F3, [Met | T], Sum, Acc1) ->
-							Result = snmp_collector:get_vendor_count(huawei, Met),
-							#{Met := N} = Result,
-							F3(F3, T, Sum + N, maps:merge(Result, Acc1));
-						(_F3, [], Sum, Acc1) ->
-							{Sum, Acc1}
+	F2 = fun(F2, [huawei | T1], MatchSpecAgent1, MetricList1, MetricSeverity1, Acc) ->
+		F3 = fun(F3, [Met | T], Sum, Acc1) ->
+				Result = snmp_collector:get_vendor_count(huawei, Met),
+				#{Met := N} = Result,
+				F3(F3, T, Sum + N, maps:merge(Result, Acc1));
+			(_F3, [], Sum, Acc1) ->
+				{Sum, Acc1}
+		end,
+		AgentList = lists:usort(ets:select(counters, [{{{huawei, '$1', '_'}, '_'}, [], ['$1']}])),
+		FAgent = fun F5([Age | TAgent], MList, SList, AgentAcc) ->
+				F4 = fun Fmet([Met | T], Acc1) ->
+						Fmet(T, maps:merge(Acc1,
+						snmp_collector:get_agent_count(huawei, Age, Met)));
+					Fmet([], Acc1) ->
+						Acc1
 				end,
-				F4 = fun(F4, [Met | T], Sum, Acc1) ->
-							ResultMap = snmp_collector:get_agent_count(huawei, "", Met),
-                     #{Met := N} = ResultMap,
-                     F4(F4, T, Sum + N, maps:merge(ResultMap, Acc1));
-                  (_F4, [], Sum, Acc1) ->
-                     {Sum, Acc1}
+				MapEvent = F4(MList, #{}),
+				MapSeverity = F4(SList, #{}),
+				F5(TAgent, MList, SList, [#{name => Age,
+						total => snmp_collector:get_agent_count(huawei, Age),
+						eventType => MapEvent, perceivedSeverity => MapSeverity} | AgentAcc]);
+			F5([], _MList, _SList, AgentAcc) ->
+					AgentAcc
+		end,
+		AgentMaps = FAgent(AgentList, MetricList1, MetricSeverity1, []),
+		{Sum1, MapEvent} = F3(F3, MetricList1, 0, #{}),
+		{Sum2, MapSever} = F3(F3, MetricSeverity1, Sum1, #{}),
+		VenEve = #{total => Sum2, eventType => MapEvent, perceivedSeverity=> MapSever,
+					agent => AgentMaps},
+		F2(F2, T1, MatchSpecAgent1, MetricList1, MetricSeverity1, Acc#{huawei => VenEve});
+		(F2, [nokia | T1], MatchSpecAgent1, MetricList1, MetricSeverity1, Acc) ->
+			F3 = fun(F3, [Met | T], Sum, Acc1) ->
+					Result = snmp_collector:get_vendor_count(nokia, Met),
+					#{Met := N} = Result,
+					F3(F3, T, Sum + N, maps:merge(Result, Acc1));
+				(_F3, [], Sum, Acc1) ->
+					{Sum, Acc1}
+			end,
+			AgentList = lists:usort(ets:select(counters, [{{{nokia, '$1', '_'}, '_'}, [], ['$1']}])),
+			FAgent = fun F5([Age | TAgent], MList, SList, AgentAcc) ->
+			F4 = fun Fmet([Met | T], Acc1) ->
+					Fmet(T, maps:merge(Acc1, snmp_collector:get_agent_count(nokia, Age, Met)));
+				Fmet([], Acc1) ->
+					Acc1
+			end,
+			MapEvent = F4(MList, #{}),
+			MapSeverity = F4(SList, #{}),
+			F5(TAgent, MList, SList, [#{name => Age,
+						total => snmp_collector:get_agent_count(nokia, Age),
+						eventType => MapEvent, perceivedSeverity => MapSeverity} | AgentAcc]);
+				F5([], _MList, _SList, AgentAcc) ->
+					AgentAcc
 				end,
+				AgentMaps = FAgent(AgentList, MetricList1, MetricSeverity1, []),
 				{Sum1, MapEvent} = F3(F3, MetricList1, 0, #{}),
 				{Sum2, MapSever} = F3(F3, MetricSeverity1, Sum1, #{}),
-				{Sum3, MapAgent} = F4(F4, MetricList1, 0, #{}),
-				{Sum4, MapSev} = F4(F4, MetricSeverity1, Sum3, #{}),
 				VenEve = #{total => Sum2, eventType => MapEvent, perceivedSeverity=> MapSever,
-					agent => #{total => Sum4, eventType => MapAgent, perceivedSeverity => MapSev}},
-			F2(F2, T1, MatchSpecAgent1, MetricList1, MetricSeverity1, Acc#{huawei => VenEve});
-			(F2, [nokia | T1], MatchSpecAgent1, MetricList1, MetricSeverity1, Acc) ->
-				F3 = fun(F3, [Met | T], Sum, Acc1) ->
-							Result = snmp_collector:get_vendor_count(nokia, Met),
-							#{Met := N} = Result,
-							F3(F3, T, Sum + N, maps:merge(Result, Acc1));
-						(_F3, [], Sum, Acc1) ->
-							{Sum, Acc1}
-				end,
-				F4 = fun(F4, [Met | T], Sum, Acc1) ->
-							ResultMap = snmp_collector:get_agent_count(nokia, "", Met),
-                     #{Met := N} = ResultMap,
-                     F4(F4, T, Sum + N, maps:merge(ResultMap, Acc1));
-                  (_F4, [], Sum, Acc1) ->
-                     {Sum, Acc1}
-				end,
-				{Sum1, MapEvent} = F3(F3, MetricList1, 0, #{}),
-				{Sum2, MapSever} = F3(F3, MetricSeverity1, Sum1, #{}),
-				{Sum3, MapAgent} = F4(F4, MetricList1, 0, #{}),
-				{Sum4, MapSev} = F4(F4, MetricSeverity1, Sum3, #{}),
-				VenEve = #{total => Sum2, eventType => MapEvent, perceivedSeverity=> MapSever,
-					agent => #{total => Sum4, eventType => MapAgent, perceivedSeverity => MapSev}},
+					agent => AgentMaps},
 			F2(F2, T1, MatchSpecAgent1, MetricList1, MetricSeverity1, Acc#{nokia => VenEve});
 			(F2, [zte | T1], MatchSpecAgent1, MetricList1, MetricSeverity1, Acc) ->
 				F3 = fun(F3, [Met | T], Sum, Acc1) ->
-							Result = snmp_collector:get_vendor_count(zte, Met),
-							#{Met := N} = Result,
-							F3(F3, T, Sum + N, maps:merge(Result, Acc1));
-						(_F3, [], Sum, Acc1) ->
-							{Sum, Acc1}
+						Result = snmp_collector:get_vendor_count(zte, Met),
+						#{Met := N} = Result,
+						F3(F3, T, Sum + N, maps:merge(Result, Acc1));
+					(_F3, [], Sum, Acc1) ->
+						{Sum, Acc1}
 				end,
-				F4 = fun(F4, [Met | T], Sum, Acc1) ->
-                     ResultMap = snmp_collector:get_agent_count(zte, "", Met),
-                     #{Met := N} = ResultMap,
-                     F4(F4, T, Sum + N, maps:merge(ResultMap, Acc1));
-                  (_F4, [], Sum, Acc1) ->
-                     {Sum, Acc1}
-            end,
+				AgentList = lists:usort(ets:select(counters, [{{{zte, '$1', '_'}, '_'}, [], ['$1']}])),
+				FAgent = fun F5([Age | TAgent], MList, SList, AgentAcc) ->
+				F4 = fun Fmet([Met | T], Acc1) ->
+						Fmet(T, maps:merge(Acc1, snmp_collector:get_agent_count(zte, Age, Met)));
+					Fmet([], Acc1) ->
+						Acc1
+				end,
+				MapEvent = F4(MList, #{}),
+				MapSeverity = F4(SList, #{}),
+				F5(TAgent, MList, SList, [#{name => Age,
+							total => snmp_collector:get_agent_count(zte, Age),
+							eventType => MapEvent, perceivedSeverity => MapSeverity} | AgentAcc]);
+					F5([], _MList, _SList, AgentAcc) ->
+						AgentAcc
+				end,
+				AgentMaps = FAgent(AgentList, MetricList1, MetricSeverity1, []),
 				{Sum1, MapEvent} = F3(F3, MetricList1, 0, #{}),
 				{Sum2, MapSever} = F3(F3, MetricSeverity1, Sum1, #{}),
-				{Sum3, MapAgent} = F4(F4, MetricList1, 0, #{}),
-				{Sum4, MapSev} = F4(F4, MetricSeverity1, Sum3, #{}),
 				VenEve = #{total => Sum2, eventType => MapEvent, perceivedSeverity=> MapSever,
-					agent => #{total => Sum4, eventType => MapAgent, perceivedSeverity => MapSev}},
+					agent => AgentMaps},
 			F2(F2, T1, MatchSpecAgent1, MetricList1, MetricSeverity1, Acc#{zte => VenEve});
-         (_F2, [], _MatchSpecAgent1, _MetricList1, _MetricSeverity1, Acc) ->
-            Acc
-   end,
+			(_F2, [], _MatchSpecAgent1, _MetricList1, _MetricSeverity1, Acc) ->
+		Acc
+	end,
 	VendorMetric = F2(F2, MetricVendor, MatchSpecAgent, MetricList, MetricSeverity, #{}),
 	JsonObj = #{total => TotalCount, eventType => Metric, perceivedSeverity => Severity,
 		vendor => maps:merge(#{total => VendorCountSum}, VendorMetric)},
