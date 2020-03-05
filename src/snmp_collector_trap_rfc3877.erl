@@ -37,8 +37,43 @@
 %% </thead>
 %% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ituAlarmEventType</td>
+%% 		<td id="mt">commonEventheader.eventType</td>
+%%			<td id="mt">e.g. "Quality of Service Alarm"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ituAlarmProbableCause</td>
+%% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
+%%			<td id="mt">3GPP 32.111-2 Annex B e.g. "Alarm Indication Signal (AIS)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmDescription</td>
+%% 		<td id="mt">faultFields.specificProblem</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ituAlarmAdditionalText</td>
+%% 		<td id="mt">additionalText</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmActiveIndex/alarmClearIndex</td>
+%% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
+%%			<td id="mt">Unique identifier of an alarm</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ituAlarmPerceivedSeverity</td>
+%% 		<td id="mt">faultFields.eventSeverity</td>
+%%			<td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">snmpTrapOID</td>
+%% 		<td id="mt">commonEventHeader.eventName</td>
+%%			<td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">alarmActiveDateAndTime/alarmClearDateAndTime</td>
+%% 		<td id="mt">commonEventHeader.startEpochMicrosec</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %% </tbody>
