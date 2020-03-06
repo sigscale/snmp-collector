@@ -25,7 +25,8 @@
 -export([oid_to_name/1, get_name/1, generate_identity/1,
 		arrange_list/1, stringify/1, log_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
-		authenticate_v1_v2/2, update_counters/3, timestamp/0]).
+		authenticate_v1_v2/2, update_counters/3, timestamp/0,
+		generate_key/3, authenticate_v3/4]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
