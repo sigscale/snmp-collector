@@ -163,7 +163,8 @@ get_user(_, _, _) ->
 %% resource.
 post_user(RequestBody) ->
 	try
-		User = user(zj:decode(RequestBody)),
+		{ok, JSON} = zj:decode(RequestBody),
+		User = user(JSON),
 		{Username, _, _, _} = User#httpd_user.username,
 		Password = User#httpd_user.password,
 		Locale = case lists:keyfind(locale, 1, User#httpd_user.user_data) of

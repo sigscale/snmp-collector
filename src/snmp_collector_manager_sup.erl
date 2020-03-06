@@ -43,7 +43,7 @@
 %%
 init([Port]) ->
 	ChildSpecs = [supervisor(snmp_collector_manager_fsm_sup),
-			server(snmp_collector_manager_server, [Port])],
+			server(snmp_collector_manager_server, [self(), Port])],
 	{ok, {{one_for_all, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
@@ -59,12 +59,12 @@ init([Port]) ->
 %% @private
 %%
 supervisor(StartMod) ->
-	StartArgs = [{local, StartMod}, StartMod, []],
+	StartArgs = [StartMod, []],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 
 server(StartMod, Args) ->
-	StartArgs = [{local, StartMod}, StartMod, Args, []],
+	StartArgs = [StartMod, Args, []],
 	StartFunc = {gen_server, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, 4000, worker, [StartMod]}.
 

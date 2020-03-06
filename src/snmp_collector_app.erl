@@ -146,32 +146,50 @@ start6() ->
 			{ok, ManagerPorts} = application:get_env(manager_ports),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
-			start7(TopSup, ManagerSup, DebugSup, ManagerPorts);
+			start7(TopSup, ManagerSup, DebugSup, ManagerPorts, []);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start7(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts)
+start7(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts, Acc)
 		when is_integer(Port) ->
 	case supervisor:start_child(ManagerSup, [[Port]]) of
-		{ok, _ManagerServerSup} ->
-			start7(TopSup, ManagerSup, DebugSup, T);
+		{ok, ManagerPortSup} ->
+			start7(TopSup, ManagerSup, DebugSup, T, [ManagerPortSup | Acc]);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start7(TopSup, _ManangerSup, DebugSup, []) ->
-	{ok, DebugPorts} = application:get_env(debug_ports),
-	start8(TopSup, DebugSup, DebugPorts).
+start7(TopSup, _ManangerSup, DebugSup, [], Acc) ->
+	NumSockets = case application:get_env(num_sockets) of
+		{ok, N} when is_integer(N) ->
+			N;
+		_ ->
+			erlang:system_info(schedulers)
+	end,
+	start8(TopSup, DebugSup, NumSockets, NumSockets, lists:reverse(Acc)).
 %% @hidden
-start8(TopSup, DebugSup, [Port | T] = _DebugPorts)
+start8(TopSup, DebugSup, NumSockets, 0, [_ | T]) ->
+	start8(TopSup, DebugSup, NumSockets, NumSockets, T);
+start8(TopSup, DebugSup, NumSockets, N, [ManagerPortSup | _] = Acc) ->
+	case supervisor:start_child(ManagerPortSup, []) of
+		{ok, _ManagerServerSup} ->
+			start8(TopSup, DebugSup, NumSockets, N - 1, Acc);
+		{error, Reason} ->
+			{error, Reason}
+	end;
+start8(TopSup, DebugSup, _NumSockets, _, []) ->
+	{ok, DebugPorts} = application:get_env(debug_ports),
+	start9(TopSup, DebugSup, DebugPorts).
+%% @hidden
+start9(TopSup, DebugSup, [Port | T] = _DebugPorts)
 		when is_integer(Port) ->
 	case supervisor:start_child(DebugSup, [[Port], []]) of
 		{ok, _DebugServer} ->
-			start8(TopSup, DebugSup, T);
+			start9(TopSup, DebugSup, T);
 		{error, Reason} ->
 			{error, Reason}
 	end;
-start8(TopSup, _DebugSup, []) ->
+start9(TopSup, _DebugSup, []) ->
 	StartMods = [snmp_collector_get_sup, [[], []]],
 	case timer:apply_interval(?INTERVAL, supervisor,
 			start_child, StartMods) of
