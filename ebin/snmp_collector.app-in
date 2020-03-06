@@ -47,6 +47,7 @@
 					snmp_collector_manager_fsm_sup,
 					snmp_collector_manager_server,
 					snmp_collector_manager_sup_sup,
+					snmp_collector_manager_port_sup,
 					snmp_collector_manager_sup]},
 		{registered, []},
 		{applications, [kernel, stdlib, crypto, snmp]},

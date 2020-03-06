@@ -1,7 +1,7 @@
-%%% snmp_collector_manager_sup_sup.erl
+%%% snmp_collector_manager_port_sup.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% @copyright 2016 - 2020 SigScale Global Inc.
+%%% @copyright 2016 - 2019 SigScale Global Inc.
 %%% @end
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @docfile "{@docsrc supervision.edoc}"
 %%%
--module(snmp_collector_manager_sup_sup).
--copyright('Copyright (c) 2016 - 2020 SigScale Global Inc.').
+-module(snmp_collector_manager_port_sup).
+-copyright('Copyright (c) 2016 - 2019 SigScale Global Inc.').
 
 -behaviour(supervisor).
 
@@ -31,7 +31,7 @@
 
 -spec init(Args) -> Result
 	when
-		Args :: [],
+		Args :: [term()],
 		Result :: {ok,{{RestartStrategy, MaxR, MaxT}, [ChildSpec]}} | ignore,
 		RestartStrategy :: simple_one_for_one,
 		MaxR :: non_neg_integer(),
@@ -41,24 +41,25 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([]) ->
-	ChildSpecs = [supervisor(snmp_collector_manager_port_sup)],
+init([Port]) ->
+	ChildSpecs = [supervisor(snmp_collector_manager_sup, [Port])],
 	{ok, {{simple_one_for_one, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------
 %%  internal functions
 %%----------------------------------------------------------------------
 
--spec supervisor(StartMod) -> Result
+-spec supervisor(StartMod, Args) -> Result
 	when
 		StartMod :: atom(),
+		Args :: [term()],
 		Result :: supervisor:child_spec().
 %% @doc Build a supervisor child specification for a
 %%      {@link //stdlib/supervisor. supervisor} behaviour.
 %% @private
 %%
-supervisor(StartMod) ->
-	StartArgs = [StartMod],
+supervisor(StartMod, Args) ->
+	StartArgs = [StartMod, Args],
 	StartFunc = {supervisor, start_link, StartArgs},
 	{StartMod, StartFunc, permanent, infinity, supervisor, [StartMod]}.
 

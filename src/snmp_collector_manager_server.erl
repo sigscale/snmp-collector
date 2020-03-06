@@ -31,7 +31,10 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 			terminate/2, code_change/3]).
 
--record(state, {socket :: inet:socket()}).
+-record(state,
+		{sup :: pid(),
+		fsm_sup :: pid() | undefined,
+		socket :: inet:socket()}).
 
 -include_lib("snmp/include/snmp_types.hrl").
 
@@ -56,11 +59,18 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Port]) ->
+init([Sup, Port]) ->
 	{ok, Options} = application:get_env(snmp_collector, sock_opts),
-	case gen_udp:open(Port, [{active, once} | Options]) of
+	SO_REUSEPORT = case os:type() of
+		{unix, linux} ->
+			{raw, 1, 15, <<1:32/native>>};
+		{unix, darwin} ->
+			{raw, 16#ffff, 16#0200, <<1:32/native>>}
+	end,
+	case gen_udp:open(Port, [{active, once}, {reuseaddr, true},
+			SO_REUSEPORT | Options]) of
 		{ok, Socket} ->
-			{ok, #state{socket = Socket}};
+			{ok, #state{sup = Sup, socket = Socket}, 0};
 		{error, Reason} ->
 			{stop, Reason}
    end.
@@ -112,10 +122,16 @@ handle_cast(stop, State) ->
 %% @see //stdlib/gen_server:handle_info/2
 %% @private
 %%
-handle_info({udp, Socket, Address, Port, Packet} = _Info,
-		#state{} = State) ->
-	case supervisor:start_child(snmp_collector_manager_fsm_sup,
-			[[Socket, Address, Port, Packet], []] ) of
+handle_info(Info, #state{sup = Sup, fsm_sup = undefined} = State) ->
+	Children = supervisor:which_children(Sup),
+	{_, FsmSup, _, _} = lists:keyfind(snmp_collector_manager_fsm_sup, 1, Children),
+	handle_info(Info, State#state{fsm_sup = FsmSup});
+handle_info(timeout, State) ->
+	{noreply, State};
+handle_info({udp, Socket, Address, Port, Packet},
+		#state{fsm_sup =FsmSup} = State) ->
+	case supervisor:start_child(FsmSup,
+			[[Socket, Address, Port, Packet], []]) of
 		{ok, _Fsm} ->
 			inet:setopts(Socket, [{active, once}]),
 			{noreply, State};
