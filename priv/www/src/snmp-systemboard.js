@@ -150,6 +150,11 @@ class systemBoard extends PolymerElement {
 							newRecord.nokia = req.vendor.nokia.total;
 						}
 					}
+					if(req.vendor.rfc3877.total != 0){
+						if(req.vendor.rfc3877.total) {
+							newRecord.rfc3877 = req.vendor.rfc3877.total;
+						}
+					}
 					var dataVen = newRecord;
 					var dataVendor1 = Object.keys(dataVen).map(k => ({ name: k, count: dataVen[k] }));
 				}
