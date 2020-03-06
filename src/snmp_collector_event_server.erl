@@ -108,17 +108,22 @@ handle_info(timeout = _Info, State) ->
 	case gen_event:add_sup_handler(snmp_collector_event,
 			snmp_collector_event_log, []) of
 		ok ->
-			case gen_event:add_sup_handler(snmp_collector_event,
-					snmp_collector_event_ves, []) of
-				ok ->
+			case application:get_env(ves_url) of
+				{ok, []} ->
 					{noreply, State};
-				{Error, Reason} when Error == error; Error == 'EXIT' ->
-					{stop, Reason}
+				{ok, _URI} ->
+					case gen_event:add_sup_handler(snmp_collector_event,
+							snmp_collector_event_ves, []) of
+						ok ->
+							{noreply, State};
+						{Error, Reason} when Error == error; Error == 'EXIT' ->
+							{stop, Reason}
+					end
 			end;
 		{Error, Reason} when Error == error; Error == 'EXIT' ->
 			{stop, Reason}
 	end;
-handle_info({gen_event_EXIT, _Handler, Reason}, State)
+handle_info({gen_event_EXIT, _Handler, Reason}, _State)
 		when Reason == normal; Reason == shutdown ->
 	{stop, Reason};
 handle_info({gen_event_EXIT, Handler, Reason}, State) ->
