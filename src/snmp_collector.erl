@@ -594,7 +594,7 @@ add_agent1(UserId, TargetName, EngineId, Address) ->
 %% @doc Add and load new snmpm user configuration.
 add_snmpm_user(UserId, UserMod, UserData)
 		when is_list(UserId), is_atom(UserMod) ->
-	UserConf = {UserId, UserMod, UserData},
+	UserConf = [{UserId, UserMod, UserData, []}],
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	ok = snmpm_conf:append_users_config(Dir, UserConf),
 	case snmpm:register_user(UserId, UserMod, UserData) of
