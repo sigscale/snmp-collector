@@ -161,9 +161,9 @@ start7(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts, Acc)
 	end;
 start7(TopSup, _ManangerSup, DebugSup, [], Acc) ->
 	NumSockets = case application:get_env(num_sockets) of
-		{ok, N} ->
+		{ok, N} when is_integer(N) ->
 			N;
-		undefined ->
+		_ ->
 			erlang:system_info(schedulers)
 	end,
 	start8(TopSup, DebugSup, NumSockets, NumSockets, lists:reverse(Acc)).
