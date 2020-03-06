@@ -1,4 +1,4 @@
-%%%snmp_collector_utils.erl
+%%% snmp_collector_utils.erl
 %%% vim: ts=3
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% @copyright 2016 - 2020 SigScale Global Inc.
