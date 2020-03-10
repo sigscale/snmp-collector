@@ -175,21 +175,74 @@ class vendorBoard extends PolymerElement {
 				var svg = select(root).select("#vendorEvent");
 				sysEventType.draw_pie(svg, dataEventType, color);
 
-				var selectedVen = sysEventType.shadowRoot.getElementById('severeSelect').selected;
+				var selectedVen = sysEventType.shadowRoot
+							.getElementById('severeSelect').selected;
+				var newRecord = new Object();
 				if(selectedVen == 0) {
-					var dataEventType = Object.keys(req.vendor.huawei.perceivedSeverity).map(k => ({ name: k, count: req.vendor.huawei.perceivedSeverity[k] }));
+					if(req.vendor.huawei.perceivedSeverity.major != 0) {
+						if(req.vendor.huawei.perceivedSeverity.major) {
+							newRecord.major = req.vendor.huawei.perceivedSeverity.major;
+						}
+					}
+					if(req.vendor.huawei.perceivedSeverity.minor != 0) {
+						if(req.vendor.huawei.perceivedSeverity.minor) {
+							newRecord.minor = req.vendor.huawei.perceivedSeverity.minor;
+						}
+					}
+					if(req.vendor.huawei.perceivedSeverity.critical != 0) {
+						if(req.vendor.huawei.perceivedSeverity.critical) {
+							newRecord.critical = req.vendor.huawei.perceivedSeverity.critical;
+						}
+					}
+					var dataHuw = newRecord;
+					var dataEventType = Object.keys(dataHuw)
+							.map(k => ({ name: k, count: dataHuw[k]}));
 				}
 				if(selectedVen == 1) {
-					var dataEventType = Object.keys(req.vendor.zte.perceivedSeverity).map(k => ({ name: k, count: req.vendor.zte.perceivedSeverity[k] }));
+					if(req.vendor.zte.perceivedSeverity.major != 0) {
+						if(req.vendor.zte.perceivedSeverity.major) {
+							newRecord.major = req.vendor.zte.perceivedSeverity.major;
+						}
+					}
+					if(req.vendor.zte.perceivedSeverity.minor != 0) {
+						if(req.vendor.zte.perceivedSeverity.minor) {
+							newRecord.minor = req.vendor.zte.perceivedSeverity.minor;
+						}
+					}
+					if(req.vendor.zte.perceivedSeverity.critical != 0) {
+						if(req.vendor.zte.perceivedSeverity.critical) {
+							newRecord.critical = req.vendor.zte.perceivedSeverity.critical;
+						}
+					}
+					var dataZte = newRecord;
+					var dataEventType = Object.keys(dataZte)
+								.map(k => ({ name: k, count: dataZte[k]}));
 				}
 				if(selectedVen == 2) {
-					var dataEventType = Object.keys(req.vendor.nokia.perceivedSeverity).map(k => ({ name: k, count: req.vendor.nokia.perceivedSeverity[k] }));
+					if(req.vendor.nokia.perceivedSeverity.major != 0) {
+						if(req.vendor.nokia.perceivedSeverity.major) {
+							newRecord.major = req.vendor.nokia.perceivedSeverity.major;
+						}
+					}
+					if(req.vendor.nokia.perceivedSeverity.minor != 0) {
+						if(req.vendor.nokia.perceivedSeverity.minor) {
+							newRecord.minor = req.vendor.nokia.perceivedSeverity.minor;
+						}
+					}
+					if(req.vendor.nokia.perceivedSeverity.critical != 0) {
+						if(req.vendor.nokia.perceivedSeverity.critical) {
+							newRecord.critical = req.vendor.nokia.perceivedSeverity.critical;
+						}
+					}
+					var dataNok = newRecord;
+					var dataEventType = Object.keys(dataNok)
+								.map(k => ({ name: k, count: dataNok[k]}));
 				}
-				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
-				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00", "#00b0ff", "#33DCFF", "#33B2FF", "#FF33F7", "#FF338F", "#793030", "#2CF3FF"]);
+				var root = document.body.querySelector('snmp-collector')
+							.shadowRoot.getElementById('vendorList').shadowRoot;
+				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00", "#00b0ff"]);
 				var svg1 = select(root).select("#vendorSeverity");
 				sysEventType.draw_pie(svg1, dataEventType, color);
-				
 			}
 		}
 		var handleAjaxError = function(error) {
