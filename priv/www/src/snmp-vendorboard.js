@@ -160,18 +160,145 @@ class vendorBoard extends PolymerElement {
 				var svg2 = select(root).select("#agent");
 				sysEventType.draw_pie(svg2, dataAgent, color2);
 
-				var selected = sysEventType.shadowRoot.getElementById('vendorSelect').selected;
-				if(selected == 0) {
-					var dataEventType = Object.keys(req.vendor.huawei.eventType).map(k => ({ name: k, count: req.vendor.huawei.eventType[k] }));
+				var selectedVenEve = sysEventType.shadowRoot
+							.getElementById('vendorSelect').selected;
+				var newRecord1 = new Object();
+				if(selectedVenEve == 0) {
+					if(req.vendor.huawei.eventType.communicationsAlarm != 0) {
+						newRecord1.communicationsAlarm = req.vendor.huawei
+									.eventType.communicationsAlarm;
+					}
+					if(req.vendor.huawei.eventType.environmentalAlarm != 0) {
+						newRecord1.environmentalAlarm = req.vendor.huawei
+									.eventType.environmentalAlarm;
+					}
+					if(req.vendor.huawei.eventType.equipmentAlarm != 0) {
+						newRecord1.equipmentAlarm = req.vendor.huawei
+									.eventType.equipmentAlarm;
+					}
+					if(req.vendor.huawei.eventType.integrityViolation != 0) {
+						newRecord1.integrityViolation = req.vendor.huawei
+									.eventType.integrityViolation;
+					}
+					if(req.vendor.huawei.eventType.operationalViolation != 0) {
+						newRecord1.operationalViolation = req.vendor.huawei
+									.eventType.operationalViolation;
+					}
+					if(req.vendor.huawei.eventType.physicalViolation != 0) {
+						newRecord1.physicalViolation = req.vendor.huawei
+									.eventType.physicalViolation;
+					}
+					if(req.vendor.huawei.eventType.processingErrorAlarm != 0) {
+						newRecord1.processingErrorAlarm = req.vendor.huawei
+									.eventType.processingErrorAlarm;
+					}
+					if(req.vendor.huawei.eventType.qualityofServiceAlarm != 0) {
+						newRecord1.qualityofServiceAlarm = req.vendor.huawei
+									.eventType.qualityofServiceAlarm;
+					}
+					if(req.vendor.huawei.eventType.securityServiceOrMechanismViolation != 0) {
+						newRecord1.securityServiceOrMechanismViolation = req.vendor.huawei
+									.eventType.securityServiceOrMechanismViolation;
+					}
+					if(req.vendor.huawei.eventType.timeDomainViolation != 0) {
+						newRecord1.timeDomainViolation = req.vendor.huawei
+									.eventType.timeDomainViolation;
+					}
+					var dataType = newRecord1;
+					var dataEventType = Object.keys(dataType).map(k => ({ name: k, count: dataType[k] }));
 				}
-				if(selected == 1) {
-					var dataEventType = Object.keys(req.vendor.zte.eventType).map(k => ({ name: k, count: req.vendor.zte.eventType[k] }));
+				if(selectedVenEve == 1) {
+					if(req.vendor.zte.eventType.communicationsAlarm != 0) {
+						newRecord1.communicationsAlarm = req.vendor.zte
+									.eventType.communicationsAlarm;
+					}
+					if(req.vendor.zte.eventType.environmentalAlarm != 0) {
+						newRecord1.environmentalAlarm = req.vendor.zte
+									.eventType.environmentalAlarm;
+					}
+					if(req.vendor.zte.eventType.equipmentAlarm != 0) {
+						newRecord1.equipmentAlarm = req.vendor.zte
+									.eventType.equipmentAlarm;
+					}
+					if(req.vendor.zte.eventType.integrityViolation != 0) {
+						newRecord1.integrityViolation = req.vendor.zte
+									.eventType.integrityViolation;
+					}
+					if(req.vendor.zte.eventType.operationalViolation != 0) {
+						newRecord1.operationalViolation = req.vendor.zte
+									.eventType.operationalViolation;
+					}
+					if(req.vendor.zte.eventType.physicalViolation != 0) {
+						newRecord1.physicalViolation = req.vendor.zte
+									.eventType.physicalViolation;
+					}
+					if(req.vendor.zte.eventType.processingErrorAlarm != 0) {
+						newRecord1.processingErrorAlarm = req.vendor.zte
+									.eventType.processingErrorAlarm;
+					}
+					if(req.vendor.zte.eventType.qualityofServiceAlarm != 0) {
+						newRecord1.qualityofServiceAlarm = req.vendor.zte
+									.eventType.qualityofServiceAlarm;
+					}
+					if(req.vendor.zte.eventType.securityServiceOrMechanismViolation != 0) {
+						newRecord1.securityServiceOrMechanismViolation = req.vendor.zte
+									.eventType.securityServiceOrMechanismViolation;
+					}
+					if(req.vendor.zte.eventType.timeDomainViolation != 0) {
+						newRecord1.timeDomainViolation = req.vendor.zte
+									.eventType.timeDomainViolation;
+					}
+					var dataType = newRecord1;
+					var dataEventType = Object.keys(dataType).map(k => ({ name: k, count: dataType[k] }));
 				}
-				if(selected == 2) {
-					var dataEventType = Object.keys(req.vendor.nokia.eventType).map(k => ({ name: k, count: req.vendor.nokia.eventType[k] }));
+				if(selectedVenEve == 2) {
+					if(req.vendor.nokia.eventType.communicationsAlarm != 0) {
+						newRecord1.communicationsAlarm = req.vendor.nokia
+									.eventType.communicationsAlarm;
+					}
+					if(req.vendor.nokia.eventType.environmentalAlarm != 0) {
+						newRecord1.environmentalAlarm = req.vendor.nokia
+									.eventType.environmentalAlarm;
+					}
+					if(req.vendor.nokia.eventType.equipmentAlarm != 0) {
+						newRecord1.equipmentAlarm = req.vendor.nokia
+									.eventType.equipmentAlarm;
+					}
+					if(req.vendor.nokia.eventType.integrityViolation != 0) {
+						newRecord1.integrityViolation = req.vendor.nokia
+									.eventType.integrityViolation;
+					}
+					if(req.vendor.nokia.eventType.operationalViolation != 0) {
+						newRecord1.operationalViolation = req.vendor.nokia
+									.eventType.operationalViolation;
+					}
+					if(req.vendor.nokia.eventType.physicalViolation != 0) {
+						newRecord1.physicalViolation = req.vendor.nokia
+									.eventType.physicalViolation;
+					}
+					if(req.vendor.nokia.eventType.processingErrorAlarm != 0) {
+						newRecord1.processingErrorAlarm = req.vendor.nokia
+									.eventType.processingErrorAlarm;
+					}
+					if(req.vendor.nokia.eventType.qualityofServiceAlarm != 0) {
+						newRecord1.qualityofServiceAlarm = req.vendor.nokia
+									.eventType.qualityofServiceAlarm;
+					}
+					if(req.vendor.nokia.eventType.securityServiceOrMechanismViolation != 0) {
+						newRecord1.securityServiceOrMechanismViolation = req.vendor.nokia
+									.eventType.securityServiceOrMechanismViolation;
+					}
+					if(req.vendor.nokia.eventType.timeDomainViolation != 0) {
+						newRecord1.timeDomainViolation = req.vendor.nokia
+									.eventType.timeDomainViolation;
+					}
+					var dataType = newRecord1;
+					var dataEventType = Object.keys(dataType).map(k => ({name: k, count: dataType[k] }));
 				}
-				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
-				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00", "#00b0ff", "#33DCFF", "#33B2FF", "#FF33F7", "#FF338F", "#793030", "#2CF3FF"]);
+				var root = document.body.querySelector('snmp-collector')
+							.shadowRoot.getElementById('vendorList').shadowRoot;
+				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00","#00b0ff",
+							"#33DCFF", "#33B2FF", "#FF33F7", "#FF338F", "#793030", "#2CF3FF"]);
 				var svg = select(root).select("#vendorEvent");
 				sysEventType.draw_pie(svg, dataEventType, color);
 
