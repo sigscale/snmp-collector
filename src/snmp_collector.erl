@@ -262,7 +262,7 @@ get_count(Metric) ->
 
 -spec get_vendor_count(Vendor) -> Result
 	when
-		Vendor :: huawei | nokia | zte | emc | nec | hpe,
+		Vendor :: huawei | nokia | zte | emc | nec | hpe | rfc3877,
 		Result :: non_neg_integer().
 %% @doc Get current of alarms for `vendor'.
 get_vendor_count(Vendor) ->
@@ -271,7 +271,7 @@ get_vendor_count(Vendor) ->
 
 -spec get_vendor_count(Vendor, Metric) -> Result
 	when
-		Vendor :: huawei | nokia | zte | emc | nec | hpe,
+		Vendor :: huawei | nokia | zte | emc | nec | hpe | rfc3877,
 		Metric :: eventType | perceivedResult,
 		Result :: map().
 %% @doc Get current count of alarms for `vendor' by `metric'.
@@ -282,7 +282,7 @@ get_vendor_count(Vendor, Metric) ->
 
 -spec get_agent_count(Vendor, Agent) -> Result
 	when
-		Vendor :: huawei | nokia | zte | emc | nec | hpe,
+		Vendor :: huawei | nokia | zte | emc | nec | hpe | rfc3877,
 		Agent :: string(),
 		Result :: non_neg_integer().
 %% @doc Get current count of alarms for `vendor' by `agent'
@@ -292,7 +292,7 @@ get_agent_count(Vendor, Agent) ->
 
 -spec get_agent_count(Vendor, Agent, Metric) -> Result
 	when
-		Vendor :: huawei | nokia | zte | emc | nec | hpe,
+		Vendor :: huawei | nokia | zte | emc | nec | hpe | rfc3877,
 		Agent :: string(),
 		Metric :: eventType | perceivedResult,
 		Result :: map().
