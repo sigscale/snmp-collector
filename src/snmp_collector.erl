@@ -43,7 +43,7 @@
 %%  The snmp_collector public API
 %%----------------------------------------------------------------------
 
--spec add_snmp_user(UserName, PrivPass, AuthPass) -> Result
+-spec add_snmp_user(UserName, AuthPass, PrivPass) -> Result
 	when
 		UserName :: string(),
 		PrivPass :: string(),
@@ -66,7 +66,7 @@ add_snmp_user(UserName, AuthPass, PrivPass) ->
 %$ @hidden
 add_snmp_user1(UserName, AuthPass, PrivPass) ->
 	NewUser = #snmp_user{name = UserName,
-			authPass = PrivPass, privPass = AuthPass},
+			authPass = AuthPass, privPass = PrivPass},
 	AddUser = fun() ->
 					mnesia:write(snmp_user, NewUser, write)
 	end,
