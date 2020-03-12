@@ -32,6 +32,7 @@ class vendorBoard extends PolymerElement {
 						<paper-item>Huawei</paper-item>
 						<paper-item>ZTE</paper-item>
 						<paper-item>Nokia</paper-item>
+						<paper-item>Rfc3877</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
 				<div class="card-content">
@@ -44,6 +45,7 @@ class vendorBoard extends PolymerElement {
 						<paper-item>Huawei</paper-item>
 						<paper-item>ZTE</paper-item>
 						<paper-item>Nokia</paper-item>
+						<paper-item>Rfc3877</paper-item>
 					</paper-listbox>
 				</paper-dropdown-menu>
 				<div class="card-content">
@@ -97,7 +99,25 @@ class vendorBoard extends PolymerElement {
 			if (request) {
 				var dataArray = new Array();
 				var req = request.response;
-				var totSystem = {"name": "total", "count": request.response.total};
+				if(request.response.vendor.huawei.total) {
+					var HuTotVen = request.response.vendor.huawei.total;
+				}
+				if(request.response.vendor.nokia.total) {
+					var NoTotVen = request.response.vendor.nokia.total;
+				}
+				if(request.response.vendor.zte.total) {
+					var ZtTotVen = request.response.vendor.zte.total;
+				}
+				if(request.response.vendor.rfc3877.total) {
+					var RfcTotVen = request.response.vendor.rfc3877.total;
+				}
+				if(RfcTotVen != undefined) {
+					var totAge = HuTotVen + NoTotVen + ZtTotVen + RfcTotVen;
+console.log(totAge);
+				} else {
+					var totAge = HuTotVen + NoTotVen + ZtTotVen;
+				}
+				var totSystem = {"name": "total", "count": totAge};
 				var history = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').history;
 				var root1 = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
 				var color1 = scaleOrdinal(["#ff1744"]);
@@ -148,14 +168,42 @@ class vendorBoard extends PolymerElement {
 					return h;
 				};
 
-				var sysEventType = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList');
+				var sysEventType = document.body.querySelector('snmp-collector')
+							.shadowRoot.getElementById('vendorList');
+				var newRecord2 = new Object();
 				if(req.vendor) {
-					var dataVen = {"huawei": req.vendor.huawei.agent.total,
-						"zte": req.vendor.zte.agent.total,
-						"nokia": req.vendor.nokia.agent.total};
-					var dataAgent = Object.keys(dataVen).map(k => ({ name: k, count: dataVen[k] }));
+					for(var index in req.vendor.huawei.agent) {
+						if(req.vendor.huawei.agent != "") {
+							var HuaObjVen = req.vendor.huawei.agent[index];
+							if(HuaObjVen.total) {
+								newRecord2.huawei = HuaObjVen.total;
+							}
+						}
+						if(req.vendor.nokia.agent != "") {
+							var NokObjVen = req.vendor.nokia.agent[index];
+							if(NokObjVen.total) {
+								newRecord2.nokia = NokObjVen.total;
+							}
+						}
+						if(req.vendor.zte.agent != "") {
+							var ZteObjVen = req.vendor.zte.agent[index];
+							if(ZteObjVen.total) {
+								newRecord2.zte = ZteObjVen.total;
+							}
+						}
+						if(req.vendor.rfc3877.agent != "") {
+							var RfcObjVen = req.vendor.rfc3877.agent[index];
+							if(RfcObjVen.total) {
+								newRecord2.rfc3877 = RfcObjVen.total;
+							}
+						}
+						var dataVen = newRecord2;		
+						var dataAgent = Object.keys(dataVen).map(k =>
+									({ name: k, count: dataVen[k] }));
+					}
 				}
-				var root = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
+				var root = document.body.querySelector('snmp-collector')
+							.shadowRoot.getElementById('vendorList').shadowRoot;
 				var color2 = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00"]);
 				var svg2 = select(root).select("#agent");
 				sysEventType.draw_pie(svg2, dataAgent, color2);
@@ -295,6 +343,50 @@ class vendorBoard extends PolymerElement {
 					var dataType = newRecord1;
 					var dataEventType = Object.keys(dataType).map(k => ({name: k, count: dataType[k] }));
 				}
+				if(selectedVenEve == 3) {
+					if(req.vendor.rfc3877.eventType.communicationsAlarm != 0) {
+						newRecord1.communicationsAlarm = req.vendor.rfc3877
+									.eventType.communicationsAlarm;
+					}
+					if(req.vendor.rfc3877.eventType.environmentalAlarm != 0) {
+						newRecord1.environmentalAlarm = req.vendor.rfc3877
+									.eventType.environmentalAlarm;
+					}
+					if(req.vendor.rfc3877.eventType.equipmentAlarm != 0) {
+						newRecord1.equipmentAlarm = req.vendor.rfc3877
+									.eventType.equipmentAlarm;
+					}
+					if(req.vendor.rfc3877.eventType.integrityViolation != 0) {
+						newRecord1.integrityViolation = req.vendor.rfc3877
+									.eventType.integrityViolation;
+					}
+					if(req.vendor.rfc3877.eventType.operationalViolation != 0) {
+						newRecord1.operationalViolation = req.vendor.rfc3877
+									.eventType.operationalViolation;
+					}
+					if(req.vendor.rfc3877.eventType.physicalViolation != 0) {
+						newRecord1.physicalViolation = req.vendor.rfc3877
+									.eventType.physicalViolation;
+					}
+					if(req.vendor.rfc3877.eventType.processingErrorAlarm != 0) {
+						newRecord1.processingErrorAlarm = req.vendor.rfc3877
+									.eventType.processingErrorAlarm;
+					}
+					if(req.vendor.rfc3877.eventType.qualityofServiceAlarm != 0) {
+						newRecord1.qualityofServiceAlarm = req.vendor.rfc3877
+									.eventType.qualityofServiceAlarm;
+					}
+					if(req.vendor.rfc3877.eventType.securityServiceOrMechanismViolation != 0) {
+						newRecord1.securityServiceOrMechanismViolation = req.vendor.rfc3877
+									.eventType.securityServiceOrMechanismViolation;
+					}
+					if(req.vendor.rfc3877.eventType.timeDomainViolation != 0) {
+						newRecord1.timeDomainViolation = req.vendor.rfc3877
+									.eventType.timeDomainViolation;
+					}
+					var dataType = newRecord1;
+					var dataEventType = Object.keys(dataType).map(k => ({name: k, count: dataType[k] }));
+				}
 				var root = document.body.querySelector('snmp-collector')
 							.shadowRoot.getElementById('vendorList').shadowRoot;
 				var color = scaleOrdinal(["#ff1744", "#ff9100", "#ffea00","#00b0ff",
@@ -364,6 +456,26 @@ class vendorBoard extends PolymerElement {
 					var dataNok = newRecord;
 					var dataEventType = Object.keys(dataNok)
 								.map(k => ({ name: k, count: dataNok[k]}));
+				}
+				if(selectedVen == 3) {
+					if(req.vendor.rfc3877.perceivedSeverity.major != 0) {
+						if(req.vendor.rfc3877.perceivedSeverity.major) {
+							newRecord.major = req.vendor.rfc3877.perceivedSeverity.major;
+						}
+					}
+					if(req.vendor.rfc3877.perceivedSeverity.minor != 0) {
+						if(req.vendor.rfc3877.perceivedSeverity.minor) {
+							newRecord.minor = req.vendor.rfc3877.perceivedSeverity.minor;
+						}
+					}
+					if(req.vendor.rfc3877.perceivedSeverity.critical != 0) {
+						if(req.vendor.rfc3877.perceivedSeverity.critical) {
+							newRecord.critical = req.vendor.rfc3877.perceivedSeverity.critical;
+						}
+					}
+					var dataRfc = newRecord;
+					var dataEventType = Object.keys(dataRfc)
+								.map(k => ({ name: k, count: dataRfc[k]}));
 				}
 				var root = document.body.querySelector('snmp-collector')
 							.shadowRoot.getElementById('vendorList').shadowRoot;
