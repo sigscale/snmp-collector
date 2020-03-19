@@ -182,6 +182,11 @@
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmClearType</td>
 %%			<td id="mt"></td>
 %% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt">faultFields.nfVendorName</td>
+%%		 	<td id="mt">huawei</td>
+%% 	</tr>
 %% </tbody>
 %% </table></p>
 
@@ -367,7 +372,7 @@ fault(NameValuePair) ->
 %% @hidden
 fault([{"iMAPNorthboundAlarmCSN", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
-	fault(T, AC, [{"alarmId", Value} | Acc]);
+	fault(T, AC, [{"alarmId", Value}, {"nfVendorName", "huawei"} | Acc]);
 fault([{"iMAPNorthboundAlarmDevCsn", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"sourceId", Value} | Acc]);

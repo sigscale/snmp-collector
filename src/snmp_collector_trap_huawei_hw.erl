@@ -178,6 +178,11 @@
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.eventDetail</td>
 %%		 	<td id="mt"></td>
 %% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt">faultFields.nfVendorName</td>
+%%		 	<td id="mt">huawei</td>
+%% 	</tr>
 %% </tbody>
 %% </table></p>
 
@@ -358,7 +363,7 @@ fault(NameValuePair) ->
 %% @hidden
 fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
-	fault(T, EN, [{"alarmId", Value} | Acc]);
+	fault(T, EN, [{"alarmId", Value}, {"nfVendorName", "huawei"} | Acc]);
 fault([{"hwNmNorthboundResourceIDs", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"sourceId", Value} | Acc]);

@@ -127,6 +127,11 @@
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.eventComment</td>
 %%			<td id="mt"></td>
 %% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt">faultFields.nfVendorName</td>
+%%		 	<td id="mt">nokia</td>
+%% 	</tr>
 %% </tbody>
 %% </table></p>
 
@@ -317,7 +322,7 @@ fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T]) ->
 %% @hidden
 fault([{"nbiAlarmId", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, AC, [{"alarmId", Value} | Acc]);
+	fault(T, AC, [{"alarmId", Value}, {"nfVendorName", "nokia"} | Acc]);
 fault([{"nbiAlarmTime", Value} | T], AC, Acc)
 		when AC == "alarmNew", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"raisedTime", Value} | Acc]);

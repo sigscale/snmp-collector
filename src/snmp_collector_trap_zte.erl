@@ -152,6 +152,10 @@
 %% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAID</td>
 %%			<td id="mt"></td>
 %% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt">faultFields.nfVendorName</td>
+%%		 	<td id="mt">zte</td>
 %% </tbody>
 %% </table></p>
 
@@ -341,7 +345,7 @@ fault([{"snmpTrapOID", "alarmAckChange"} | T]) ->
 %% @hidden
 fault([{"id", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
-	fault(T, EN, [{"alarmId", Value} | Acc]);
+	fault(T, EN, [{"alarmId", Value}, {"nfVendorName", "zte"} | Acc]);
 fault([{"alarmEventTime", Value} | T], EN, Acc)
 		when EN == "alarmNew", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);

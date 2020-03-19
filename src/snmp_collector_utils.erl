@@ -887,6 +887,8 @@ fault_fields([{"eventSourceType", Value} | T], Acc) ->
 	fault_fields(T, Acc#{"eventSourceType" => Value});
 fault_fields([{"specificProblem", Value} | T], Acc) ->
 	fault_fields(T, Acc#{"specificProblem" => Value});
+fault_fields([{"nfVendorName", Value} | T], Acc) ->
+	fault_fields(T, Acc#{"nfVendorName" => Value});
 fault_fields([{Name, Value} | T],
 		#{"alarmAdditionalInformation" := AI} = Acc) ->
 	NewAI = [#{"name" => Name, "value" => Value} | AI],
