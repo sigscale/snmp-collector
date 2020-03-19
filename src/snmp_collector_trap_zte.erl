@@ -156,6 +156,7 @@
 %% 		<td id="mt"></td>
 %% 		<td id="mt">faultFields.nfVendorName</td>
 %%		 	<td id="mt">zte</td>
+%% 	</tr>
 %% </tbody>
 %% </table></p>
 
