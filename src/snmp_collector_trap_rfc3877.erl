@@ -390,6 +390,8 @@ probable_cause("19") ->
 	?PC_Modulaion_Failure;
 probable_cause("20") ->
 	?PC_Demodulation_Failure;
+probable_cause("22") ->
+	?PC_Connection_Establishment_Error;
 probable_cause("51") ->
 	?PC_Back_Plane_Failure;
 probable_cause("52") ->
@@ -508,6 +510,10 @@ probable_cause("156") ->
 	?PC_Software_Download_Failure;
 probable_cause("157") ->
 	?PC_Loss_Of_Real_Time;
+probable_cause("160") ->
+	?PC_Configuration_Or_Customization_Error;
+probable_cause("164") ->
+	?PC_Software_Error;
 probable_cause("301") ->
 	?PC_Adapter_Error;
 probable_cause("302") ->
@@ -714,6 +720,8 @@ probable_cause("573") ->
 	?PC_SS7_Protocol_Failure;
 probable_cause("574") ->
 	?PC_Transmission_Error;
+probable_cause("600") ->
+	?PC_Authentication_Failure;
 probable_cause("701") ->
 	?PC_Authentication_Failure;
 probable_cause("702") ->
