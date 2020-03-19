@@ -92,8 +92,10 @@
 -define(PC_Enclosure_Door_Open, "Enclosure Door Open").
 -define(PC_Explosive_Gas, "Explosive Gas").
 -define(PC_External_Equipment_Failure, "External Equipment Failure").
+-define(PC_Equipment_Malfunction, "Equipment Malfunction").
 -define(PC_External_Point_Failure, "External Point Failure").
 -define(PC_Fire, "Fire").
+-define(PC_Fire_Detected, "Fire Detected").
 -define(PC_Flood, "Flood").
 -define(PC_High_Humidity, "High Humidity").
 -define(PC_High_Temperature, "High Temperature").
@@ -178,6 +180,7 @@
 -define(PC_Unspecified_Reason, "Unspecified Reason").
 -define(PC_Database_Inconsistency, "Database Inconsistency").
 -define(PC_File_System_Call_Unsuccessful, "File System Call Unsuccessful").
+-define(PC_Call_Establishment_Error, "Call Establishment Error").
 -define(PC_Input_Parameter_Out_Of_Range, "Input Parameter Out Of Range").
 -define(PC_Invalid_Parameter, "Invalid Parameter").
 -define(PC_Invalid_Pointer, "Invalid Pointer").
