@@ -108,11 +108,13 @@ class agentBoard extends PolymerElement {
 						var zteObj = request.response.vendor.zte.agent[index];
 						var zteTotal = zteObj.total;
 					}
-					if(request.response.vendor.Rfc3877.agent != "") {
-						var RObj = request.response.vendor.Rfc3877.agent[index];
+					if(request.response.vendor.rfc3877.agent != "") {
+console.log("request");
+						var RObj = request.response.vendor.rfc3877.agent[index];
 						var rTotal = RObj.total;
 					}
 				}
+console.log(RObj, rTotal );
 				if(huwTotal != undefined || nokTotal != undefined || rTotal != undefined) {
 					var totAge = nokTotal + huwTotal + rTotal;
 				}
@@ -326,9 +328,9 @@ class agentBoard extends PolymerElement {
 					}
 				}
 				if(selected == 3) {
-					if(req.vendor.Rfc3877.agent != "") {
-						for(var index in req.vendor.Rfc3877.agent) {
-							var nokAgeEve = request.response.vendor.Rfc3877.agent[index];
+					if(req.vendor.rfc3877.agent != "") {
+						for(var index in req.vendor.rfc3877.agent) {
+							var nokAgeEve = request.response.vendor.rfc3877.agent[index];
 							if(nokAgeEve.eventType.communicationsAlarm != 0) {
 								newRecord.communicationsAlarm = nokAgeEve.eventType
 											.communicationsAlarm;
@@ -445,9 +447,9 @@ class agentBoard extends PolymerElement {
 					var dataEventType = Object.keys(dataPerNok).map(k => ({ name: k, count: dataPerNok[k] }));
 				}
 				if(selectedVen == 3) {
-					if(req.vendor.Rfc3877.agent != "") {
-						for(var index in req.vendor.Rfc3877.agent) {
-							var nokiaAgeEve = request.response.vendor.Rfc3877.agent[index];
+					if(req.vendor.rfc3877.agent != "") {
+						for(var index in req.vendor.rfc3877.agent) {
+							var nokiaAgeEve = request.response.vendor.rfc3877.agent[index];
 							if(nokiaAgeEve.perceivedSeverity.major != 0) {
 								newRecord1.major = nokiaAgeEve.perceivedSeverity
 											.major;
