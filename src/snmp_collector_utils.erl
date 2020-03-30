@@ -426,8 +426,19 @@ oids_to_names([], Acc) ->
 %% @doc JSON encode a string.
 %% @private
 stringify(String) ->
-	stringify1(String, []).
+	case io_lib:printable_unicode_list(String) of
+		true ->
+			String;
+		false ->
+			stringify1(String, [])
+	end.
 %% @hidden
+stringify1([$\s | T], Acc) ->
+	stringify1(T, [$s, $\\ | Acc]);
+stringify1([$\~ | T], Acc) ->
+	stringify1(T, [$~, $\\ | Acc]);
+stringify1([$\, | T], Acc) ->
+	stringify1(T, [$,, $\\ | Acc]);
 stringify1([$\b | T], Acc) ->
 	stringify1(T, [$b, $\\ | Acc]);
 stringify1([$\d | T], Acc) ->
@@ -450,6 +461,8 @@ stringify1([$\" | T], Acc) ->
 	stringify1(T, Acc);
 stringify1([$\\ | T], Acc) ->
 	stringify1(T, [$\\, $\\ | Acc]);
+stringify1([H | T], Acc) when H < $\s; H > $~ ->
+	stringify1(T, [io_lib:fwrite("\\u~4.16.0b", [H]) | Acc]);
 stringify1([H | T], Acc) ->
 	stringify1(T, [H | Acc]);
 stringify1([], Acc) ->
