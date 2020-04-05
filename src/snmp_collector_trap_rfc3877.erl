@@ -286,7 +286,6 @@ fault([{"alarmActiveDescription", Value} | T], EN, Acc)
 fault([{"ituAlarmPerceivedSeverity", "1"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"ituAlarmPerceivedSeverity", "2"} | T], EN, Acc) ->
-erlang:display({?MODULE, ?LINE}),
 	fault(T, EN, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 fault([{"ituAlarmPerceivedSeverity", "3"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
@@ -729,6 +728,8 @@ probable_cause("614") ->
 	?PC_Unauthorized_Access_Attempt;
 probable_cause("615") ->
 	?PC_Unexpected_Info;
+probable_cause("1024") ->
+	?PC_Indeterminate;
 probable_cause(ProbableCauseCode) ->
 	error_logger:info_report(["SNMP Manager Unrecognized Probable Cause",
 			{probableCause, ProbableCauseCode},
