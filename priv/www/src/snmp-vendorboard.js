@@ -99,25 +99,35 @@ class vendorBoard extends PolymerElement {
 			if (request) {
 				var dataArray = new Array();
 				var req = request.response;
+				var arr = new Array();
 				if(request.response.vendor.huawei.total) {
 					var HuTotVen = request.response.vendor.huawei.total;
+					if(HuTotVen != undefined) {
+						arr.push(HuTotVen);
+					}
 				}
 				if(request.response.vendor.nokia.total) {
 					var NoTotVen = request.response.vendor.nokia.total;
+					if(NoTotVen != undefined) {
+						arr.push(NoTotVen);
+					}
 				}
 				if(request.response.vendor.zte.total) {
 					var ZtTotVen = request.response.vendor.zte.total;
+					if(ZtTotVen != undefined) {
+						arr.push(ZtTotVen);
+					}
 				}
 				if(request.response.vendor.rfc3877.total) {
 					var RfcTotVen = request.response.vendor.rfc3877.total;
+					if(RfcTotVen != undefined) {
+						arr.push(RfcTotVen);
+					}
 				}
-				if(RfcTotVen != undefined) {
-					var totAge = HuTotVen + NoTotVen + ZtTotVen + RfcTotVen;
-console.log(totAge);
-				} else {
-					var totAge = HuTotVen + NoTotVen + ZtTotVen;
-				}
-				var totSystem = {"name": "total", "count": totAge};
+				var sum = arr.reduce(function(a, b){
+					return a + b;
+				}, 0);
+				var totSystem = {"name": "total", "count": sum};
 				var history = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').history;
 				var root1 = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
 				var color1 = scaleOrdinal(["#ff1744"]);
