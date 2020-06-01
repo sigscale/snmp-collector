@@ -25,7 +25,7 @@
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
 		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3,
-		add_usm_user/7]).
+		register_usm_user/7]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -604,7 +604,7 @@ add_snmpm_user(UserId, UserMod, UserData)
 			{error, Reason}
 	end.
 
--spec add_usm_user(EngineId, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
+-spec register_usm_user(EngineId, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
 	when
 		EngineId :: list(),
 		UserName :: list(),
@@ -618,15 +618,15 @@ add_snmpm_user(UserId, UserMod, UserData)
 %% @doc Add a new usm user to the snmp_usm table.
 %% @hidden
 %% {EngineId, UserName, SecName, AuthP, AuthKey, PrivP, PrivKey}.
-add_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
-	FileConf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
+%	FileConf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
+%	ok = snmpm_conf:append_usm_config(Dir, FileConf),
+	register_usm_user1(EngineId, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
@@ -634,9 +634,9 @@ add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProto
 			{auth_key, AuthKey}],
 	FileConf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmNoPrivProtocol, []}],
 	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
@@ -645,9 +645,9 @@ add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProt
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
 	FileConf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
 	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
@@ -656,19 +656,19 @@ add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Pr
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
 	FileConf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
 	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmNoPrivProtocol}],
+			{priv, usmNoPrivProtocol}],%	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
 	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
 	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
@@ -677,9 +677,9 @@ add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProt
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
 	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
 	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
@@ -688,9 +688,9 @@ add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Pr
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
 	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
 	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
+	register_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
 %% @hidden
-add_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
+register_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
 		when is_list(EngineId), is_list(UserName) ->
 	case snmpm:register_usm_user(EngineId, UserName, Conf) of
 		ok ->

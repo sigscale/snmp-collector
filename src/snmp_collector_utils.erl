@@ -242,7 +242,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
-					case snmp_collector:add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
+					case snmp_collector:register_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
@@ -258,7 +258,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
-					case snmp_collector:add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
+					case snmp_collector:register_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
