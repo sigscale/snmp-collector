@@ -25,7 +25,7 @@
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
 		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3,
-		register_usm_user/7]).
+		register_usm_user/7, add_usm_user/7]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -604,6 +604,75 @@ add_snmpm_user(UserId, UserMod, UserData)
 			{error, Reason}
 	end.
 
+-spec add_usm_user(EngineId, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
+	when
+		EngineId :: list(),
+		UserName :: list(),
+		SecName :: list(),
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+		AuthPass :: list(),
+		PrivPass :: list(),
+		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
+		Reason :: term().
+%% @doc Add a new usm user to the snmp_usm table.
+%% @hidden
+%% {EngineId, UserName, SecName, AuthP, AuthKey, PrivP, PrivKey}.
+add_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	Conf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
+	add_usm_user1(UserName, Conf);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
+	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmNoPrivProtocol, []}],
+	add_usm_user1(UserName, Conf);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
+	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
+	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
+	add_usm_user1(UserName, Conf);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
+	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
+	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
+	add_usm_user1(UserName, Conf);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
+	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
+	add_usm_user1(UserName, Conf);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
+	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
+	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
+	add_usm_user1(UserName, Conf);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
+	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
+	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
+	add_usm_user1(UserName, Conf).
+%% @hidden
+add_usm_user1(UserName, Conf)
+		when is_list(UserName) ->
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case snmpm_conf:append_usm_config(Dir, Conf) of
+		ok ->
+			{usm_user_added, UserName};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
 -spec register_usm_user(EngineId, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
 	when
 		EngineId :: list(),
@@ -622,8 +691,8 @@ register_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProto
 		when is_list(EngineId), is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
-%	FileConf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
-%	ok = snmpm_conf:append_usm_config(Dir, FileConf),
+	FileConf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
+	ok = snmpm_conf:append_usm_config(Dir, FileConf),
 	register_usm_user1(EngineId, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
 %% @hidden
 register_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
@@ -663,7 +732,7 @@ register_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPriv
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
-			{priv, usmNoPrivProtocol}],%	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
+			{priv, usmNoPrivProtocol}],
 	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
 	ok = snmpm_conf:append_usm_config(Dir, FileConf),
 	register_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
