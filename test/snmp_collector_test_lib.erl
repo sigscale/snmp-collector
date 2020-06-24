@@ -85,7 +85,7 @@ start(Config, []) ->
 	case ct:get_config({snmp_mgr_agent, agent_target_address_def}) of
 		[TargetAdressDef] ->
 			{_, Port} = element(3, TargetAdressDef),
-			ok = application:set_env(snmp_collector, manager_ports, [Port]);
+			ok = application:set_env(snmp_collector, manager_listener, [{{127,0,0,1}, Port}]);
 		undefined ->
 			ok
 	end,
