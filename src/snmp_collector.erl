@@ -616,7 +616,6 @@ add_snmpm_user(UserId, UserMod, UserData)
 		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new usm user to the snmp_usm table.
-%% @hidden
 %% {EngineId, UserName, SecName, AuthP, AuthKey, PrivP, PrivKey}.
 add_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
@@ -685,7 +684,6 @@ add_usm_user1(UserName, Conf)
 		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new usm user to the snmp_usm table.
-%% @hidden
 %% {EngineId, UserName, SecName, AuthP, AuthKey, PrivP, PrivKey}.
 register_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
