@@ -60,7 +60,7 @@
 %% @see //stdlib/gen_server:init/1
 %% @private
 %%
-init([Sup, Port]) ->
+init([Sup, {Address, Port}]) ->
 	{ok, Options} = application:get_env(sock_opts),
 	{Active, Options1} = case lists:keyfind(active, 1, Options) of
 		{active, N} ->
@@ -74,7 +74,7 @@ init([Sup, Port]) ->
 		{unix, darwin} ->
 			{raw, 16#ffff, 16#0200, <<1:32/native>>}
 	end,
-	case gen_udp:open(Port, [{reuseaddr, true}, SO_REUSEPORT | Options1]) of
+	case gen_udp:open(Port, [{ifaddr, Address}, {reuseaddr, true}, SO_REUSEPORT | Options1]) of
 		{ok, Socket} ->
 			{ok, #state{sup = Sup, socket = Socket, active = Active}, 0};
 		{error, Reason} ->

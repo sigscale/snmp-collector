@@ -143,17 +143,17 @@ start6() ->
 	case supervisor:start_link(snmp_collector_sup, []) of
 		{ok, TopSup} ->
 			Children = supervisor:which_children(TopSup),
-			{ok, ManagerPorts} = application:get_env(manager_ports),
+			{ok, ManagerListeners} = application:get_env(manager_listener),
 			{_, ManagerSup, _, _} = lists:keyfind(snmp_collector_manager_sup_sup, 1, Children),
 			{_, DebugSup, _, _} = lists:keyfind(snmp_collector_debug_sup, 1, Children),
-			start7(TopSup, ManagerSup, DebugSup, ManagerPorts, []);
+			start7(TopSup, ManagerSup, DebugSup, ManagerListeners, []);
 		{error, Reason} ->
 			{error, Reason}
 	end.
 %% @hidden
-start7(TopSup, ManagerSup, DebugSup, [Port | T] = _ManagerPorts, Acc)
-		when is_integer(Port) ->
-	case supervisor:start_child(ManagerSup, [[Port]]) of
+start7(TopSup, ManagerSup, DebugSup, [AddressPort | T] = _ManagerPorts, Acc)
+		when is_tuple(AddressPort) ->
+	case supervisor:start_child(ManagerSup, [[AddressPort]]) of
 		{ok, ManagerPortSup} ->
 			start7(TopSup, ManagerSup, DebugSup, T, [ManagerPortSup | Acc]);
 		{error, Reason} ->
@@ -178,12 +178,12 @@ start8(TopSup, DebugSup, NumSockets, N, [ManagerPortSup | _] = Acc) ->
 			{error, Reason}
 	end;
 start8(TopSup, DebugSup, _NumSockets, _, []) ->
-	{ok, DebugPorts} = application:get_env(debug_ports),
-	start9(TopSup, DebugSup, DebugPorts).
+	{ok, DebugListener} = application:get_env(debug_listener),
+	start9(TopSup, DebugSup, DebugListener).
 %% @hidden
-start9(TopSup, DebugSup, [Port | T] = _DebugPorts)
-		when is_integer(Port) ->
-	case supervisor:start_child(DebugSup, [[Port], []]) of
+start9(TopSup, DebugSup, [DebugAddressPort | T] = _DebugListener)
+		when is_tuple(DebugAddressPort) ->
+	case supervisor:start_child(DebugSup, [[DebugAddressPort], []]) of
 		{ok, _DebugServer} ->
 			start9(TopSup, DebugSup, T);
 		{error, Reason} ->
