@@ -483,7 +483,7 @@ fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
-fault([{"hwNmNorthbound}EventTime", Value} | T], EN, Acc)
+fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
 		when EN == "Fault", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
