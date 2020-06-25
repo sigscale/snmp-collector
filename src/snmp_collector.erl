@@ -796,6 +796,26 @@ register_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
 		{error, Reason} ->
 			{error, Reason}
 	end.
+-spec update_usm_user(EngineId, UserName, Attribute, AttributeValue) -> Result
+   when
+      EngineId :: list(),
+      UserName :: term(),
+      Attribute :: engine_id | tadress | port | tdomain |
+            community | timeout | max_message_size | version
+            sec_model | sec_name | sec_level,
+      AttributeValue :: term(),
+      Result :: ok | {error, Reason}
+      Reason :: term().
+%% @doc Update an existing usm user in the snmp_usm table.
+update_usm_user(EngineId, UserName, Attribute, AttributeValue)
+		when is_list(EngineId) ->
+	case snmpm:update_usm_user_info(EngineId, UserName,
+			Attribute, AttributeValue) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
 
 %%----------------------------------------------------------------------
 %%  internal functions
