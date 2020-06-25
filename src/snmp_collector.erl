@@ -605,7 +605,8 @@ remove_agent(UserId, TargetName)
 		UserId :: term(),
 		TargetName :: string(),
 		Info :: [{Attribute, AttributeValue}],
-		Attribute :: community | timeout | max_message_size | version
+		Attribute :: engine_id | tadress | port | tdomain |
+				community | timeout | max_message_size | version
 				sec_model | sec_name | sec_level,
 		AttributeValue :: term(),
 		Result :: ok | {error, Reason},
