@@ -796,6 +796,7 @@ register_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
 -spec update_usm_user(EngineId, UserName, Attribute, AttributeValue) -> Result
    when
       EngineId :: list(),
