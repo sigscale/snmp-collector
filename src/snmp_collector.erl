@@ -650,7 +650,7 @@ add_snmpm_user(UserId, UserMod, UserData)
 %% @doc Remove snmpm user configuration.
 remove_snmpm_user(UserId)
 		when undefined =/= UserId ->
-	case snmpm:unregsiter_user(UserId) of
+	case snmpm:unregister_user(UserId) of
 		ok ->
 			ok;
 		{error, Reason} ->
