@@ -25,7 +25,8 @@
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
 		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3,
-		register_usm_user/7, add_usm_user/7, remove_agent/2, update_agent/3, remove_snmpm_user/1]).
+		register_usm_user/7, add_usm_user/7, remove_agent/2, update_agent/3,
+		remove_snmpm_user/1, update_usm_user/4]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -817,6 +818,7 @@ update_usm_user(EngineId, UserName, Attribute, AttributeValue)
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
 
 %%----------------------------------------------------------------------
 %%  internal functions
