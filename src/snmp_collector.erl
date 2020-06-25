@@ -25,7 +25,7 @@
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
 		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3,
-		register_usm_user/7, add_usm_user/7, remove_agent/2]).
+		register_usm_user/7, add_usm_user/7, remove_agent/2, update_agent/3]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -594,6 +594,26 @@ add_agent1(UserId, TargetName, EngineId, Address) ->
 remove_agent(UserId, TargetName)
 		when is_list(TargetName) ->
 	case snmpm:unregister_agent(UserId, TargetName) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec update_agent(UserId, TargetName, Info) -> Result
+	when
+		UserId :: term(),
+		TargetName :: string(),
+		Info :: [{Attribute, AttributeValue}],
+		Attribute :: community | timeout | max_message_size | version
+				sec_model | sec_name | sec_level,
+		AttributeValue :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Update an existing agent.
+update_agent(UserId, TargetName, Info)
+		when is_list(TargetName), is_list(Info) ->
+	case snmpm:update_agent_info(UserId, TargetName, Info) of
 		ok ->
 			ok;
 		{error, Reason} ->
