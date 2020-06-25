@@ -26,7 +26,7 @@
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
 		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3,
 		register_usm_user/7, add_usm_user/7, remove_agent/2, update_agent/3,
-		remove_snmpm_user/1, update_usm_user/4]).
+		remove_snmpm_user/1, update_usm_user/4, unregister_usm_user/2]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -803,16 +803,32 @@ register_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
       EngineId :: list(),
       UserName :: term(),
       Attribute :: engine_id | tadress | port | tdomain |
-            community | timeout | max_message_size | version
+            community | timeout | max_message_size | version |
             sec_model | sec_name | sec_level,
       AttributeValue :: term(),
-      Result :: ok | {error, Reason}
+      Result :: ok | {error, Reason},
       Reason :: term().
 %% @doc Update an existing usm user in the snmp_usm table.
 update_usm_user(EngineId, UserName, Attribute, AttributeValue)
 		when is_list(EngineId) ->
 	case snmpm:update_usm_user_info(EngineId, UserName,
 			Attribute, AttributeValue) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec unregister_usm_user(EngineId, UserId) -> Result
+	when
+		EngineId :: list(),
+		UserId :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Unregister an usm user from the snmp_usm table.
+unregister_usm_user(EngineId, UserId)
+		when is_list(EngineId), undefined =/= UserId ->
+	case snmpm:unregister_usm_user(EngineId, UserId) of
 		ok ->
 			ok;
 		{error, Reason} ->
