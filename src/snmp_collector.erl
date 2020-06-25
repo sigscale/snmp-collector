@@ -25,7 +25,7 @@
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
 		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3,
-		register_usm_user/7, add_usm_user/7]).
+		register_usm_user/7, add_usm_user/7, remove_agent/2]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -584,6 +584,22 @@ add_agent1(UserId, TargetName, EngineId, Address) ->
 			{error, Reason}
 	end.
 
+-spec remove_agent(UserId, TargetName) -> Result
+	when
+		UserId :: term(),
+		TargetName :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Remove an existing agent.
+remove_agent(UserId, TargetName)
+		when is_list(TargetName) ->
+	case snmpm:unregister_agent(UserId, TargetName) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
 -spec add_snmpm_user(UserId, UserMod, UserData) -> Result
 	when
 		UserId :: string(),
@@ -620,54 +636,54 @@ add_snmpm_user(UserId, UserMod, UserData)
 add_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	Conf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
-	add_usm_user1(UserName, Conf);
+	add_usm_user1(UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
 	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmNoPrivProtocol, []}],
-	add_usm_user1(UserName, Conf);
+	add_usm_user1(UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
 	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
 	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
-	add_usm_user1(UserName, Conf);
+	add_usm_user1(UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
 	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
 	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
-	add_usm_user1(UserName, Conf);
+	add_usm_user1(UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
-	add_usm_user1(UserName, Conf);
+	add_usm_user1(UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
 	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
-	add_usm_user1(UserName, Conf);
+	add_usm_user1(UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
 	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
-	add_usm_user1(UserName, Conf).
+	add_usm_user1(UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
 %% @hidden
-add_usm_user1(UserName, Conf)
+add_usm_user1(UserName, Conf, AuthProtocol, PrivProtocol)
 		when is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	case snmpm_conf:append_usm_config(Dir, Conf) of
 		ok ->
-			{usm_user_added, UserName};
+			{usm_user_added, AuthProtocol, PrivProtocol};
 		{error, Reason} ->
 			{error, Reason}
 	end.
