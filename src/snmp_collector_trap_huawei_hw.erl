@@ -334,10 +334,14 @@ handle_fault(TargetName, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = fault(NamesValues),
-		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		case fault(NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+				snmp_collector_utils:log_event(Event)
+		end
 	of
 		ok ->
 			ignore;
@@ -358,8 +362,12 @@ handle_fault(TargetName, Varbinds) ->
 		VesValue :: string().
 %% @doc CODEC for event.
 fault(NameValuePair) ->
-	{_, Value} = lists:keyfind("hwNmNorthboundFaultFlag", 1, NameValuePair),
-	fault(NameValuePair, Value, []).
+	case lists:keyfind("hwNmNorthboundFaultFlag", 1, NameValuePair) of
+		{_, "Event"} ->
+			[{[],[]}];
+		{_, Value} ->
+			fault(NameValuePair, Value, [])
+	end.
 %% @hidden
 fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
@@ -507,7 +515,7 @@ fault([{Name, Value} | T], EN, Acc) ->
 fault([], _EN, Acc) ->
 	Acc.
 
--spec domain(Varbinds) -> Result
+	-spec domain(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
 		Result :: fault | heartbeat | notification | other.
