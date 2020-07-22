@@ -340,7 +340,7 @@ handle_fault(TargetName, Varbinds) ->
 			AlarmDetails ->
 				snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
 				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-				snmp_collector_utils:log_event(Event)
+				snmp_collector_utils:send_event(Event)
 		end
 	of
 		ok ->

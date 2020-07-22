@@ -281,7 +281,7 @@ handle_fault(TargetName, Varbinds) ->
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(hpe, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;
@@ -2659,7 +2659,7 @@ handle_notification(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = notification(NamesValues),
 		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, syslog),
-		snmp_collector_utils:log_event(Event)
+		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;

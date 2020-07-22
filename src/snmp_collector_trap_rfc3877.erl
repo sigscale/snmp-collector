@@ -221,7 +221,7 @@ handle_fault(TargetName, Varbinds) ->
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(rfc3877, TargetName, AlarmDetails),
 		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;

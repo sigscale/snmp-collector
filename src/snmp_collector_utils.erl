@@ -23,7 +23,7 @@
 -include("snmp_collector_log.hrl").
 
 -export([oid_to_name/1, get_name/1, generate_identity/1,
-		arrange_list/1, stringify/1, log_event/1, security_params/7,
+		arrange_list/1, stringify/1, send_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
 		authenticate_v1_v2/2, update_counters/3, timestamp/0,
 		generate_key/3, authenticate_v3/4]).
@@ -252,6 +252,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 							{error, Reason}
 					end;
 				false ->
+erlang:display({?MODULE, ?LINE, TargetName, AuthProtocol, AuthPass, EngineID}),
 					{error, authentication_failed}
 			end;
 		[[AuthProtocol, PrivProtocol],  _] ->
@@ -324,7 +325,7 @@ agent_name(Address) ->
 			{error, target_name_not_found}
 	end.
 
--spec log_event(Event) -> Result
+-spec send_event(Event) -> Result
    when
 		Event :: {TS, N, Node, CommonEventHeader, OtherFields},
 		TS :: pos_integer(),
@@ -334,9 +335,9 @@ agent_name(Address) ->
 		OtherFields :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Log the event to disk.
+%% @doc Log and POST the event.
 %% @private
-log_event({TS, N, Node, CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalInformation}
+send_event({TS, N, Node, CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalInformation}
 		= OtherFields}) ->
 	try
 		Event1 = {TS, N, Node, CommonEventHeader,
