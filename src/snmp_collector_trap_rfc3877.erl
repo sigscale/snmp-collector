@@ -615,7 +615,7 @@ probable_cause("513") ->
 probable_cause("514") ->
 	?PC_Equipment_Malfunction;
 probable_cause("515") ->
-	?PC_Excessive_vibration;
+	?PC_Excessive_Vibration;
 probable_cause("516") ->
 	?PC_File_Error;
 probable_cause("517") ->

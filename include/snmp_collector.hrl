@@ -142,7 +142,7 @@
 -define(PC_Denial_Of_Service, "Denial Of Service").
 -define(PC_DTE_DCE_Interface_Error, "DTE-DCE Interface Error").
 -define(PC_Duplicate_Information, "Duplicate Information").
--define(PC_Excessive_vibration, "Excessive Vibration").
+-define(PC_Excessive_Vibration, "Excessive Vibration").
 -define(PC_Framing_Error, "Framing Error").
 -define(PC_HOVOCP, "Heating Or Ventilation Or Cooling System Problem").
 -define(PC_Humidity_Unacceptable, "Humidity Unacceptable").

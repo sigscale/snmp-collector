@@ -250,6 +250,7 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
 		heartbeat ->
+erlang:display({?MODULE, ?LINE, heartbeat, TargetName}),
 			ignore;
 		fault ->
 			handle_fault(TargetName, Varbinds)
@@ -260,6 +261,7 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
 		heartbeat ->
+erlang:display({?MODULE, ?LINE, heartbeat, TargetName}),
 			ignore;
 		fault ->
 			handle_fault(TargetName, Varbinds)
@@ -677,7 +679,7 @@ probable_cause("313") ->
 probable_cause("315") ->
 	?PC_Equipment_Failure;
 probable_cause("316") ->
-	?PC_Excessive_vibration;
+	?PC_Excessive_Vibration;
 probable_cause("317") ->
 	?PC_File_Error;
 probable_cause("321") ->
