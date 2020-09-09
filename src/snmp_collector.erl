@@ -256,7 +256,8 @@ get_count() ->
 		Metric :: eventType | perceivedResult,
 		Result :: map().
 %% @doc Get current count of alarms on system by `metric'.
-get_count(Metric) ->
+get_count(Metric) 
+		when is_atom(Metric) ->
 	MatchSpec = [{{'$1', '$2'}, [{'==', '$1', Metric}], ['$2']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
@@ -266,7 +267,8 @@ get_count(Metric) ->
 		Vendor :: huawei | nokia | zte | emc | nec | hpe | rfc3877,
 		Result :: non_neg_integer().
 %% @doc Get current count of alarms for `vendor'.
-get_vendor_count(Vendor) ->
+get_vendor_count(Vendor)
+		when is_atom(Vendor) ->
 	MatchSpec = [{{{'$1', '$2'}, '$3'}, [{'==', '$1', Vendor}], ['$3']}],
 	lists:sum(ets:select(counters, MatchSpec)).
 
@@ -276,7 +278,8 @@ get_vendor_count(Vendor) ->
 		Metric :: eventType | perceivedResult,
 		Result :: map().
 %% @doc Get current count of alarms for `vendor' by `metric'.
-get_vendor_count(Vendor, Metric) ->
+get_vendor_count(Vendor, Metric)
+		when is_atom(Vendor), is_atom(Metric) ->
 	MatchSpec = [{{{'$1', '$2'}, '$3'}, [{'==', '$1', Vendor}, {'==', '$2', Metric}], ['$3']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
@@ -287,7 +290,8 @@ get_vendor_count(Vendor, Metric) ->
 		Agent :: string(),
 		Result :: non_neg_integer().
 %% @doc Get current count of alarms for `vendor' by `agent'
-get_agent_count(Vendor, Agent) ->
+get_agent_count(Vendor, Agent)
+		when is_atom(Vendor), is_list(Agent) ->
 	MatchSpec = [{{{Vendor, Agent, '_'}, '$4'}, [], ['$4']}],
 	lists:sum(ets:select(counters, MatchSpec)).
 
@@ -298,7 +302,8 @@ get_agent_count(Vendor, Agent) ->
 		Metric :: eventType | perceivedResult,
 		Result :: map().
 %% @doc Get current count alarms for `vendor' by `agent' and `metric'
-get_agent_count(Vendor, Agent, Metric) ->
+get_agent_count(Vendor, Agent, Metric)
+		when is_atom(Vendor), is_list(Agent), is_atom(Metric) ->
 	MatchSpec = [{{{Vendor, Agent, Metric}, '$4'}, [], ['$4']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
