@@ -328,7 +328,6 @@ fault([{"ospDtlNeType", Value} | T], AC, Acc)
 fault([{"ospDtlAlarmType", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"alarmType", Value} | Acc]);
-
 fault([{"ospDtlProbableCause", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"probableCauseNo", Value} | Acc]);
