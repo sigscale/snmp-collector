@@ -51,16 +51,16 @@
 %% </tbody>
 %% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlAlarmOccurredPlace</td>
+%% 		<td id="mt">sourceName</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %% </tbody>
 %% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
-%%			<td id="mt"></td>
+%% 		<td id="mt">ospDtlNeName</td>
+%% 		<td id="mt">eventSourceType</td>
+%%			<td id="mt">NE name</td>
 %% 	</tr>
 %% </tbody>
 %% <tbody>
@@ -306,12 +306,15 @@ fault([{"ospDtlProbableCauseQualifier", Value} | T], AC, Acc)
 fault([{"ospDtlSnmpTrapAddress", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"sourceId", Value} | Acc]);
-fault([{"ospEventNeName", Value} | T], AC, Acc)
-		when length(Value) > 0, Value =/= [$ ] ->
-	fault(T, AC, [{"sourceName", Value} | Acc]);
 fault([{"ospDtlAlarmOccurredPlace", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, AC, [{"sourceName", Value} | Acc]);
+fault([{"ospEventNeName", Value} | T], AC, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"eventSourceType", Value} | Acc]);
+fault([{"ospDtlAlarmOccurredPlace", Value} | T], AC, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, AC, [{"sourceName", Value} | Acc]);
 fault([{"ospDtlNeName", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"objectInstance", Value} | Acc]);
