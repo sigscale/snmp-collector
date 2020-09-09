@@ -37,6 +37,88 @@
 %% </thead>
 %% <tbody>
 %%		<tr id="mt">
+%% 		<td id="mt">ospDtlProbableCauseQualifier</td>
+%% 		<td id="mt">alarmId</td>
+%%			<td id="mt">Unique identifier of an alarm</td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlSnmpTrapAddress</td>
+%% 		<td id="mt">sourceId</td>
+%%			<td id="mt">Distinguished Name (DN)</td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% </tbody>
+%% <tbody>
+%%		<tr id="mt">
+%% 		<td id="mt"></td>
+%% 		<td id="mt"></td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%% <tbody>
+%%		<tr id="mt">
 %% 		<td id="mt"></td>
 %% 		<td id="mt"></td>
 %%			<td id="mt"></td>
@@ -224,9 +306,12 @@ fault([{"ospDtlProbableCauseQualifier", Value} | T], AC, Acc)
 fault([{"ospDtlSnmpTrapAddress", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"sourceId", Value} | Acc]);
-fault([{"ospDtlAlarmOccurredPlace", Value} | T], AC, Acc)
+fault([{"ospEventNeName", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"sourceName", Value} | Acc]);
+fault([{"ospDtlAlarmOccurredPlace", Value} | T], AC, Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	fault(T, AC, [{"eventSourceType", Value} | Acc]);
 fault([{"ospDtlNeName", Value} | T], AC, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, AC, [{"objectInstance", Value} | Acc]);
