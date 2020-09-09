@@ -252,7 +252,6 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 							{error, Reason}
 					end;
 				false ->
-erlang:display({?MODULE, ?LINE, TargetName, AuthProtocol, AuthPass, EngineID}),
 					{error, authentication_failed}
 			end;
 		[[AuthProtocol, PrivProtocol],  _] ->
@@ -312,7 +311,7 @@ agent_name(Address) ->
 		[[TargetName]] ->
 			case ets:match(snmpm_agent_table, {{TargetName, user_id},'$1'}) of
 				[[AgentName]] ->
-					case ets:match(snmpm_agent_table, {{TargetName,sec_model}, '$1'}) of
+					case ets:match(snmpm_agent_table, {{TargetName, sec_model}, '$1'}) of
 						[[SecurityModel]] ->
 							{AgentName, TargetName, SecurityModel};
 						[] ->
