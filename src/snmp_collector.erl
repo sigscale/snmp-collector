@@ -256,7 +256,7 @@ get_count() ->
 		Metric :: eventType | perceivedResult,
 		Result :: map().
 %% @doc Get current count of alarms on system by `metric'.
-get_count(Metric) 
+get_count(Metric)
 		when is_atom(Metric) ->
 	MatchSpec = [{{'$1', '$2'}, [{'==', '$1', Metric}], ['$2']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
@@ -543,7 +543,8 @@ start_synch(AgentName)
 				{address, AgentName}])
 	end.
 
--spec add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, Version, SecName) -> Result
+-spec add_agent(UserId, TargetName, Community, Tdomain,
+		Address, EngineId, Version, SecName) -> Result
 	when
 		UserId :: string(),
 		TargetName :: string(),
@@ -556,37 +557,20 @@ start_synch(AgentName)
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Add and load new agent configuration.
-add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v1, SecName)
-		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
+add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, Version, SecName)
+		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address), is_atom(Version),
 			is_list(EngineId), is_list(SecName) ->
-	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
-			infinity, 484, v1, v1, SecName, noAuthNoPriv},
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
-	add_agent1(UserId, TargetName, EngineId, Address);
-add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v2c, SecName)
-		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
-			is_list(EngineId), is_list(SecName) ->
-	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
-			infinity, 484, v2, v2c, SecName, noAuthNoPriv},
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
-	add_agent1(UserId, TargetName, EngineId, Address);
-add_agent(UserId, TargetName, _Community, Tdomain, Address, EngineId, v3, SecName)
-		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
-			is_list(EngineId), is_list(SecName) ->
-	AgentConf = {UserId, TargetName, "", Tdomain, Address, EngineId,
-			infinity, 484, v3, usm, SecName, authPriv},
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
-	add_agent1(UserId, TargetName, EngineId, Address).
-%% @hidden
-add_agent1(UserId, TargetName, EngineId, Address) ->
-	case snmpm:register_agent(UserId, TargetName,
-			[{engine_id, EngineId}, {taddress, Address}]) of
+	case write_agent_config(UserId, TargetName, Community,
+			Tdomain, Address, EngineId, Version, SecName) of
 		ok ->
-			ok;
-		{error,Reason} ->
+			case register_agent(UserId, TargetName, Community,
+					Tdomain, Address, EngineId, Version, SecName) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
 			{error, Reason}
 	end.
 
@@ -804,15 +788,15 @@ register_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
 	end.
 
 -spec update_usm_user(EngineId, UserName, Attribute, AttributeValue) -> Result
-   when
-      EngineId :: list(),
-      UserName :: term(),
-      Attribute :: engine_id | tadress | port | tdomain |
-            community | timeout | max_message_size | version |
-            sec_model | sec_name | sec_level,
-      AttributeValue :: term(),
-      Result :: ok | {error, Reason},
-      Reason :: term().
+	when
+		EngineId :: list(),
+		UserName :: term(),
+		Attribute :: engine_id | tadress | port | tdomain |
+				community | timeout | max_message_size | version |
+				sec_model | sec_name | sec_level,
+		AttributeValue :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
 %% @doc Update an existing usm user in the snmp_usm table.
 update_usm_user(EngineId, UserName, Attribute, AttributeValue)
 		when is_list(EngineId) ->
@@ -888,6 +872,94 @@ get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->
 	{Port, Address, Directory, Group};
 get_params5(_, _, _, false) ->
 	{error, httpd_group_undefined}.
+
+-spec register_agent(UserId, TargetName, Community, Tdomain,
+		Address, EngineId, Version, SecName) -> Result
+	when
+		UserId :: string(),
+		TargetName :: string(),
+		Community :: string(),
+		Tdomain :: transportDomainUdpIpv4 | transportDomainUdpIpv6,
+		Address :: {inet:ip_address(), inet:port_number()},
+		EngineId :: string(),
+		Version :: v1 | v2c | v3,
+		SecName :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v1, SecName) ->
+	AgentConfig = [{engine_id, EngineId}, {tadress, Taddress}, {port, Port}, {tdomain, Tdomain},
+			{community, Community}, {timeout, infinity}, {max_message_size, 484},
+			{version, v1}, {sec_model, v1}, {sec_name, SecName}, {sec_level, noAuthNoPriv}],
+	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end;
+register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v2c, SecName) ->
+	AgentConfig = [{engine_id, EngineId}, {tadress, Taddress}, {port, Port}, {tdomain, Tdomain},
+			{community, Community}, {timeout, infinity}, {max_message_size, 484},
+			{version, v2}, {sec_model, v2c}, {sec_name, SecName}, {sec_level, noAuthNoPriv}],
+	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end;
+register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v3, SecName) ->
+	AgentConfig = [{engine_id, EngineId}, {tadress, Taddress}, {port, Port}, {tdomain, Tdomain},
+			{community, Community}, {timeout, infinity}, {max_message_size, 484},
+			{version, v3}, {sec_model, usm}, {sec_name, SecName}, {sec_level, authPriv}],
+	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec write_agent_config(UserId, TargetName, Community, Tdomain,
+		Address, EngineId, Version, SecName) -> Result
+	when
+		UserId :: string(),
+		TargetName :: string(),
+		Community :: string(),
+		Tdomain :: transportDomainUdpIpv4 | transportDomainUdpIpv6,
+		Address :: {inet:ip_address(), inet:port_number()},
+		EngineId :: string(),
+		Version :: v1 | v2c | v3,
+		SecName :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+write_agent_config(UserId, TargetName, Community, Tdomain, Address, EngineId, v1, SecName) ->
+	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
+			infinity, 484, v1, v1, SecName, noAuthNoPriv},
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case catch snmpm_conf:append_agents_config(Dir, [AgentConf]) of
+		ok ->
+			ok;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end;
+write_agent_config(UserId, TargetName, Community, Tdomain, Address, EngineId, v2c, SecName) ->
+	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
+			infinity, 484, v2, v2c, SecName, noAuthNoPriv},
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case catch snmpm_conf:append_agents_config(Dir, [AgentConf]) of
+		ok ->
+			ok;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end;
+write_agent_config(UserId, TargetName, _Community, Tdomain, Address, EngineId, v3, SecName) ->
+	AgentConf = {UserId, TargetName, "", Tdomain, Address, EngineId,
+			infinity, 484, v3, usm, SecName, authPriv},
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case catch snmpm_conf:append_agents_config(Dir, [AgentConf]) of
+		ok ->
+			ok;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end.
 
 -spec match_condition(MatchVariable, Match) -> MatchCondition
 	when
