@@ -26,7 +26,7 @@
 		arrange_list/1, stringify/1, send_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
 		authenticate_v1_v2/2, update_counters/3, timestamp/0,
-		generate_key/3, authenticate_v3/4]).
+		generate_key/3, authenticate_v3/4, strip_target_name/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -761,6 +761,26 @@ update_counters(AgentName, TargetName, [_H | T]) ->
 	update_counters(AgentName, TargetName, T);
 update_counters(_, _, []) ->
 	ok.
+
+-spec strip_target_name(TargetName) -> Result
+	when
+		TargetName :: string(),
+		Result :: string().
+%% @doc Trim extra values suffixed to the TargetName
+strip_target_name(TargetName)
+		when is_list(TargetName) ->
+	case lists:last(TargetName) of
+		$) ->
+			Length = length(TargetName),
+			case lists:split(Length - 3, TargetName) of
+				{StrippedName, [$(, N, $)]} when is_integer(N) ->
+					StrippedName;
+				_ ->
+					TargetName
+				end;
+		_ ->
+			TargetName
+	end.
 
 %%----------------------------------------------------------------------
 %%  The internal functions
