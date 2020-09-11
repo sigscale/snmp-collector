@@ -41,86 +41,180 @@
 %% 		<td id="mt">alarmId</td>
 %%			<td id="mt">Unique identifier of an alarm</td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
 %% 		<td id="mt">ospDtlSnmpTrapAddress</td>
 %% 		<td id="mt">sourceId</td>
 %%			<td id="mt">Distinguished Name (DN)</td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
 %% 		<td id="mt">ospDtlAlarmOccurredPlace</td>
 %% 		<td id="mt">sourceName</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
 %% 		<td id="mt">ospDtlNeName</td>
 %% 		<td id="mt">eventSourceType</td>
 %%			<td id="mt">NE name</td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlNeTypeText</td>
+%% 		<td id="mt">objectInstanceType</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">snmpTrapOID</td>
+%% 		<td id="mt">alarmCondition</td>
+%%			<td id="mt">Short name of the alarm condition/problem, such as a trap name.
+%%             Should not have white space (e.g., tpLgCgiNotInConfig, BfdSessionDown, linkDown, etc…)</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAlarmSeverityText</td>
+%% 		<td id="mt">eventSeverity</td>
+%%			<td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAlarmTypeText</td>
+%% 		<td id="mt">eventType</td>
+%%			<td id="mt">e.g. "Quality of Service Alarm"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlProbableCauseText</td>
+%% 		<td id="mt">probableCause</td>
+%%			<td id="mt">3GPP 32.111-2 Annex B e.g. "Alarm Indication Signal (AIS)"</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAlarmItemStatusText</td>
+%% 		<td id="mt">eventName</td>
+%%			<td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAlarmDate and ospDtlAlarmTime </td>
+%% 		<td id="mt">raisedTime/clearTime</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlAlarmTrapSequenceNumber</td>
+%% 		<td id="mt">alarmTrapSequenceNumber</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlAlarmSeverity</td>
+%% 		<td id="mt">alarmSeverity</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlAlarmSource</td>
+%% 		<td id="mt">alarmSource</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlNotificationId</td>
+%% 		<td id="mt">notificationId</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlSerialNeId</td>
+%% 		<td id="mt">serialNeId</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% </tbody>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlMoIId</td>
+%% 		<td id="mt">moIId</td>
 %%			<td id="mt"></td>
 %% 	</tr>
-%% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt"></td>
-%% 		<td id="mt"></td>
+%% 		<td id="mt">ospDtlAlarmItem</td>
+%% 		<td id="mt">alarmItem</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlIsClearable</td>
+%% 		<td id="mt">isClearable</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlProbableCauseStd</td>
+%% 		<td id="mt">probableCauseStd</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAdditionalInfo</td>
+%% 		<td id="mt">additionalInfo</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlEquipmentAlarmType</td>
+%% 		<td id="mt">equipmentAlarmType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlNeType</td>
+%% 		<td id="mt">neType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAlarmType</td>
+%% 		<td id="mt">alarmType</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlProbableCause</td>
+%% 		<td id="mt">probableCauseNo</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlEventCount</td>
+%% 		<td id="mt">eventCount</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlEventTime</td>
+%% 		<td id="mt">eventTime</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlEventType</td>
+%% 		<td id="mt">eventTypeNo</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAlarmItemStatus</td>
+%% 		<td id="mt">alarmItemStatus</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlNeIPAddress</td>
+%% 		<td id="mt">neIPAddress</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlOppIPAddress1</td>
+%% 		<td id="mt">oppIpAddress</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlOppNEName1</td>
+%% 		<td id="mt">oppNeName</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAdditionalText1</td>
+%% 		<td id="mt">additionalText1</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAdditionalText2</td>
+%% 		<td id="mt">additionalText2</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAdditionalText3</td>
+%% 		<td id="mt">additionalText3</td>
+%%			<td id="mt"></td>
+%% 	</tr>
+%%		<tr id="mt">
+%% 		<td id="mt">ospDtlAdditionalText5</td>
+%% 		<td id="mt">additionalText5</td>
 %%			<td id="mt"></td>
 %% 	</tr>
 %% </tbody>
@@ -209,19 +303,17 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
+handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
 	case domain(Varbinds) of
 		other ->
-			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
-					ErrorIndex, Varbinds}, UserData);
+			ignore;
 		fault ->
 			handle_fault(TargetName, Varbinds)
 	end;
-handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
 	case domain(Varbinds) of
 		other ->
-			snmp_collector_trap_generic:handle_trap(TargetName, {Enteprise,
-					Generic, Spec, Timestamp, Varbinds}, UserData);
+			ignore;
 		fault ->
 			handle_fault(TargetName, Varbinds)
 	end.
@@ -909,3 +1001,4 @@ probable_cause(ProbableCauseCode) ->
 			{probableCause, ProbableCauseCode},
 			{module, ?MODULE}]),
 	ProbableCauseCode.
+
