@@ -230,6 +230,7 @@
 -define(PC_Local_Alarm_Indication, "Local Alarm Indication").
 -define(PC_Remote_Alarm_Indication, "Remote Alarm Indication").
 -define(PC_Equipment_Out_Of_Service, "Equipment Out Of Service").
+-define(PC_Excessive_Bit_Error_Rate, "Excessive Bit Error Rate (EBER)").
 
 % Perceived Severities [3GPP TS 32.111-2 Table 5.5.1]
 -define(ES_CRITICAL, "CRITICAL").
