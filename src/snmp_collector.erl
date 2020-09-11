@@ -633,7 +633,7 @@ add_snmpm_user(UserId, UserMod, UserData)
 			end;
 		{'EXIT', Reason} ->
 			{error, Reason}
-	end
+	end.
 
 -spec remove_snmpm_user(UserId) -> Result
 	when
