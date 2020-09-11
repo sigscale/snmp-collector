@@ -598,7 +598,7 @@ probable_cause("lossOfFrame") ->
 	?PC_LOF;
 probable_cause("lossOfPointer") ->
 	?PC_LOP;
-probable_cause("lossofSignal") ->
+probable_cause("lossOfSignal") ->
 	?PC_LOS;
 probable_cause("modulationFailure") ->
 	?PC_Modulaion_Failure;
@@ -996,6 +996,8 @@ probable_cause("remoteAlarmIndication") ->
 	?PC_Remote_Alarm_Indication;
 probable_cause("equipmentOutOfService") ->
 	?PC_Equipment_Out_Of_Service;
+probable_cause("excessiveBER") ->
+	?PC_Excessive_Bit_Error_Rate;
 probable_cause(ProbableCauseCode) ->
 	error_logger:info_report(["SNMP Manager Unrecognized Probable Cause",
 			{probableCause, ProbableCauseCode},
