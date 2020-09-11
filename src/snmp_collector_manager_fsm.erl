@@ -607,7 +607,7 @@ handle_trap(TargetName, AgentName, Address, Port, {ErrorStatus, ErrorIndex, Varb
 		when ErrorStatus == noError ->
 	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 		[[Module, UserData]] ->
-			Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
+			Module:handle_trap(strip_target_name(TargetName), {ErrorStatus, ErrorIndex, Varbinds}, UserData);
 		[] ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
@@ -624,3 +624,24 @@ flag(1) ->
 	authNoPriv;
 flag(3) ->
 	authPriv.
+
+-spec strip_target_name(TargetName) -> Result
+	when
+		TargetName :: string(),
+		Result :: string().
+%% @doc Trim extra values suffixed to the TargetName
+strip_target_name(TargetName)
+		when is_list(TargetName) ->
+	case lists:last(TargetName) of
+		$) ->
+			Length = length(TargetName),
+			case lists:split(Length - 3, TargetName) of
+				{StrippedName, [$(, N, $)]} when is_integer(N) ->
+					StrippedName;
+				_ ->
+					TargetName
+				end;
+		_ ->
+			TargetName
+	end.
+
