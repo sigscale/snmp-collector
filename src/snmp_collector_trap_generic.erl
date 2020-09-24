@@ -125,17 +125,17 @@ handle_pdu(TargetName, ReqId, SnmpResponse, UserData) ->
 		Reply :: ignore.
 %% @doc Handle a trap/notification message from an agent.
 %% @private
-handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, _UserData) ->
+handle_trap(TargetName, {_ErrorStatus, _ErrorIndex, Varbinds}, UserData) ->
 	case domain(Varbinds) of
 		fault ->
-			handle_fault(TargetName, Varbinds);
+			handle_fault(TargetName, UserData, Varbinds);
 		notification ->
 			handle_notification(TargetName, Varbinds)
 	end;
-handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, _UserData) ->
+handle_trap(TargetName, {_Enteprise, _Generic, _Spec, _Timestamp, Varbinds}, UserData) ->
 	case domain(Varbinds) of
 		fault ->
-			handle_fault(TargetName, Varbinds);
+			handle_fault(TargetName, UserData, Varbinds);
 		notification ->
 			handle_notification(TargetName, Varbinds)
 	end.
@@ -168,20 +168,23 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec handle_fault(TargetName, Varbinds) -> Result
+-spec handle_fault(TargetName, UserData, Varbinds) -> Result
 	when
 		TargetName :: string(),
+		UserData :: term(),
 		Varbinds :: snmp:varbinds(),
 		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Handle a fault event.
-handle_fault(TargetName, Varbinds) ->
+handle_fault(TargetName, UserData, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(generic, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+		Address = lists:keyfind(address, 1, UserData),
+		Event = snmp_collector_utils:create_event(TargetName,
+				[{"alarmIp", Address} | AlarmDetails], fault),
 		snmp_collector_utils:send_event(Event)
 	of
 		ok ->

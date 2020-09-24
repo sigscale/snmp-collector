@@ -891,7 +891,7 @@ get_params5(_, _, _, false) ->
 		Result :: ok | {error, Reason},
 		Reason :: term().
 register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v1, SecName) ->
-	AgentConfig = [{engine_id, EngineId}, {tadress, Taddress}, {port, Port}, {tdomain, Tdomain},
+	AgentConfig = [{engine_id, EngineId}, {taddress, Taddress}, {port, Port}, {tdomain, Tdomain},
 			{community, Community}, {timeout, infinity}, {max_message_size, 484},
 			{version, v1}, {sec_model, v1}, {sec_name, SecName}, {sec_level, noAuthNoPriv}],
 	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
@@ -901,7 +901,7 @@ register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineI
 			{error, Reason}
 	end;
 register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v2c, SecName) ->
-	AgentConfig = [{engine_id, EngineId}, {tadress, Taddress}, {port, Port}, {tdomain, Tdomain},
+	AgentConfig = [{engine_id, EngineId}, {taddress, Taddress}, {port, Port}, {tdomain, Tdomain},
 			{community, Community}, {timeout, infinity}, {max_message_size, 484},
 			{version, v2}, {sec_model, v2c}, {sec_name, SecName}, {sec_level, noAuthNoPriv}],
 	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
@@ -911,7 +911,7 @@ register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineI
 			{error, Reason}
 	end;
 register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v3, SecName) ->
-	AgentConfig = [{engine_id, EngineId}, {tadress, Taddress}, {port, Port}, {tdomain, Tdomain},
+	AgentConfig = [{engine_id, EngineId}, {taddress, Taddress}, {port, Port}, {tdomain, Tdomain},
 			{community, Community}, {timeout, infinity}, {max_message_size, 484},
 			{version, v3}, {sec_model, usm}, {sec_name, SecName}, {sec_level, authPriv}],
 	case snmpm:register_agent(UserId, TargetName, AgentConfig) of

@@ -594,7 +594,7 @@ handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbi
 			case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 				[[Module, UserData]] ->
 					Module:handle_trap(snmp_collector_utils:strip_target_name(TargetName),
-							{ErrorStatus, ErrorIndex, Varbinds}, UserData);
+							{ErrorStatus, ErrorIndex, Varbinds}, [{address, Address} | UserData]);
 				[] ->
 					snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 							trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
@@ -609,7 +609,7 @@ handle_trap(TargetName, AgentName, Address, Port, {ErrorStatus, ErrorIndex, Varb
 	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 		[[Module, UserData]] ->
 			Module:handle_trap(snmp_collector_utils:strip_target_name(TargetName),
-					{ErrorStatus, ErrorIndex, Varbinds}, UserData);
+					{ErrorStatus, ErrorIndex, Varbinds}, [{address, Address} | UserData]);
 		[] ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
