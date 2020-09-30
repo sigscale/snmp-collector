@@ -336,11 +336,9 @@ agent_name(Address) ->
 		Reason :: term().
 %% @doc Log and POST the event.
 %% @private
-send_event({TS, N, Node, CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalInformation}
-		= OtherFields}) ->
+send_event({TS, N, Node, CommonEventHeader, OtherFields}) ->
 	try
-		Event1 = {TS, N, Node, CommonEventHeader,
-				OtherFields#{"alarmAdditionalInformation" => alarm_additional_information(AlarmAdditionalInformation)}},
+		Event1 = {TS, N, Node, CommonEventHeader, OtherFields},
 		gen_event:notify(snmp_collector_event, Event1) 
 	of
 		ok ->
@@ -848,7 +846,7 @@ common_event_header([], _TargetName, CH, AD) ->
 		NotificationFields :: map().
 %% @doc Create the fault fields map.
 notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
 			"notificationFieldsVersion" => 1},
 	notification_fields(AlarmDetails, DefaultMap).
 %% @hidden
@@ -868,10 +866,8 @@ notification_fields([{"stateInterface", Value} | T], Acc) ->
 	notification_fields(T, Acc#{"stateInterface" => Value});
 notification_fields([{"changeType", Value} | T], Acc) ->
 	notification_fields(T, Acc#{"changeType" => Value});
-notification_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+notification_fields([{Name, Value} | T], Acc) ->
+	notification_fields(T, Acc#{"alarmAdditionalInformation" => #{Name => Value}});
 notification_fields([], Acc) ->
 	Acc.
 
@@ -883,7 +879,7 @@ notification_fields([], Acc) ->
 		SysLogFields :: map().
 %% @doc Create the fault fields map.
 syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
 			"syslogFieldsVersion" => 1},
 	syslog_fields(AlarmDetails, DefaultMap).
 %% @hidden
@@ -897,10 +893,8 @@ syslog_fields([{"syslogSev", Value} | T], Acc) ->
 	syslog_fields(T, Acc#{"syslogSev" => Value});
 syslog_fields([{"syslogTag", Value} | T], Acc) ->
 	syslog_fields(T, Acc#{"syslogTag" => Value});
-syslog_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+syslog_fields([{Name, Value} | T], Acc) ->
+	syslog_fields(T, Acc#{"alarmAdditionalInformation" => #{Name => Value}});
 syslog_fields([], Acc) ->
 	Acc.
 
@@ -912,7 +906,7 @@ syslog_fields([], Acc) ->
 		FaultFields :: map().
 %% @doc Create the fault fields map.
 fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
 			"faultFieldsVersion" => 1},
 	fault_fields(AlarmDetails, DefaultMap).
 %% @hidden
@@ -928,25 +922,9 @@ fault_fields([{"specificProblem", Value} | T], Acc) ->
 	fault_fields(T, Acc#{"specificProblem" => Value});
 fault_fields([{"nfVendorName", Value} | T], Acc) ->
 	fault_fields(T, Acc#{"nfVendorName" => Value});
-fault_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+fault_fields([{Name, Value} | T], Acc) ->
+	fault_fields(T, Acc#{"alarmAdditionalInformation" => #{Name => Value}});
 fault_fields([], Acc) ->
-	Acc.
-
--spec alarm_additional_information(AlarmAdditionalInformation) -> Result
-	when
-		AlarmAdditionalInformation :: [map()],
-		Result :: map().
-%% @doc CODEC for alarm additional information.
-%% @hidden
-alarm_additional_information(AlarmAdditionalInformation) ->
-	alarm_additional_information(AlarmAdditionalInformation, #{}).
-%% @hidden
-alarm_additional_information([#{"name" := Name, "value" := Value} | T], Acc) ->
-	alarm_additional_information(T, Acc#{Name => Value});
-alarm_additional_information([], Acc) ->
 	Acc.
 
 -spec check_fields(CommonEventHeader, FaultFields) -> Result
@@ -989,7 +967,13 @@ check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
 		when is_list(EventType), length(EventType) > 0 ->
 	{CH, FF};
 check_fields2(CH, FF) ->
-	{CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF}.
+	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
+check_fields3(CH, #{"alarmAdditionalInformation" := #{"probableCause" := ProbableCause}} = FF)
+		when is_list(ProbableCause), length(ProbableCause) > 0 ->
+	{CH, FF};
+check_fields3(CH, FF) ->
+	{CH, FF#{"alarmAdditionalInformation" =>
+			#{"probableCause" => ?PC_Indeterminate}}}.
 
 -spec authenticate_v3(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
 	when
