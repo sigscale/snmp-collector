@@ -39,7 +39,7 @@
 %%		<tr id="mt">
 %% 		<td id="mt"></td>
 %% 		<td id="mt"></td>
-%%			<td id="mt">td>
+%%			<td id="mt"></td>
 %% 	</tr>
 %% </tbody>
 %% </table></p>
