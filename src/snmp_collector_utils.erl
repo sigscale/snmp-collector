@@ -339,7 +339,7 @@ agent_name(Address) ->
 send_event({TS, N, Node, CommonEventHeader, OtherFields}) ->
 	try
 		Event1 = {TS, N, Node, CommonEventHeader, OtherFields},
-		gen_event:notify(snmp_collector_event, Event1) 
+		gen_event:notify(snmp_collector_event, Event1)
 	of
 		ok ->
 			ok
