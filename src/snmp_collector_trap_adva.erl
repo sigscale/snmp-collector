@@ -37,125 +37,9 @@
 %% </thead>
 %% <tbody>
 %%		<tr id="mt">
-%% 		<td id="mt">alarmEventType</td>
-%% 		<td id="mt">commonEventheader.eventType</td>
-%%			<td id="mt">e.g. "Quality of Service Alarm"</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmCodeName</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.probableCause</td>
-%%			<td id="mt">3GPP 32.111-2 Annex B e.g. "Alarm Indication Signal (AIS)"</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmProbableCause</td>
-%% 		<td id="mt">faultFields.probableCause</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmspecificProblem</td>
-%% 		<td id="mt">faultFields.specificProblem</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmOtherInfo</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmDetails</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmIndex</td>
-%% 		<td id="mt">faultFields.alarmAdditionalInformation.alarmId</td>
-%%			<td id="mt">Unique identifier of an alarm</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">systemDN</td>
-%% 		<td id="mt">faultFields.alarmAdditionalInformation.reportingEntityI</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmNeIP</td>
-%% 		<td id="mt">commonEventHeader.sourceId</td>
-%%			<td id="mt">Distinguished Name (DN)</td>
-%% 	</tr>
-%%		<tr id="mt">
 %% 		<td id="mt"></td>
-%% 		<td id="mt">commonEventHeader.sourceName</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmNetype</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.neType</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmPerceivedSeverity</td>
-%% 		<td id="mt">faultFields.eventSeverity</td>
-%%			<td id="mt">CRITICAL | MAJOR | MINOR | WARNING | INDETERMINATE | CLEARED</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">snmpTrapOID</td>
-%% 		<td id="mt">commonEventHeader.eventName</td>
-%%			<td id="mt">notifyNewAlarm | notifyChangedAlarm | notifyClearedAlarm</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">snmpTrapOID</td>
-%% 		<td id="mt">faultsFields.alarmCondition</td>
-%%			<td id="mt">Short name of the alarm condition/problem, such as a trap name.
-%%					Should not have white space (e.g., tpLgCgiNotInConfig, BfdSessionDown, linkDown, etc…)</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmEventTime</td>
-%% 		<td id="mt">commonEventHeader.startEpochMicrosec</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmMocObjectInstance</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.eventSourceType</td>
-%%			<td id="mt">NE name</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmCustomAttr12</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.objectInstance</td>
-%%			<td id="mt">Distinguished Name (DN)</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmCustomAttr2</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmObjectName</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmAck</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.ackState</td>
-%%			<td id="mt">acknowledged | unacknowledged</td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmSystemType</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmSystemType</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmNeIP</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmNeIP</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">timeZoneID</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.timeZoneID</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">alarmCode</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmCodeName</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
-%% 		<td id="mt">aid</td>
-%% 		<td id="mt">faultsFields.alarmAdditionalInformation.alarmAID</td>
-%%			<td id="mt"></td>
-%% 	</tr>
-%%		<tr id="mt">
 %% 		<td id="mt"></td>
-%% 		<td id="mt">faultFields.nfVendorName</td>
-%%		 	<td id="mt">adva</td>
+%%			<td id="mt">td>
 %% 	</tr>
 %% </tbody>
 %% </table></p>
@@ -170,7 +54,7 @@
 %% export snmpm_user call backs.
 -export([handle_error/3, handle_agent/5,
     handle_pdu/4, handle_trap/3, handle_inform/3,
-    handle_report/3, fault/1]).
+    handle_report/3]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
