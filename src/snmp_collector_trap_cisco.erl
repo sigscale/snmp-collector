@@ -191,13 +191,15 @@ handle_fault(TargetName, UserData, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(cisco, TargetName, AlarmDetails),
-		Address = lists:keyfind(address, 1, UserData),
+		[{address, Address} | _] = UserData,
 		Event = snmp_collector_utils:create_event(TargetName,
 				[{"alarmIp", Address} | AlarmDetails], fault),
 		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;
+		false ->
+			{error, address_undefined};
 		{error, Reason} ->
 			{error, Reason}
 	catch
