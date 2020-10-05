@@ -26,7 +26,7 @@
 		arrange_list/1, stringify/1, send_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
 		authenticate_v1_v2/2, update_counters/3, timestamp/0,
-		generate_key/3, authenticate_v3/4, strip_target_name/1]).
+		generate_key/3, authenticate_v3/4, strip_target_name/1, fault_fields/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -866,8 +866,10 @@ notification_fields([{"stateInterface", Value} | T], Acc) ->
 	notification_fields(T, Acc#{"stateInterface" => Value});
 notification_fields([{"changeType", Value} | T], Acc) ->
 	notification_fields(T, Acc#{"changeType" => Value});
-notification_fields([{Name, Value} | T], Acc) ->
-	notification_fields(T, Acc#{"alarmAdditionalInformation" => #{Name => Value}});
+notification_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = AI#{Name => Value},
+	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
 notification_fields([], Acc) ->
 	Acc.
 
@@ -893,8 +895,10 @@ syslog_fields([{"syslogSev", Value} | T], Acc) ->
 	syslog_fields(T, Acc#{"syslogSev" => Value});
 syslog_fields([{"syslogTag", Value} | T], Acc) ->
 	syslog_fields(T, Acc#{"syslogTag" => Value});
-syslog_fields([{Name, Value} | T], Acc) ->
-	syslog_fields(T, Acc#{"alarmAdditionalInformation" => #{Name => Value}});
+syslog_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = AI#{Name => Value},
+	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
 syslog_fields([], Acc) ->
 	Acc.
 
@@ -922,8 +926,10 @@ fault_fields([{"specificProblem", Value} | T], Acc) ->
 	fault_fields(T, Acc#{"specificProblem" => Value});
 fault_fields([{"nfVendorName", Value} | T], Acc) ->
 	fault_fields(T, Acc#{"nfVendorName" => Value});
-fault_fields([{Name, Value} | T], Acc) ->
-	fault_fields(T, Acc#{"alarmAdditionalInformation" => #{Name => Value}});
+fault_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = AI#{Name => Value},
+	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
 fault_fields([], Acc) ->
 	Acc.
 
