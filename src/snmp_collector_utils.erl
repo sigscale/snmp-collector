@@ -428,7 +428,12 @@ stringify(String) ->
 		true ->
 			String;
 		false ->
-			stringify1(String, [])
+			case snmp:validate_date_and_time(String) of 
+				true ->
+					String;
+				false ->
+					stringify1(String, [])
+			end
 	end.
 %% @hidden
 stringify1([$\s | T], Acc) ->
@@ -971,7 +976,7 @@ check_fields1(CH, FF) ->
 %% @hidden
 check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
 		when is_list(EventType), length(EventType) > 0 ->
-	{CH, FF};
+	check_fields3(CH, FF);
 check_fields2(CH, FF) ->
 	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
 check_fields3(CH, #{"alarmAdditionalInformation" := #{"probableCause" := ProbableCause}} = FF)
