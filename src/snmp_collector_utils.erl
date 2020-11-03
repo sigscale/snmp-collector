@@ -156,7 +156,11 @@ create_event(TargetName, AlarmDetails, notification) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notification"),
 	NotificationFields = notification_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
-	create_event1(NewCommonEventHeader, NotificationFields).
+	create_event1(NewCommonEventHeader, NotificationFields);
+create_event(TargetName, AlarmDetails, heartbeat) ->
+	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "heartbeat"),
+	NotificationFields = heartbeat_fields(Remainder),
+	create_event1(CommonEventHeader, NotificationFields).
 %% @hidden
 create_event1(#{"startEpochMicrosec" := _,
 		"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
@@ -594,10 +598,6 @@ engine_id4(PEN, Acc) when length(Acc) == 27 ->
 engine_id4(PEN, Acc) ->
 	engine_id4(PEN, [rand:uniform(255) | Acc]).
 
-%%----------------------------------------------------------------------
-%%  The internal functions
-%%----------------------------------------------------------------------
-
 -spec strip_name(Name) -> Name
 	when
 		Name :: string().
@@ -842,6 +842,31 @@ common_event_header([H | T], TargetName, CH, AD) ->
 	common_event_header(T, TargetName, CH, [H | AD]);
 common_event_header([], _TargetName, CH, AD) ->
 	{CH, AD}.
+
+-spec heartbeat_fields(AlarmDetails) -> NotificationFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		NotificationFields :: map().
+%% @doc Create the fault fields map.
+heartbeat_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
+			"heartbeatFieldVersion" => 1},
+	heartbeat_fields(AlarmDetails, DefaultMap).
+%% @hidden
+heartbeat_fields([{"systemLabel", Value} | T], Acc) ->
+	heartbeat_fields(T, Acc#{"systemLabel" => Value});
+heartbeat_fields([{"heartbeatInterval", Value} | T], Acc) ->
+	heartbeat_fields(T, Acc#{"heartbeatInterval" => Value});
+heartbeat_fields([{"raisedTime", Value} | T], Acc) ->
+	heartbeat_fields(T, Acc#{"raisedTime" => Value});
+heartbeat_fields([{Name, Value} | T],
+		#{"alarmAdditionalInformation" := AI} = Acc) ->
+	NewAI = AI#{Name => Value},
+	heartbeat_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+heartbeat_fields([], Acc) ->
+	Acc.
 
 -spec notification_fields(AlarmDetails) -> NotificationFields
 	when
