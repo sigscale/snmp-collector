@@ -278,7 +278,7 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 		notification ->
 			ignore;
 		heartbeat ->
-			ignore;
+			handle_heartbeat(TargetName, UserData, Varbinds);
 		fault ->
 			handle_fault(TargetName, UserData, Varbinds)
 	end;
@@ -290,7 +290,7 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 		notification ->
 			ignore;
 		heartbeat ->
-			ignore;
+			handle_heartbeat(TargetName, UserData, Varbinds);
 		fault ->
 			handle_fault(TargetName, UserData, Varbinds)
 	end.
@@ -340,9 +340,7 @@ handle_fault(TargetName, UserData, Varbinds) ->
 				ok;
 			AlarmDetails ->
 				snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-				Address = lists:keyfind(address, 1, UserData),
-				Event = snmp_collector_utils:create_event(TargetName,
-						[{"alarmIp", Address} | AlarmDetails], fault),
+				Event = snmp_collector_utils:create_event(TargetName, UserData ++ AlarmDetails, fault),
 				snmp_collector_utils:send_event(Event)
 		end
 	of
@@ -354,6 +352,61 @@ handle_fault(TargetName, UserData, Varbinds) ->
 		_:Reason ->
 			{error, Reason}
 	end.
+
+-spec handle_heartbeat(TargetName, UserData, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		UserData :: term(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a heartbeat event.
+handle_heartbeat(TargetName, _UserData, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		case heartbeat(NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, heartbeat),
+				snmp_collector_utils:send_event(Event)
+		end
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec heartbeat(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for a heartbeat event.
+heartbeat(NameValuePair) ->
+	heartbeat(NameValuePair, [{"nfVendorName", "huawei"}]).
+%% @hidden
+heartbeat([{"snmpTrapOID", "hwNmNorthboundEventKeepAlive"} | T], Acc) ->
+	heartbeat(T, [{"eventName", "heartBeatNotification"} | Acc]);
+heartbeat([{"hwNmAgent", Value} | T], Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	heartbeat(T, [{"systemLabel", Value} | Acc]);
+heartbeat([{_, [$ ]} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{_, []} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{Name, Value} | T], Acc) ->
+	heartbeat(T, [{Name, Value} | Acc]);
+heartbeat([], Acc) ->
+	Acc.
 
 -spec fault(OidNameValuePair) -> VesNameValuePair
 	when
@@ -375,6 +428,8 @@ fault(NameValuePair) ->
 fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"alarmId", Value}, {"nfVendorName", "huawei"} | Acc]);
+fault([{"address", Value} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmIp", Value} | Acc]);
 fault([{"hwNmNorthboundResourceIDs", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"sourceId", Value} | Acc]);

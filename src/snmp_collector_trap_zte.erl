@@ -250,7 +250,7 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
 		heartbeat ->
-			ignore;
+			handle_heartbeat(TargetName, UserData, Varbinds);
 		fault ->
 			handle_fault(TargetName, UserData, Varbinds)
 	end;
@@ -260,7 +260,7 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
 		heartbeat ->
-			ignore;
+			handle_heartbeat(TargetName, UserData, Varbinds);
 		fault ->
 			handle_fault(TargetName, UserData, Varbinds)
 	end.
@@ -307,9 +307,7 @@ handle_fault(TargetName, UserData, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(zte, TargetName, AlarmDetails),
-		Address = lists:keyfind(address, 1, UserData),
-		Event = snmp_collector_utils:create_event(TargetName,
-				[{"alarmIp", Address} | AlarmDetails], fault),
+		Event = snmp_collector_utils:create_event(TargetName, UserData ++ AlarmDetails, fault),
 		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
@@ -320,6 +318,61 @@ handle_fault(TargetName, UserData, Varbinds) ->
 		_:Reason ->
 			{error, Reason}
 	end.
+
+-spec handle_heartbeat(TargetName, UserData, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		UserData :: term(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a heartbeat event.
+handle_heartbeat(TargetName, _UserData, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		case heartbeat(NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, heartbeat),
+				snmp_collector_utils:send_event(Event)
+		end
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec heartbeat(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for a heartbeat event.
+heartbeat(NameValuePair) ->
+	heartbeat(NameValuePair, [{"nfVendorName", "zte"}]).
+%% @hidden
+heartbeat([{"snmpTrapOID", "heartbeatNotification"} | T], Acc) ->
+	heartbeat(T, [{"alarmCondition", "heartBeatNotification"} | Acc]);
+heartbeat([{"csIRPHeartbeatPeriod", Value} | T], Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	heartbeat(T, [{"heartbeatInterval", Value} | Acc]);
+heartbeat([{_, [$ ]} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{_, []} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{Name, Value} | T], Acc) ->
+	heartbeat(T, [{Name, Value} | Acc]);
+heartbeat([], Acc) ->
+	Acc.
 
 -spec fault(OidNameValuePair) -> VesNameValuePair
 	when
@@ -350,6 +403,8 @@ fault([{"snmpTrapOID", "alarmAckChange"} | T]) ->
 fault([{"id", Value} | T], EN, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"alarmId", Value}, {"nfVendorName", "zte"} | Acc]);
+fault([{"address", Value} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmIp", Value} | Acc]);
 fault([{"alarmEventTime", Value} | T], EN, Acc)
 		when EN == "alarmNew", is_list(Value), length(Value) > 0 ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);
