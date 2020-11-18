@@ -862,9 +862,9 @@ heartbeat_fields([{"heartbeatInterval", Value} | T], Acc) ->
 heartbeat_fields([{"raisedTime", Value} | T], Acc) ->
 	heartbeat_fields(T, Acc#{"raisedTime" => Value});
 heartbeat_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
+		#{"additionalFields" := AI} = Acc) ->
 	NewAI = AI#{Name => Value},
-	heartbeat_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+	heartbeat_fields(T, Acc#{"additionalFields" => NewAI});
 heartbeat_fields([], Acc) ->
 	Acc.
 
@@ -897,9 +897,9 @@ notification_fields([{"stateInterface", Value} | T], Acc) ->
 notification_fields([{"changeType", Value} | T], Acc) ->
 	notification_fields(T, Acc#{"changeType" => Value});
 notification_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
+		#{"additionalFields" := AI} = Acc) ->
 	NewAI = AI#{Name => Value},
-	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+	notification_fields(T, Acc#{"additionalFields" => NewAI});
 notification_fields([], Acc) ->
 	Acc.
 
@@ -926,9 +926,9 @@ syslog_fields([{"syslogSev", Value} | T], Acc) ->
 syslog_fields([{"syslogTag", Value} | T], Acc) ->
 	syslog_fields(T, Acc#{"syslogTag" => Value});
 syslog_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
+		#{"additionalFields" := AI} = Acc) ->
 	NewAI = AI#{Name => Value},
-	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+	syslog_fields(T, Acc#{"additionalFields" => NewAI});
 syslog_fields([], Acc) ->
 	Acc.
 
