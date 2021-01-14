@@ -185,10 +185,14 @@ handle_fault(TargetName, _UserData, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = fault(NamesValues),
-		snmp_collector_utils:update_counters(adva, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:send_event(Event)
+		case fault(NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
+				snmp_collector_utils:update_counters(adva, TargetName, AlarmDetails),
+				snmp_collector_utils:send_event(Event)
+		end
 	of
 		ok ->
 			ignore;
@@ -217,8 +221,7 @@ fault(NameValuePair) ->
 			fault(NameValuePair, ?EN_CLEARED,
 					[{"eventName", ?EN_CLEARED}]);
 		{_, _} ->
-			fault(NameValuePair, ?EN_CHANGED,
-					[{"eventName", ?EN_CHANGED}])
+			[{[],[]}]
 	end.
 %% @hidden
 fault([{"id", Value} | T], EN, Acc)
@@ -230,9 +233,6 @@ fault([{"neIpAddress", Value} | T], EN, Acc)
 fault([{"elementName", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"sourceName", Value} | Acc]);
-fault([{"", Value} | T], EN, Acc)
-		when length(Value) > 0, Value =/= [$ ] ->
-	fault(T, EN, [{"eventSourceType", Value} | Acc]);
 fault([{"entity", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"objectInstance", Value}| Acc]);
