@@ -114,10 +114,10 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 			end;
 		#message{version = 'version-2', data = Data, vsn_hdr = Community} ->
 			case snmp_collector_utils:authenticate_v1_v2(Address, Community) of
-				{authenticated, _TargetName, _AgentName} ->
+				{authenticated, TargetName, AgentName} ->
 					case catch snmp_pdus:dec_pdu(Data) of
 						#pdu{error_status = noError, varbinds = Varbinds, error_index = 0} ->
-							case handle_trap(undefined, undefined, Address, Port, {noError, 0, Varbinds}) of
+							case handle_trap(AgentName, TargetName, Address, Port, {noError, 0, Varbinds}) of
 								ignore ->
 									{stop, shutdown, StateData};
 								{error, Reason} ->
@@ -593,7 +593,8 @@ handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbi
 		{AgentName, TargetName, _} when is_list(AgentName), is_list(TargetName) ->
 			case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 				[[Module, UserData]] ->
-					Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
+					Module:handle_trap(snmp_collector_utils:strip_target_name(TargetName),
+							{ErrorStatus, ErrorIndex, Varbinds}, [{address, Address} | UserData]);
 				[] ->
 					snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 							trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
@@ -604,10 +605,11 @@ handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbi
 			{error, Reason}
 	end;
 handle_trap(TargetName, AgentName, Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
-		when ErrorStatus == noError ->
+		when ErrorStatus == noError, is_list(TargetName), is_list(AgentName) ->
 	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 		[[Module, UserData]] ->
-			Module:handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData);
+			Module:handle_trap(snmp_collector_utils:strip_target_name(TargetName),
+					{ErrorStatus, ErrorIndex, Varbinds}, [{address, Address} | UserData]);
 		[] ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
 					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
@@ -624,3 +626,4 @@ flag(1) ->
 	authNoPriv;
 flag(3) ->
 	authPriv.
+

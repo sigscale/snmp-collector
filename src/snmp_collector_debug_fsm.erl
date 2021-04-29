@@ -48,8 +48,8 @@ Reason :: term().
 %% @see //stdlib/gen_fsm:init/1
 %% @private
 %%
-init([Port]) ->
-	case gen_udp:open(Port, [{active, once}]) of
+init([{Address, Port}]) ->
+	case gen_udp:open(Port, [{ifaddr, Address}, {active, once}]) of
 		{ok, Socket} ->
 			{ok, decode, #statedata{socket = Socket}};
 		{error, Reason} ->

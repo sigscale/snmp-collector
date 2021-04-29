@@ -125,6 +125,7 @@ handle_pdu(TargetName, ReqId,
 %% @doc Handle a trap/notification message from an agent.
 handle_trap(TargetName,
 		{Status, Index, Varbinds} = _SnmpTrapInfo, UserData) ->
+erlang:display({?MODULE, ?LINE, UserData}),
 	error_logger:error_report(["SNMP Manager: Received Trap",
 			{target_name, TargetName},
 			{status, Status}, {index, Index}, {varbinds, Varbinds},
@@ -132,6 +133,7 @@ handle_trap(TargetName,
     ignore;
 handle_trap(TargetName,
 		 {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
+erlang:display({?MODULE, ?LINE, UserData}),
 	error_logger:error_report(["SNMP Manager: Received Trap",
 			{target_name, TargetName},
 			{enterprise, Enteprise}, {generic, Generic}, {spec, Spec},

@@ -41,9 +41,9 @@
 %% @see //stdlib/supervisor:init/1
 %% @private
 %%
-init([Port]) ->
+init([AddressPort]) ->
 	ChildSpecs = [supervisor(snmp_collector_manager_fsm_sup),
-			server(snmp_collector_manager_server, [self(), Port])],
+			server(snmp_collector_manager_server, [self(), AddressPort])],
 	{ok, {{one_for_all, 10, 60}, ChildSpecs}}.
 
 %%----------------------------------------------------------------------

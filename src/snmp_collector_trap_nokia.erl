@@ -229,7 +229,7 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 		notification ->
 			handle_notification(TargetName, Varbinds);
 		fault ->
-			handle_fault(TargetName, Varbinds)
+			handle_fault(TargetName, UserData, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
 	case domain(Varbinds) of
@@ -241,7 +241,7 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 		notification ->
 			handle_notification(TargetName, Varbinds);
 		fault ->
-			handle_fault(TargetName, Varbinds)
+			handle_fault(TargetName, UserData, Varbinds)
 	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
@@ -272,21 +272,24 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec handle_fault(TargetName, Varbinds) -> Result
+-spec handle_fault(TargetName, UserData, Varbinds) -> Result
 	when
 		TargetName :: string(),
+		UserData :: term(),
 		Varbinds :: snmp:varbinds(),
 		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Handle a fault fault.
-handle_fault(TargetName, Varbinds) ->
+handle_fault(TargetName, UserData, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(nokia, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		Address = lists:keyfind(address, 1, UserData),
+		Event = snmp_collector_utils:create_event(TargetName,
+				[{"alarmIp", Address} | AlarmDetails], fault),
+		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;
@@ -296,6 +299,88 @@ handle_fault(TargetName, Varbinds) ->
 		_:Reason ->
 			{error, Reason}
 	end.
+
+-spec handle_notification(TargetName, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a notification fault.
+handle_notification(TargetName, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		AlarmDetails = notification(NamesValues),
+		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, notification),
+		snmp_collector_utils:send_event(Event)
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec handle_heartbeat(TargetName, UserData, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		UserData :: term(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a heartbeat event.
+handle_heartbeat(TargetName, _UserData, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		case heartbeat(NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, heartbeat),
+				snmp_collector_utils:send_event(Event)
+		end
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec heartbeat(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for a heartbeat event.
+heartbeat(NameValuePair) ->
+	heartbeat(NameValuePair, [{"nfVendorName", "nokia"}]).
+%% @hidden
+heartbeat([{"snmpTrapOID", "nbiHeartbeatNotification"} | T], Acc) ->
+	heartbeat(T, [{"alarmCondition", "heartBeatNotification"} | Acc]);
+heartbeat([{"nbiEventTime", Value} | T], Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	heartbeat(T, [{"raisedTime", Value} | Acc]);
+heartbeat([{"nbiSequenceId", Value} | T], Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	heartbeat(T, [{"id", Value} | Acc]);
+heartbeat([{_, [$ ]} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{_, []} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{Name, Value} | T], Acc) ->
+	heartbeat(T, [{Name, Value} | Acc]);
+heartbeat([], Acc) ->
+	Acc.
 
 -spec fault(OidNameValuePair) -> VesNameValuePair
 	when
@@ -323,6 +408,8 @@ fault([{"snmpTrapOID", "nbiAlarmAckChangedNotification"} | T]) ->
 fault([{"nbiAlarmId", Value} | T], AC, Acc)
 		when is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"alarmId", Value}, {"nfVendorName", "nokia"} | Acc]);
+fault([{"address", Value} | T], AC, Acc) ->
+	fault(T, AC, [{"alarmIp", Value} | Acc]);
 fault([{"nbiAlarmTime", Value} | T], AC, Acc)
 		when AC == "alarmNew", is_list(Value), length(Value) > 0 ->
 	fault(T, AC, [{"raisedTime", Value} | Acc]);
@@ -405,30 +492,6 @@ fault([{Name, Value} | T], AC, Acc) ->
 	fault(T, AC, [{Name, Value} | Acc]);
 fault([], _, Acc) ->
 	Acc.
-
--spec handle_notification(TargetName, Varbinds) -> Result
-	when
-		TargetName :: string(),
-		Varbinds :: snmp:varbinds(),
-		Result :: ignore | {error, Reason},
-		Reason :: term().
-%% @doc Handle a notification fault.
-handle_notification(TargetName, Varbinds) ->
-	try
-		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
-		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = notification(NamesValues),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, notification),
-		snmp_collector_utils:log_event(Event)
-	of
-		ok ->
-			ignore;
-		{error, Reason} ->
-			{error, Reason}
-	catch
-		_:Reason ->
-			{error, Reason}
-	end.
 
 -spec notification(OidNameValuePair) -> VesNameValuePair
 	when
@@ -584,8 +647,8 @@ probable_cause("SIGNALLING MEASUREMENT REPORT LOST") ->
 probable_cause("MANAGED OBJECT FAILED") ->
 	?PC_Alarm_Indication_Signal;
 probable_cause(EventCause) ->
-	error_logger:info_report(["SNMP Manager Unrecognized Probable Cause",
-			{probableCause, EventCause},
-			{module, ?MODULE}]),
+%	error_logger:info_report(["SNMP Manager Unrecognized Probable Cause",
+%			{probableCause, EventCause},
+%			{module, ?MODULE}]),
 	EventCause.
 

@@ -278,9 +278,9 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 		notification ->
 			ignore;
 		heartbeat ->
-			ignore;
+			handle_heartbeat(TargetName, UserData, Varbinds);
 		fault ->
-			handle_fault(TargetName, Varbinds)
+			handle_fault(TargetName, UserData, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
 	case domain(Varbinds) of
@@ -290,9 +290,9 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 		notification ->
 			ignore;
 		heartbeat ->
-			ignore;
+			handle_heartbeat(TargetName, UserData, Varbinds);
 		fault ->
-			handle_fault(TargetName, Varbinds)
+			handle_fault(TargetName, UserData, Varbinds)
 	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
@@ -323,21 +323,26 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec handle_fault(TargetName, Varbinds) -> Result
+-spec handle_fault(TargetName, UserData, Varbinds) -> Result
 	when
 		TargetName :: string(),
+		UserData :: term(),
 		Varbinds :: snmp:varbinds(),
 		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Handle a fault event.
-handle_fault(TargetName, Varbinds) ->
+handle_fault(TargetName, UserData, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
-		AlarmDetails = fault(NamesValues),
-		snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		case fault(NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				snmp_collector_utils:update_counters(huawei, TargetName, AlarmDetails),
+				Event = snmp_collector_utils:create_event(TargetName, UserData ++ AlarmDetails, fault),
+				snmp_collector_utils:send_event(Event)
+		end
 	of
 		ok ->
 			ignore;
@@ -347,6 +352,61 @@ handle_fault(TargetName, Varbinds) ->
 		_:Reason ->
 			{error, Reason}
 	end.
+
+-spec handle_heartbeat(TargetName, UserData, Varbinds) -> Result
+	when
+		TargetName :: string(),
+		UserData :: term(),
+		Varbinds :: snmp:varbinds(),
+		Result :: ignore | {error, Reason},
+		Reason :: term().
+%% @doc Handle a heartbeat event.
+handle_heartbeat(TargetName, _UserData, Varbinds) ->
+	try
+		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
+		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
+		case heartbeat(NamesValues) of
+			[{[],[]}] ->
+				ok;
+			AlarmDetails ->
+				Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, heartbeat),
+				snmp_collector_utils:send_event(Event)
+		end
+	of
+		ok ->
+			ignore;
+		{error, Reason} ->
+			{error, Reason}
+	catch
+		_:Reason ->
+			{error, Reason}
+	end.
+
+-spec heartbeat(OidNameValuePair) -> VesNameValuePair
+	when
+		OidNameValuePair :: [{OidName, OidValue}],
+		OidName :: string(),
+		OidValue :: string(),
+		VesNameValuePair :: [{VesName, VesValue}],
+		VesName :: string(),
+		VesValue :: string().
+%% @doc CODEC for a heartbeat event.
+heartbeat(NameValuePair) ->
+	heartbeat(NameValuePair, [{"nfVendorName", "huawei"}]).
+%% @hidden
+heartbeat([{"snmpTrapOID", "hwNmNorthboundEventKeepAlive"} | T], Acc) ->
+	heartbeat(T, [{"eventName", "heartBeatNotification"} | Acc]);
+heartbeat([{"hwNmAgent", Value} | T], Acc)
+		when length(Value) > 0, Value =/= [$ ] ->
+	heartbeat(T, [{"systemLabel", Value} | Acc]);
+heartbeat([{_, [$ ]} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{_, []} | T], Acc) ->
+	heartbeat(T, Acc);
+heartbeat([{Name, Value} | T], Acc) ->
+	heartbeat(T, [{Name, Value} | Acc]);
+heartbeat([], Acc) ->
+	Acc.
 
 -spec fault(OidNameValuePair) -> VesNameValuePair
 	when
@@ -358,12 +418,18 @@ handle_fault(TargetName, Varbinds) ->
 		VesValue :: string().
 %% @doc CODEC for event.
 fault(NameValuePair) ->
-	{_, Value} = lists:keyfind("hwNmNorthboundFaultFlag", 1, NameValuePair),
-	fault(NameValuePair, Value, []).
+	case lists:keyfind("hwNmNorthboundFaultFlag", 1, NameValuePair) of
+		{_, "Event"} ->
+			[{[],[]}];
+		{_, Value} ->
+			fault(NameValuePair, Value, [])
+	end.
 %% @hidden
 fault([{"hwNmNorthboundSerialNo", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"alarmId", Value}, {"nfVendorName", "huawei"} | Acc]);
+fault([{"address", Value} | T], EN, Acc) ->
+	fault(T, EN, [{"alarmIp", Value} | Acc]);
 fault([{"hwNmNorthboundResourceIDs", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"sourceId", Value} | Acc]);
@@ -426,7 +492,7 @@ fault([{"hwNmNorthboundEventType", _} | T], EN, Acc) ->
 	fault(T, EN, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"hwNmNorthboundProbableCause", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
-	fault(T, EN, [{"specificProblem", Value}, {"probableCause", ?PC_Indeterminate} | Acc]);
+	fault(T, EN, [{"specificProblem", Value} | Acc]);
 fault([{"hwNmNorthboundProbableRepair", Value} | T], EN, Acc)
 		when length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"proposedRepairActions", Value} | Acc]);
@@ -483,7 +549,7 @@ fault([{"hwNmNorthboundFaultFlag", "Acknowledge"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
 fault([{"hwNmNorthboundFaultFlag", "Unacknowledge"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventName", ?EN_CHANGED} | Acc]);
-fault([{"hwNmNorthbound}EventTime", Value} | T], EN, Acc)
+fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
 		when EN == "Fault", length(Value) > 0, Value =/= [$ ] ->
 	fault(T, EN, [{"raisedTime", Value} | Acc]);
 fault([{"hwNmNorthboundEventTime", Value} | T], EN, Acc)
@@ -505,9 +571,9 @@ fault([{_, []} | T], EN, Acc) ->
 fault([{Name, Value} | T], EN, Acc) ->
 	fault(T, EN, [{Name, Value} | Acc]);
 fault([], _EN, Acc) ->
-	Acc.
+	[{"probableCause", ?PC_Indeterminate} | Acc].
 
--spec domain(Varbinds) -> Result
+	-spec domain(Varbinds) -> Result
 	when
 		Varbinds :: [Varbinds],
 		Result :: fault | heartbeat | notification | other.

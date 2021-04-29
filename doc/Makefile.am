@@ -22,6 +22,7 @@ modhtml = snmp_collector_app.html \
 			snmp_collector_trap_emc.html \
 			snmp_collector_trap_huawei_servers.html \
 			snmp_collector_trap_rfc3877.html \
+			snmp_collector_trap_adva.html \
 			snmp_collector_trap_generic.html \
 			snmp_collector_debug_sup.html \
 			snmp_collector_debug_fsm.html \

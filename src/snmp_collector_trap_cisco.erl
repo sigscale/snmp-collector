@@ -134,7 +134,7 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
 		fault ->
-			handle_fault(TargetName, Varbinds);
+			handle_fault(TargetName, UserData, Varbinds);
 		syslog ->
 			handle_syslog(TargetName, Varbinds)
 	end;
@@ -144,7 +144,7 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
 		fault ->
-			handle_fault(TargetName, Varbinds);
+			handle_fault(TargetName, UserData, Varbinds);
 		syslog ->
 			handle_syslog(TargetName, Varbinds)
 	end.
@@ -177,24 +177,29 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec handle_fault(TargetName, Varbinds) -> Result
+-spec handle_fault(TargetName, UserData, Varbinds) -> Result
 	when
 		TargetName :: string(),
+		UserData :: term(),
 		Varbinds :: snmp:varbinds(),
 		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Handle a fault event.
-handle_fault(TargetName, Varbinds) ->
+handle_fault(TargetName, UserData, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(cisco, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		[{address, Address} | _] = UserData,
+		Event = snmp_collector_utils:create_event(TargetName,
+				[{"alarmIp", Address} | AlarmDetails], fault),
+		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;
+		false ->
+			{error, address_undefined};
 		{error, Reason} ->
 			{error, Reason}
 	catch
@@ -415,7 +420,7 @@ handle_syslog(TargetName, Varbinds) ->
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = syslog(NamesValues),
 		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, syslog),
-		snmp_collector_utils:log_event(Event)
+		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;

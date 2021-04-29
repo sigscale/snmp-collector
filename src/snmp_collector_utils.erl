@@ -23,10 +23,10 @@
 -include("snmp_collector_log.hrl").
 
 -export([oid_to_name/1, get_name/1, generate_identity/1,
-		arrange_list/1, stringify/1, log_event/1, security_params/7,
+		arrange_list/1, stringify/1, send_event/1, security_params/7,
 		agent_name/1, oids_to_names/2, create_event/3, engine_id/0,
 		authenticate_v1_v2/2, update_counters/3, timestamp/0,
-		generate_key/3, authenticate_v3/4]).
+		generate_key/3, authenticate_v3/4, strip_target_name/1, fault_fields/1]).
 
 %% support deprecated_time_unit()
 -define(MILLISECOND, milli_seconds).
@@ -156,7 +156,11 @@ create_event(TargetName, AlarmDetails, notification) ->
 	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "notification"),
 	NotificationFields = notification_fields(Remainder),
 	{NewCommonEventHeader, _} = check_fields(CommonEventHeader, #{}),
-	create_event1(NewCommonEventHeader, NotificationFields).
+	create_event1(NewCommonEventHeader, NotificationFields);
+create_event(TargetName, AlarmDetails, heartbeat) ->
+	{CommonEventHeader, Remainder} = common_event_header(TargetName, AlarmDetails, "heartbeat"),
+	NotificationFields = heartbeat_fields(Remainder),
+	create_event1(CommonEventHeader, NotificationFields).
 %% @hidden
 create_event1(#{"startEpochMicrosec" := _,
 		"lastEpochMicrosec" := _} = CommonEventHeader, OtherFields) ->
@@ -242,7 +246,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
-					case snmp_collector:add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
+					case snmp_collector:register_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
@@ -258,7 +262,7 @@ security_params1(EngineID, TargetName, SecName, AuthParms, Packet, AuthPass, Pri
 			AuthKey = generate_key(AuthProtocol, AuthPass, EngineID),
 			case authenticate_v3(AuthProtocol, AuthKey, AuthParms ,Packet) of
 				true ->
-					case snmp_collector:add_usm_user(EngineID, TargetName, SecName, AuthProtocol,
+					case snmp_collector:register_usm_user(EngineID, TargetName, SecName, AuthProtocol,
 							PrivProtocol, AuthPass, PrivPass) of
 						{usm_user_added, AuthProtocol, PrivProtocol} ->
 							{ok, AuthProtocol, PrivProtocol};
@@ -311,7 +315,7 @@ agent_name(Address) ->
 		[[TargetName]] ->
 			case ets:match(snmpm_agent_table, {{TargetName, user_id},'$1'}) of
 				[[AgentName]] ->
-					case ets:match(snmpm_agent_table, {{TargetName,sec_model}, '$1'}) of
+					case ets:match(snmpm_agent_table, {{TargetName, sec_model}, '$1'}) of
 						[[SecurityModel]] ->
 							{AgentName, TargetName, SecurityModel};
 						[] ->
@@ -324,7 +328,7 @@ agent_name(Address) ->
 			{error, target_name_not_found}
 	end.
 
--spec log_event(Event) -> Result
+-spec send_event(Event) -> Result
    when
 		Event :: {TS, N, Node, CommonEventHeader, OtherFields},
 		TS :: pos_integer(),
@@ -334,14 +338,12 @@ agent_name(Address) ->
 		OtherFields :: map(),
 		Result :: ok | {error, Reason},
 		Reason :: term().
-%% @doc Log the event to disk.
+%% @doc Log and POST the event.
 %% @private
-log_event({TS, N, Node, CommonEventHeader, #{"alarmAdditionalInformation" := AlarmAdditionalInformation}
-		= OtherFields}) ->
+send_event({TS, N, Node, CommonEventHeader, OtherFields}) ->
 	try
-		Event1 = {TS, N, Node, CommonEventHeader,
-				OtherFields#{"alarmAdditionalInformation" => alarm_additional_information(AlarmAdditionalInformation)}},
-		gen_event:notify(snmp_collector_event, Event1) 
+		Event1 = {TS, N, Node, CommonEventHeader, OtherFields},
+		gen_event:notify(snmp_collector_event, Event1)
 	of
 		ok ->
 			ok
@@ -426,8 +428,24 @@ oids_to_names([], Acc) ->
 %% @doc JSON encode a string.
 %% @private
 stringify(String) ->
-	stringify1(String, []).
+	case io_lib:printable_unicode_list(String) of
+		true ->
+			String;
+		false ->
+			case snmp:validate_date_and_time(String) of 
+				true ->
+					String;
+				false ->
+					stringify1(String, [])
+			end
+	end.
 %% @hidden
+stringify1([$\s | T], Acc) ->
+	stringify1(T, [$s, $\\ | Acc]);
+stringify1([$\~ | T], Acc) ->
+	stringify1(T, [$~, $\\ | Acc]);
+stringify1([$\, | T], Acc) ->
+	stringify1(T, [$,, $\\ | Acc]);
 stringify1([$\b | T], Acc) ->
 	stringify1(T, [$b, $\\ | Acc]);
 stringify1([$\d | T], Acc) ->
@@ -450,6 +468,8 @@ stringify1([$\" | T], Acc) ->
 	stringify1(T, Acc);
 stringify1([$\\ | T], Acc) ->
 	stringify1(T, [$\\, $\\ | Acc]);
+stringify1([H | T], Acc) when H < $\s; H > $~ ->
+	stringify1(T, [io_lib:fwrite("\\u~4.16.0b", [H]) | Acc]);
 stringify1([H | T], Acc) ->
 	stringify1(T, [H | Acc]);
 stringify1([], Acc) ->
@@ -578,10 +598,6 @@ engine_id4(PEN, Acc) when length(Acc) == 27 ->
 engine_id4(PEN, Acc) ->
 	engine_id4(PEN, [rand:uniform(255) | Acc]).
 
-%%----------------------------------------------------------------------
-%%  The internal functions
-%%----------------------------------------------------------------------
-
 -spec strip_name(Name) -> Name
 	when
 		Name :: string().
@@ -611,20 +627,26 @@ timestamp() ->
 %% @doc Update counters for SNMP notifications received
 update_counters(AgentName, TargetName,
 		[{"eventType", ?ET_Communication_System} | T]) ->
-	ets:update_counter(counters, {AgentName, TargetName, communicationsAlarm}, {2, 1}, {{AgentName, TargetName, communicationsAlarm}, 0}),
-	ets:update_counter(counters, {AgentName, communicationsAlarm}, {2, 1}, {{AgentName, communicationsAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, TargetName, communicationsAlarm},
+			{2, 1}, {{AgentName, TargetName, communicationsAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, communicationsAlarm}, {2, 1},
+			{{AgentName, communicationsAlarm}, 0}),
 	ets:update_counter(counters, communicationsAlarm, {2, 1}, {communicationsAlarm, 0}),
 	update_counters(AgentName, TargetName, T);
 update_counters(AgentName, TargetName,
 		[{"eventType", ?ET_Processing_Error} | T]) ->
-	ets:update_counter(counters, {AgentName, TargetName, processingErrorAlarm}, {2, 1}, {{AgentName, TargetName, processingErrorAlarm}, 0}),
-	ets:update_counter(counters, {AgentName, processingErrorAlarm}, {2, 1}, {{AgentName, processingErrorAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, TargetName, processingErrorAlarm}, {2, 1},
+			{{AgentName, TargetName, processingErrorAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, processingErrorAlarm}, {2, 1},
+			{{AgentName, processingErrorAlarm}, 0}),
 	ets:update_counter(counters, processingErrorAlarm, {2, 1}, {processingErrorAlarm, 0}),
 	update_counters(AgentName, TargetName, T);
 update_counters(AgentName, TargetName,
 		[{"eventType", ?ET_Environmental_Alarm} | T]) ->
-	ets:update_counter(counters, {AgentName, TargetName, environmentalAlarm}, {2, 1}, {{AgentName, TargetName, environmentalAlarm}, 0}),
-	ets:update_counter(counters, {TargetName, environmentalAlarm}, {2, 1}, {{TargetName, environmentalAlarm}, 0}),
+	ets:update_counter(counters, {AgentName, TargetName, environmentalAlarm},
+			{2, 1}, {{AgentName, TargetName, environmentalAlarm}, 0}),
+	ets:update_counter(counters, {TargetName, environmentalAlarm},
+			{2, 1}, {{TargetName, environmentalAlarm}, 0}),
 	ets:update_counter(counters, environmentalAlarm, {2, 1}, {environmentalAlarm, 0}),
 	update_counters(AgentName, TargetName, T);
 update_counters(AgentName, TargetName,
@@ -749,6 +771,26 @@ update_counters(AgentName, TargetName, [_H | T]) ->
 update_counters(_, _, []) ->
 	ok.
 
+-spec strip_target_name(TargetName) -> Result
+	when
+		TargetName :: string(),
+		Result :: string().
+%% @doc Trim extra values suffixed to the TargetName
+strip_target_name(TargetName)
+		when is_list(TargetName) ->
+	case lists:last(TargetName) of
+		$) ->
+			Length = length(TargetName),
+			case lists:split(Length - 3, TargetName) of
+				{StrippedName, [$(, N, $)]} when is_integer(N) ->
+					StrippedName;
+				_ ->
+					TargetName
+				end;
+		_ ->
+			TargetName
+	end.
+
 %%----------------------------------------------------------------------
 %%  The internal functions
 %%----------------------------------------------------------------------
@@ -801,6 +843,31 @@ common_event_header([H | T], TargetName, CH, AD) ->
 common_event_header([], _TargetName, CH, AD) ->
 	{CH, AD}.
 
+-spec heartbeat_fields(AlarmDetails) -> NotificationFields
+	when
+		AlarmDetails :: [{Name, Value}],
+		Name :: list(),
+		Value :: list(),
+		NotificationFields :: map().
+%% @doc Create the fault fields map.
+heartbeat_fields(AlarmDetails) when is_list(AlarmDetails) ->
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
+			"heartbeatFieldVersion" => 1},
+	heartbeat_fields(AlarmDetails, DefaultMap).
+%% @hidden
+heartbeat_fields([{"systemLabel", Value} | T], Acc) ->
+	heartbeat_fields(T, Acc#{"systemLabel" => Value});
+heartbeat_fields([{"heartbeatInterval", Value} | T], Acc) ->
+	heartbeat_fields(T, Acc#{"heartbeatInterval" => Value});
+heartbeat_fields([{"raisedTime", Value} | T], Acc) ->
+	heartbeat_fields(T, Acc#{"raisedTime" => Value});
+heartbeat_fields([{Name, Value} | T],
+		#{"additionalFields" := AI} = Acc) ->
+	NewAI = AI#{Name => Value},
+	heartbeat_fields(T, Acc#{"additionalFields" => NewAI});
+heartbeat_fields([], Acc) ->
+	Acc.
+
 -spec notification_fields(AlarmDetails) -> NotificationFields
 	when
 		AlarmDetails :: [{Name, Value}],
@@ -809,7 +876,7 @@ common_event_header([], _TargetName, CH, AD) ->
 		NotificationFields :: map().
 %% @doc Create the fault fields map.
 notification_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
 			"notificationFieldsVersion" => 1},
 	notification_fields(AlarmDetails, DefaultMap).
 %% @hidden
@@ -830,9 +897,9 @@ notification_fields([{"stateInterface", Value} | T], Acc) ->
 notification_fields([{"changeType", Value} | T], Acc) ->
 	notification_fields(T, Acc#{"changeType" => Value});
 notification_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	notification_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+		#{"additionalFields" := AI} = Acc) ->
+	NewAI = AI#{Name => Value},
+	notification_fields(T, Acc#{"additionalFields" => NewAI});
 notification_fields([], Acc) ->
 	Acc.
 
@@ -844,7 +911,7 @@ notification_fields([], Acc) ->
 		SysLogFields :: map().
 %% @doc Create the fault fields map.
 syslog_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
 			"syslogFieldsVersion" => 1},
 	syslog_fields(AlarmDetails, DefaultMap).
 %% @hidden
@@ -859,9 +926,9 @@ syslog_fields([{"syslogSev", Value} | T], Acc) ->
 syslog_fields([{"syslogTag", Value} | T], Acc) ->
 	syslog_fields(T, Acc#{"syslogTag" => Value});
 syslog_fields([{Name, Value} | T],
-		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
-	syslog_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
+		#{"additionalFields" := AI} = Acc) ->
+	NewAI = AI#{Name => Value},
+	syslog_fields(T, Acc#{"additionalFields" => NewAI});
 syslog_fields([], Acc) ->
 	Acc.
 
@@ -873,7 +940,7 @@ syslog_fields([], Acc) ->
 		FaultFields :: map().
 %% @doc Create the fault fields map.
 fault_fields(AlarmDetails) when is_list(AlarmDetails) ->
-	DefaultMap = #{"alarmAdditionalInformation" => [],
+	DefaultMap = #{"alarmAdditionalInformation" => #{},
 			"faultFieldsVersion" => 1},
 	fault_fields(AlarmDetails, DefaultMap).
 %% @hidden
@@ -891,23 +958,9 @@ fault_fields([{"nfVendorName", Value} | T], Acc) ->
 	fault_fields(T, Acc#{"nfVendorName" => Value});
 fault_fields([{Name, Value} | T],
 		#{"alarmAdditionalInformation" := AI} = Acc) ->
-	NewAI = [#{"name" => Name, "value" => Value} | AI],
+	NewAI = AI#{Name => Value},
 	fault_fields(T, Acc#{"alarmAdditionalInformation" => NewAI});
 fault_fields([], Acc) ->
-	Acc.
-
--spec alarm_additional_information(AlarmAdditionalInformation) -> Result
-	when
-		AlarmAdditionalInformation :: [map()],
-		Result :: map().
-%% @doc CODEC for alarm additional information.
-%% @hidden
-alarm_additional_information(AlarmAdditionalInformation) ->
-	alarm_additional_information(AlarmAdditionalInformation, #{}).
-%% @hidden
-alarm_additional_information([#{"name" := Name, "value" := Value} | T], Acc) ->
-	alarm_additional_information(T, Acc#{Name => Value});
-alarm_additional_information([], Acc) ->
 	Acc.
 
 -spec check_fields(CommonEventHeader, FaultFields) -> Result
@@ -948,9 +1001,15 @@ check_fields1(CH, FF) ->
 %% @hidden
 check_fields2(#{"eventType" := EventType, "domain" := "fault"} = CH, FF)
 		when is_list(EventType), length(EventType) > 0 ->
-	{CH, FF};
+	check_fields3(CH, FF);
 check_fields2(CH, FF) ->
-	{CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF}.
+	check_fields3(CH#{"eventType" => ?ET_Quality_Of_Service_Alarm}, FF).
+check_fields3(CH, #{"alarmAdditionalInformation" := #{"probableCause" := ProbableCause}} = FF)
+		when is_list(ProbableCause), length(ProbableCause) > 0 ->
+	{CH, FF};
+check_fields3(CH, FF) ->
+	{CH, FF#{"alarmAdditionalInformation" =>
+			#{"probableCause" => ?PC_Indeterminate}}}.
 
 -spec authenticate_v3(AuthProtocol, AuthKey, AuthParams, Packet) -> Result
 	when

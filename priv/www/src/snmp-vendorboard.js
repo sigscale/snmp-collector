@@ -99,25 +99,35 @@ class vendorBoard extends PolymerElement {
 			if (request) {
 				var dataArray = new Array();
 				var req = request.response;
+				var arr = new Array();
 				if(request.response.vendor.huawei.total) {
 					var HuTotVen = request.response.vendor.huawei.total;
+					if(HuTotVen != undefined) {
+						arr.push(HuTotVen);
+					}
 				}
 				if(request.response.vendor.nokia.total) {
 					var NoTotVen = request.response.vendor.nokia.total;
+					if(NoTotVen != undefined) {
+						arr.push(NoTotVen);
+					}
 				}
 				if(request.response.vendor.zte.total) {
 					var ZtTotVen = request.response.vendor.zte.total;
+					if(ZtTotVen != undefined) {
+						arr.push(ZtTotVen);
+					}
 				}
 				if(request.response.vendor.rfc3877.total) {
 					var RfcTotVen = request.response.vendor.rfc3877.total;
+					if(RfcTotVen != undefined) {
+						arr.push(RfcTotVen);
+					}
 				}
-				if(RfcTotVen != undefined) {
-					var totAge = HuTotVen + NoTotVen + ZtTotVen + RfcTotVen;
-console.log(totAge);
-				} else {
-					var totAge = HuTotVen + NoTotVen + ZtTotVen;
-				}
-				var totSystem = {"name": "total", "count": totAge};
+				var sum = arr.reduce(function(a, b){
+					return a + b;
+				}, 0);
+				var totSystem = {"name": "total", "count": sum};
 				var history = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').history;
 				var root1 = document.body.querySelector('snmp-collector').shadowRoot.getElementById('vendorList').shadowRoot;
 				var color1 = scaleOrdinal(["#ff1744"]);
@@ -171,36 +181,44 @@ console.log(totAge);
 				var sysEventType = document.body.querySelector('snmp-collector')
 							.shadowRoot.getElementById('vendorList');
 				var newRecord2 = new Object();
-				if(req.vendor) {
+				var req = request.response;
+console.log(req);
+				if(req) {
 					for(var index in req.vendor.huawei.agent) {
 						if(req.vendor.huawei.agent != "") {
 							var HuaObjVen = req.vendor.huawei.agent[index];
-							if(HuaObjVen.total) {
+							if(HuaObjVen.total != undefined) {
 								newRecord2.huawei = HuaObjVen.total;
 							}
 						}
+					}
+					for(var index in req.vendor.nokia.agent) {
 						if(req.vendor.nokia.agent != "") {
 							var NokObjVen = req.vendor.nokia.agent[index];
-							if(NokObjVen.total) {
+							if(NokObjVen.total != undefined) {
 								newRecord2.nokia = NokObjVen.total;
 							}
 						}
+					}
+					for(var index in req.vendor.zte.agent) {
 						if(req.vendor.zte.agent != "") {
 							var ZteObjVen = req.vendor.zte.agent[index];
-							if(ZteObjVen.total) {
+							if(ZteObjVen.total != undefined) {
 								newRecord2.zte = ZteObjVen.total;
 							}
 						}
+					}
+					for(var index in req.vendor.rfc3877.agent) {
 						if(req.vendor.rfc3877.agent != "") {
 							var RfcObjVen = req.vendor.rfc3877.agent[index];
-							if(RfcObjVen.total) {
+							if(RfcObjVen.total != undefined) {
 								newRecord2.rfc3877 = RfcObjVen.total;
 							}
 						}
-						var dataVen = newRecord2;		
-						var dataAgent = Object.keys(dataVen).map(k =>
-									({ name: k, count: dataVen[k] }));
 					}
+					var dataVen = newRecord2;
+					var dataAgent = Object.keys(dataVen).map(k =>
+								({ name: k, count: dataVen[k] }));
 				}
 				var root = document.body.querySelector('snmp-collector')
 							.shadowRoot.getElementById('vendorList').shadowRoot;

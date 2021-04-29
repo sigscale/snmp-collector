@@ -25,7 +25,8 @@
 		query_mibs/3, add_snmp_user/3, remove_snmp_user/1, get_count/0,
 		get_count/1, get_vendor_count/1, get_vendor_count/2, get_agent_count/2,
 		get_agent_count/3, start_synch/1, add_agent/8, add_snmpm_user/3,
-		add_usm_user/7]).
+		register_usm_user/7, add_usm_user/7, remove_agent/2, update_agent/3,
+		remove_snmpm_user/1, update_usm_user/4, unregister_usm_user/2]).
 
 -include_lib("inets/include/httpd.hrl").
 -include_lib("inets/include/mod_auth.hrl").
@@ -254,8 +255,9 @@ get_count() ->
 	when
 		Metric :: eventType | perceivedResult,
 		Result :: map().
-%% @doc Get current of alarms on system by `metric'.
-get_count(Metric) ->
+%% @doc Get current count of alarms on system by `metric'.
+get_count(Metric)
+		when is_atom(Metric) ->
 	MatchSpec = [{{'$1', '$2'}, [{'==', '$1', Metric}], ['$2']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
@@ -264,8 +266,9 @@ get_count(Metric) ->
 	when
 		Vendor :: huawei | nokia | zte | emc | nec | hpe | rfc3877,
 		Result :: non_neg_integer().
-%% @doc Get current of alarms for `vendor'.
-get_vendor_count(Vendor) ->
+%% @doc Get current count of alarms for `vendor'.
+get_vendor_count(Vendor)
+		when is_atom(Vendor) ->
 	MatchSpec = [{{{'$1', '$2'}, '$3'}, [{'==', '$1', Vendor}], ['$3']}],
 	lists:sum(ets:select(counters, MatchSpec)).
 
@@ -275,7 +278,8 @@ get_vendor_count(Vendor) ->
 		Metric :: eventType | perceivedResult,
 		Result :: map().
 %% @doc Get current count of alarms for `vendor' by `metric'.
-get_vendor_count(Vendor, Metric) ->
+get_vendor_count(Vendor, Metric)
+		when is_atom(Vendor), is_atom(Metric) ->
 	MatchSpec = [{{{'$1', '$2'}, '$3'}, [{'==', '$1', Vendor}, {'==', '$2', Metric}], ['$3']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
@@ -286,7 +290,8 @@ get_vendor_count(Vendor, Metric) ->
 		Agent :: string(),
 		Result :: non_neg_integer().
 %% @doc Get current count of alarms for `vendor' by `agent'
-get_agent_count(Vendor, Agent) ->
+get_agent_count(Vendor, Agent)
+		when is_atom(Vendor), is_list(Agent) ->
 	MatchSpec = [{{{Vendor, Agent, '_'}, '$4'}, [], ['$4']}],
 	lists:sum(ets:select(counters, MatchSpec)).
 
@@ -296,8 +301,9 @@ get_agent_count(Vendor, Agent) ->
 		Agent :: string(),
 		Metric :: eventType | perceivedResult,
 		Result :: map().
-%% @doc Get current alarms for `vendor' by `agent' and `metric'
-get_agent_count(Vendor, Agent, Metric) ->
+%% @doc Get current count alarms for `vendor' by `agent' and `metric'
+get_agent_count(Vendor, Agent, Metric)
+		when is_atom(Vendor), is_list(Agent), is_atom(Metric) ->
 	MatchSpec = [{{{Vendor, Agent, Metric}, '$4'}, [], ['$4']}],
 	Sum = lists:sum(ets:select(counters, MatchSpec)),
 	#{Metric => Sum}.
@@ -537,7 +543,8 @@ start_synch(AgentName)
 				{address, AgentName}])
 	end.
 
--spec add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, Version, SecName) -> Result
+-spec add_agent(UserId, TargetName, Community, Tdomain,
+		Address, EngineId, Version, SecName) -> Result
 	when
 		UserId :: string(),
 		TargetName :: string(),
@@ -550,37 +557,57 @@ start_synch(AgentName)
 		Result :: ok | {error, Reason},
 		Reason :: term().
 %% @doc Add and load new agent configuration.
-add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v1, SecName)
-		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
+add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, Version, SecName)
+		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address), is_atom(Version),
 			is_list(EngineId), is_list(SecName) ->
-	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
-			infinity, 484, v1, v1, SecName, noAuthNoPriv},
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
-	add_agent1(UserId, TargetName, EngineId, Address);
-add_agent(UserId, TargetName, Community, Tdomain, Address, EngineId, v2c, SecName)
-		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
-			is_list(EngineId), is_list(SecName) ->
-	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
-			infinity, 484, v2, v2c, SecName, noAuthNoPriv},
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
-	add_agent1(UserId, TargetName, EngineId, Address);
-add_agent(UserId, TargetName, _Community, Tdomain, Address, EngineId, v3, SecName)
-		when is_list(TargetName), is_atom(Tdomain), is_tuple(Address),
-			is_list(EngineId), is_list(SecName) ->
-	AgentConf = {UserId, TargetName, "", Tdomain, Address, EngineId,
-			infinity, 484, v3, usm, SecName, authPriv},
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	ok = snmpm_conf:append_agents_config(Dir, [AgentConf]),
-	add_agent1(UserId, TargetName, EngineId, Address).
-%% @hidden
-add_agent1(UserId, TargetName, EngineId, Address) ->
-	case snmpm:register_agent(UserId, TargetName,
-			[{engine_id, EngineId}, {taddress, Address}]) of
+	case write_agent_config(UserId, TargetName, Community,
+			Tdomain, Address, EngineId, Version, SecName) of
+		ok ->
+			case register_agent(UserId, TargetName, Community,
+					Tdomain, Address, EngineId, Version, SecName) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec remove_agent(UserId, TargetName) -> Result
+	when
+		UserId :: term(),
+		TargetName :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Remove an existing agent.
+remove_agent(UserId, TargetName)
+		when is_list(TargetName) ->
+	case snmpm:unregister_agent(UserId, TargetName) of
 		ok ->
 			ok;
-		{error,Reason} ->
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec update_agent(UserId, TargetName, Info) -> Result
+	when
+		UserId :: term(),
+		TargetName :: string(),
+		Info :: [{Attribute, AttributeValue}],
+		Attribute :: engine_id | tadress | port | tdomain |
+				community | timeout | max_message_size | version |
+				sec_model | sec_name | sec_level,
+		AttributeValue :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Update an existing agent.
+update_agent(UserId, TargetName, Info)
+		when is_list(TargetName), is_list(Info) ->
+	case snmpm:update_agent_info(UserId, TargetName, Info) of
+		ok ->
+			ok;
+		{error, Reason} ->
 			{error, Reason}
 	end.
 
@@ -596,8 +623,27 @@ add_snmpm_user(UserId, UserMod, UserData)
 		when is_list(UserId), is_atom(UserMod) ->
 	UserConf = [{UserId, UserMod, UserData, []}],
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	ok = snmpm_conf:append_users_config(Dir, UserConf),
-	case snmpm:register_user(UserId, UserMod, UserData) of
+	case catch snmpm_conf:append_users_config(Dir, UserConf) of
+		ok ->
+			case snmpm:register_user(UserId, UserMod, UserData) of
+				ok ->
+					ok;
+				{error, Reason} ->
+					{error, Reason}
+			end;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end.
+
+-spec remove_snmpm_user(UserId) -> Result
+	when
+		UserId :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Remove snmpm user configuration.
+remove_snmpm_user(UserId)
+		when undefined =/= UserId ->
+	case snmpm:unregister_user(UserId) of
 		ok ->
 			ok;
 		{error, Reason} ->
@@ -616,81 +662,127 @@ add_snmpm_user(UserId, UserMod, UserData)
 		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
 		Reason :: term().
 %% @doc Add a new usm user to the snmp_usm table.
-%% @hidden
 %% {EngineId, UserName, SecName, AuthP, AuthKey, PrivP, PrivKey}.
 add_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
-	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
-	FileConf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
+	Conf = [{EngineId, UserName, SecName, usmNoAuthProtocol, [], usmNoPrivProtocol, []}],
+	add_usm_user1(UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
-			{auth_key, AuthKey}],
-	FileConf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmNoPrivProtocol, []}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
+	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmNoPrivProtocol, []}],
+	add_usm_user1(UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
 	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
-	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
-			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
-	FileConf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
+	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
+	add_usm_user1(UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
 %% @hidden
 add_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
+	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
+	Conf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
+	add_usm_user1(UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
+	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
+	add_usm_user1(UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
+	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
+	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
+	add_usm_user1(UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
+%% @hidden
+add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
+	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
+	Conf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
+	add_usm_user1(UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
+%% @hidden
+add_usm_user1(UserName, Conf, AuthProtocol, PrivProtocol)
+		when is_list(UserName) ->
 	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case snmpm_conf:append_usm_config(Dir, Conf) of
+		ok ->
+			{usm_user_added, AuthProtocol, PrivProtocol};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec register_usm_user(EngineId, UserName, SecName, AuthProtocol, PrivProtocol, AuthPass, PrivPass) -> Result
+	when
+		EngineId :: list(),
+		UserName :: list(),
+		SecName :: list(),
+		AuthProtocol :: usmNoAuthProtocol | usmHMACMD5AuthProtocol | usmHMACSHAAuthProtocol,
+		PrivProtocol :: usmNoPrivProtocol | usmDESPrivProtocol | usmAesCfb128Protocol,
+		AuthPass :: list(),
+		PrivPass :: list(),
+		Result :: {usm_user_added, AuthProtocol, PrivProtocol} | {error, Reason},
+		Reason :: term().
+%% @doc Add a new usm user to the snmp_usm table.
+%% {EngineId, UserName, SecName, AuthP, AuthKey, PrivP, PrivKey}.
+register_usm_user(EngineId, UserName, SecName, usmNoAuthProtocol, usmNoPrivProtocol, _AuthPass, _PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	Conf = [{sec_name, SecName}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
+	register_usm_user1(EngineId, UserName, Conf, usmNoAuthProtocol, usmNoPrivProtocol);
+%% @hidden
+register_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {priv, usmNoPrivProtocol},
+			{auth_key, AuthKey}],
+	register_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmNoPrivProtocol);
+%% @hidden
+register_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
+	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
+	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
+	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
+			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
+	register_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmDESPrivProtocol);
+%% @hidden
+register_usm_user(EngineId, UserName, SecName, usmHMACMD5AuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+		when is_list(EngineId), is_list(UserName) ->
 	AuthKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, AuthPass, EngineId),
 	PrivKey = snmp_collector_utils:generate_key(usmHMACMD5AuthProtocol, PrivPass, EngineId),
 	Conf = [{sec_name, SecName}, {auth, usmHMACMD5AuthProtocol}, {auth_key, AuthKey},
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
-	FileConf = [{EngineId, UserName, SecName, usmHMACMD5AuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACMD5AuthProtocol, usmAesCfb128Protocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmNoPrivProtocol, AuthPass, _PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmNoPrivProtocol}],
-	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmNoPrivProtocol, []}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmNoPrivProtocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmDESPrivProtocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmDESPrivProtocol}, {priv_key, PrivKey}],
-	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmDESPrivProtocol, PrivKey}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
+	register_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmDESPrivProtocol);
 %% @hidden
-add_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
+register_usm_user(EngineId, UserName, SecName, usmHMACSHAAuthProtocol, usmAesCfb128Protocol, AuthPass, PrivPass)
 		when is_list(EngineId), is_list(UserName) ->
-	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
 	AuthKey = snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, AuthPass, EngineId),
 	PrivKey = lists:sublist(snmp_collector_utils:generate_key(usmHMACSHAAuthProtocol, PrivPass, EngineId), 16),
 	Conf = [{sec_name, SecName}, {auth, usmHMACSHAAuthProtocol}, {auth_key, AuthKey},
 			{priv, usmAesCfb128Protocol}, {priv_key, PrivKey}],
-	FileConf = [{EngineId, UserName, SecName, usmHMACSHAAuthProtocol, AuthKey, usmAesCfb128Protocol, PrivKey}],
-	ok = snmpm_conf:append_usm_config(Dir, FileConf),
-	add_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
+	register_usm_user1(EngineId, UserName, Conf, usmHMACSHAAuthProtocol, usmAesCfb128Protocol).
 %% @hidden
-add_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
+register_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
 		when is_list(EngineId), is_list(UserName) ->
 	case snmpm:register_usm_user(EngineId, UserName, Conf) of
 		ok ->
@@ -698,6 +790,44 @@ add_usm_user1(EngineId, UserName, Conf, AuthProtocol, PrivProtocol)
 		{error, Reason} ->
 			{error, Reason}
 	end.
+
+-spec update_usm_user(EngineId, UserName, Attribute, AttributeValue) -> Result
+	when
+		EngineId :: list(),
+		UserName :: term(),
+		Attribute :: engine_id | tadress | port | tdomain |
+				community | timeout | max_message_size | version |
+				sec_model | sec_name | sec_level,
+		AttributeValue :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Update an existing usm user in the snmp_usm table.
+update_usm_user(EngineId, UserName, Attribute, AttributeValue)
+		when is_list(EngineId) ->
+	case snmpm:update_usm_user_info(EngineId, UserName,
+			Attribute, AttributeValue) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec unregister_usm_user(EngineId, UserId) -> Result
+	when
+		EngineId :: list(),
+		UserId :: term(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+%% @doc Unregister an usm user from the snmp_usm table.
+unregister_usm_user(EngineId, UserId)
+		when is_list(EngineId), undefined =/= UserId ->
+	case snmpm:unregister_usm_user(EngineId, UserId) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
 
 %%----------------------------------------------------------------------
 %%  internal functions
@@ -746,6 +876,94 @@ get_params5(Address, Port, Directory, {require_group, [Group | _]}) ->
 	{Port, Address, Directory, Group};
 get_params5(_, _, _, false) ->
 	{error, httpd_group_undefined}.
+
+-spec register_agent(UserId, TargetName, Community, Tdomain,
+		Address, EngineId, Version, SecName) -> Result
+	when
+		UserId :: string(),
+		TargetName :: string(),
+		Community :: string(),
+		Tdomain :: transportDomainUdpIpv4 | transportDomainUdpIpv6,
+		Address :: {inet:ip_address(), inet:port_number()},
+		EngineId :: string(),
+		Version :: v1 | v2c | v3,
+		SecName :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v1, SecName) ->
+	AgentConfig = [{engine_id, EngineId}, {taddress, Taddress}, {port, Port}, {tdomain, Tdomain},
+			{community, Community}, {timeout, infinity}, {max_message_size, 484},
+			{version, v1}, {sec_model, v1}, {sec_name, SecName}, {sec_level, noAuthNoPriv}],
+	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end;
+register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v2c, SecName) ->
+	AgentConfig = [{engine_id, EngineId}, {taddress, Taddress}, {port, Port}, {tdomain, Tdomain},
+			{community, Community}, {timeout, infinity}, {max_message_size, 484},
+			{version, v2}, {sec_model, v2c}, {sec_name, SecName}, {sec_level, noAuthNoPriv}],
+	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end;
+register_agent(UserId, TargetName, Community, Tdomain, {Taddress, Port}, EngineId, v3, SecName) ->
+	AgentConfig = [{engine_id, EngineId}, {taddress, Taddress}, {port, Port}, {tdomain, Tdomain},
+			{community, Community}, {timeout, infinity}, {max_message_size, 484},
+			{version, v3}, {sec_model, usm}, {sec_name, SecName}, {sec_level, authPriv}],
+	case snmpm:register_agent(UserId, TargetName, AgentConfig) of
+		ok ->
+			ok;
+		{error, Reason} ->
+			{error, Reason}
+	end.
+
+-spec write_agent_config(UserId, TargetName, Community, Tdomain,
+		Address, EngineId, Version, SecName) -> Result
+	when
+		UserId :: string(),
+		TargetName :: string(),
+		Community :: string(),
+		Tdomain :: transportDomainUdpIpv4 | transportDomainUdpIpv6,
+		Address :: {inet:ip_address(), inet:port_number()},
+		EngineId :: string(),
+		Version :: v1 | v2c | v3,
+		SecName :: string(),
+		Result :: ok | {error, Reason},
+		Reason :: term().
+write_agent_config(UserId, TargetName, Community, Tdomain, Address, EngineId, v1, SecName) ->
+	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
+			infinity, 484, v1, v1, SecName, noAuthNoPriv},
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case catch snmpm_conf:append_agents_config(Dir, [AgentConf]) of
+		ok ->
+			ok;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end;
+write_agent_config(UserId, TargetName, Community, Tdomain, Address, EngineId, v2c, SecName) ->
+	AgentConf = {UserId, TargetName, Community, Tdomain, Address, EngineId,
+			infinity, 484, v2, v2c, SecName, noAuthNoPriv},
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case catch snmpm_conf:append_agents_config(Dir, [AgentConf]) of
+		ok ->
+			ok;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end;
+write_agent_config(UserId, TargetName, _Community, Tdomain, Address, EngineId, v3, SecName) ->
+	AgentConf = {UserId, TargetName, "", Tdomain, Address, EngineId,
+			infinity, 484, v3, usm, SecName, authPriv},
+	{ok,[{config,[{dir, Dir}, _]}, _, _]} = application:get_env(snmp, manager),
+	case catch snmpm_conf:append_agents_config(Dir, [AgentConf]) of
+		ok ->
+			ok;
+		{'EXIT', Reason} ->
+			{error, Reason}
+	end.
 
 -spec match_condition(MatchVariable, Match) -> MatchCondition
 	when

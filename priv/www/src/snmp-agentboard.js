@@ -95,41 +95,47 @@ class agentBoard extends PolymerElement {
 			if (request) {
 				var dataArray = new Array();
 				var req = request.response;
+				var arr = new Array();
 				for(var index in req.vendor.huawei.agent) {
 					if(request.response.vendor.huawei.agent != "") {
 						var huwObj = request.response.vendor.huawei.agent[index];
 						var huwTotal = huwObj.total;
+						if(huwTotal != undefined) {
+							arr.push(huwTotal);
+						}
 					}
+				}
+				for(var index in req.vendor.nokia.agent) {
 					if(request.response.vendor.nokia.agent != "") {
 						var nokObj = request.response.vendor.nokia.agent[index];
 						var nokTotal = nokObj.total;
+						if(nokTotal != undefined) {
+							arr.push(nokTotal);
+						}
 					}
+				}
+				for(var index in req.vendor.zte.agent) {
 					if(request.response.vendor.zte.agent != "") {
 						var zteObj = request.response.vendor.zte.agent[index];
 						var zteTotal = zteObj.total;
+						if(zteTotal != undefined) {
+							arr.push(zteTotal);
+						}
 					}
+				}
+				for(var index in req.vendor.rfc3877.agent) {
 					if(request.response.vendor.rfc3877.agent != "") {
-console.log("request");
-						var RObj = request.response.vendor.rfc3877.agent[index];
-						var rTotal = RObj.total;
+						var rObj = request.response.vendor.rfc3877.agent[index];
+						var rTotal = rObj.total;
+						if(rTotal != undefined) {
+							arr.push(rTotal);
+						}
 					}
 				}
-console.log(RObj, rTotal );
-				if(huwTotal != undefined || nokTotal != undefined || rTotal != undefined) {
-					var totAge = nokTotal + huwTotal + rTotal;
-				}
-				if(nokTotal != undefined || zteTotal != undefined || rTotal != undefined) {
-					var totAge = nokTotal + zteTotal + rTotal;
-				}
-				if(huwTotal != undefined || zteTotal != undefined || rTotal != undefined) {
-					var totAge = huwTotal + zteTotal + rTotal;
-				}
-				if(huwTotal != undefined || zteTotal != undefined || nokTotal != undefined) {
-					var totAge = huwTotal + zteTotal + nokTotal;
-				} else {
-					var totAge = huwTotal + nokTotal + zteTotal + rTotal;
-				}
-				var totSystem = {"name": "total", "count": totAge};
+				var sum = arr.reduce(function(a, b){
+					return a + b;
+				}, 0);
+				var totSystem = {"name": "total", "count": sum};
 				var history = document.body.querySelector('snmp-collector')
 							.shadowRoot.getElementById('agentList').history;
 				var root1 = document.body.querySelector('snmp-collector')

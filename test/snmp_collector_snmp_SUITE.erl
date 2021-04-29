@@ -63,22 +63,22 @@ end_per_suite(_Config) ->
 %%
 init_per_testcase(send_trap_v1, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "snmpv1trap"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "snmpv1trap"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v2}, {sec_model, v2c}, {sec_level, noAuthNoPriv}],
 	ok = snmpm:register_agent("ct", "ct", AgentConf),
 	Config;
 init_per_testcase(send_trap_v2, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "snmpv2trap"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "snmpv2trap"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v2}, {sec_model, v2c}, {sec_level, noAuthNoPriv}],
 	ok = snmpm:register_agent("ct", "ct", AgentConf),
 	Config;
 init_per_testcase(send_trap_noauth_nopriv, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "noAuthNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "noAuthNoPrivAgent"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, noAuthNoPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmNoAuthProtocol}, {priv, usmNoPrivProtocol}],
@@ -88,8 +88,8 @@ init_per_testcase(send_trap_noauth_nopriv, Config) ->
 %% @hidden
 init_per_testcase(send_trap_md5_nopriv, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "md5NoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "md5NoPrivAgent"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACMD5AuthProtocol},
@@ -101,8 +101,8 @@ init_per_testcase(send_trap_md5_nopriv, Config) ->
 %% @hidden
 init_per_testcase(send_trap_md5_des, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "md5DesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "md5DesAgent"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACMD5AuthProtocol},
@@ -115,8 +115,8 @@ init_per_testcase(send_trap_md5_des, Config) ->
 %% @hidden
 init_per_testcase(send_trap_md5_aes, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "md5AesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "md5AesAgent"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACMD5AuthProtocol},
@@ -129,8 +129,8 @@ init_per_testcase(send_trap_md5_aes, Config) ->
 %% @hidden
 init_per_testcase(send_trap_sha_nopriv, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "shaNoPrivAgent"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "shaNoPrivAgent"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authNoPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACSHAAuthProtocol},
@@ -142,8 +142,8 @@ init_per_testcase(send_trap_sha_nopriv, Config) ->
 %% @hidden
 init_per_testcase(send_trap_sha_aes, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "shaAesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "shaAesAgent"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	USMConf = [{sec_name, "ct"}, {auth, usmHMACSHAAuthProtocol},
@@ -156,8 +156,8 @@ init_per_testcase(send_trap_sha_aes, Config) ->
 %% @hidden
 init_per_testcase(send_trap_sha_des, Config) ->
 	ok = init_snmp(Config),
-	{ok, [Port | _]} = application:get_env(snmp_collector, manager_ports),
-	AgentConf = [{engine_id, "shaDesAgent"}, {taddress, {127,0,0,1}}, {port, Port},
+	{ok, [{Address, Port} | _]} = application:get_env(snmp_collector, manager_listener),
+	AgentConf = [{engine_id, "shaDesAgent"}, {taddress, Address}, {port, Port},
 			{community, "public"}, {version, v3}, {sec_model, usm}, {sec_name, "ct"},
 			{sec_level, authPriv}],
 	Conf = [{sec_name, "ct"}, {auth, usmHMACSHAAuthProtocol},
@@ -190,7 +190,8 @@ sequences() ->
 %%
 all() ->
 	[send_trap_v1, send_trap_v2, send_trap_noauth_nopriv, send_trap_md5_nopriv, send_trap_md5_des,
-		send_trap_md5_aes, send_trap_sha_nopriv, send_trap_sha_aes, send_trap_sha_des].
+		send_trap_md5_aes, send_trap_sha_nopriv, send_trap_sha_aes, send_trap_sha_des,
+		add_new_agent].
 
 %%---------------------------------------------------------------------
 %%  Test cases
@@ -220,7 +221,7 @@ send_trap_v1() ->
 			{agent_target_param_def, [{"ct_params", v1, usm, "ct", noAuthNoPriv}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -269,7 +270,7 @@ send_trap_v2() ->
 			{agent_target_param_def, [{"ct_params", v2c, v2c, "ct", noAuthNoPriv}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -321,7 +322,7 @@ send_trap_noauth_nopriv() ->
 					[],[],[], "", ""}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -374,7 +375,7 @@ send_trap_md5_nopriv() ->
 					[14,62,241,145,186,143,207,151,106,249,124,123,157,214,53,98], ""}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -428,7 +429,7 @@ send_trap_md5_des() ->
 					[3,124,226,35,140,216,89,34,199,59,42,224,119,119,221,203]}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -482,7 +483,7 @@ send_trap_md5_aes() ->
 					[191,182,136,50,249,76,224,16,8,70,14,213,41,148,142,59]}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -535,7 +536,7 @@ send_trap_sha_nopriv() ->
 					[200,5,156,82,224,214,56,36,184,163,243,248,155,60,145,230,193,85,79,56], ""}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -589,7 +590,7 @@ send_trap_sha_aes() ->
 					[209,37,70,147,151,193,76,5,93,165,118,155,223,32,41,120]}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,
@@ -643,7 +644,7 @@ send_trap_sha_des() ->
 					[119,87,246,135,183,207,228,153,251,116,222,87,177,14,40,208]}]},
 			{start_manager, true},
 			{mgr_port, 56673},
-			{users,[{"ct", [snmp_collector_snmpm_cb, self()]}]}]},
+			{users,[{"ct", [snmp_collector_snmpm_cb, [self()]]}]}]},
 	{require, snmp_app},
 	{default_config, snmp_app,
 			[{manager,

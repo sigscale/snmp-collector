@@ -168,7 +168,7 @@ handle_trap(TargetName, {ErrorStatus, ErrorIndex, Varbinds}, UserData) ->
 			snmp_collector_trap_generic:handle_trap(TargetName, {ErrorStatus,
 					ErrorIndex, Varbinds}, UserData);
 		fault ->
-			handle_fault(TargetName, Varbinds)
+			handle_fault(TargetName, UserData, Varbinds)
 	end;
 handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
 	case domain(Varbinds) of
@@ -176,7 +176,7 @@ handle_trap(TargetName, {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserDat
 			snmp_collector_trap_generic:handle_trap(TargetName,
 					{Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData);
 		fault ->
-			handle_fault(TargetName, Varbinds)
+			handle_fault(TargetName, UserData, Varbinds)
 	end.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
@@ -207,21 +207,24 @@ handle_report(TargetName, SnmpReport, UserData) ->
 %%  The internal functions
 %%----------------------------------------------------------------------
 
--spec handle_fault(TargetName, Varbinds) -> Result
+-spec handle_fault(TargetName, UserData, Varbinds) -> Result
 	when
 		TargetName :: string(),
+		UserData :: term(),
 		Varbinds :: snmp:varbinds(),
 		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Handle a fault event.
-handle_fault(TargetName, Varbinds) ->
+handle_fault(TargetName, UserData, Varbinds) ->
 	try
 		{ok, Pairs} = snmp_collector_utils:arrange_list(Varbinds),
 		{ok, NamesValues} = snmp_collector_utils:oids_to_names(Pairs, []),
 		AlarmDetails = fault(NamesValues),
 		snmp_collector_utils:update_counters(rfc3877, TargetName, AlarmDetails),
-		Event = snmp_collector_utils:create_event(TargetName, AlarmDetails, fault),
-		snmp_collector_utils:log_event(Event)
+		Address = lists:keyfind(address, 1, UserData),
+		Event = snmp_collector_utils:create_event(TargetName,
+				[{"alarmIp", Address} | AlarmDetails], fault),
+		snmp_collector_utils:send_event(Event)
 	of
 		ok ->
 			ignore;
@@ -286,7 +289,6 @@ fault([{"alarmActiveDescription", Value} | T], EN, Acc)
 fault([{"ituAlarmPerceivedSeverity", "1"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventSeverity", ?ES_CLEARED} | Acc]);
 fault([{"ituAlarmPerceivedSeverity", "2"} | T], EN, Acc) ->
-erlang:display({?MODULE, ?LINE}),
 	fault(T, EN, [{"eventSeverity", ?ES_INDETERMINATE} | Acc]);
 fault([{"ituAlarmPerceivedSeverity", "3"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventSeverity", ?ES_CRITICAL} | Acc]);
@@ -616,7 +618,7 @@ probable_cause("513") ->
 probable_cause("514") ->
 	?PC_Equipment_Malfunction;
 probable_cause("515") ->
-	?PC_Excessive_vibration;
+	?PC_Excessive_Vibration;
 probable_cause("516") ->
 	?PC_File_Error;
 probable_cause("517") ->
@@ -729,6 +731,8 @@ probable_cause("614") ->
 	?PC_Unauthorized_Access_Attempt;
 probable_cause("615") ->
 	?PC_Unexpected_Info;
+probable_cause("1024") ->
+	?PC_Indeterminate;
 probable_cause(ProbableCauseCode) ->
 	error_logger:info_report(["SNMP Manager Unrecognized Probable Cause",
 			{probableCause, ProbableCauseCode},
