@@ -320,6 +320,8 @@ fault([{"customerName", Value} | T], EN, Acc)
 	fault(T, EN, [{"customerName", Value} | Acc]);
 fault([{"security", "1"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventType", ?ET_Security_Service_Or_Mechanism_Violation} | Acc]);
+fault([{"eventType", "0"} | T], EN, Acc) ->
+	fault(T, EN, [{"eventType", ?ET_Quality_Of_Service_Alarm} | Acc]);
 fault([{"eventType", "1"} | T], EN, Acc) ->
 	fault(T, EN, [{"eventType", ?ET_Communication_System} | Acc]);
 fault([{"eventType", "2"} | T], EN, Acc) ->
