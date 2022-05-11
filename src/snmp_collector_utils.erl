@@ -137,7 +137,7 @@ generate_identity(<<>>, _Charset, _NumChars, Acc) ->
 	when
 		TargetName :: list(),
 		AlarmDetails :: [{Name, Value}],
-		Domain :: fault | syslog | notification,
+		Domain :: fault | syslog | notification | heartbeat,
 		Name :: list(),
 		Value :: list(),
 		Result :: fault_event().
