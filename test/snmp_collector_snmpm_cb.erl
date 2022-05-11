@@ -119,8 +119,9 @@ handle_pdu(TargetName, ReqId,
 			{target_name, TargetName}, {reqid, ReqId},
 			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
-	UserData ! ok,
-    ignore.
+	{self, Self} = lists:keyfind(self, 1, UserData),
+	Self ! ok,
+	ignore.
 
 -spec handle_trap(TargetName, SnmpTrapInfo, UserData) -> Reply
 	when
@@ -139,8 +140,9 @@ handle_trap(TargetName,
 			{target_name, TargetName},
 			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
-	UserData ! ok,
-    ignore;
+	{self, Self} = lists:keyfind(self, 1, UserData),
+	Self ! ok,
+	ignore;
 handle_trap(TargetName,
 		 {Enteprise, Generic, Spec, Timestamp, Varbinds}, UserData) ->
 	error_logger:error_report(["SNMP Manager: Received Trap",
@@ -148,8 +150,9 @@ handle_trap(TargetName,
 			{enterprise, Enteprise}, {generic, Generic}, {spec, Spec},
 			{timestamp, Timestamp}, {varbinds, Varbinds},
 			{userdata, UserData}]),
-	UserData ! ok,
-    ignore.
+	{self, Self} = lists:keyfind(self, 1, UserData),
+	Self ! ok,
+	ignore.
 
 -spec handle_inform(TargetName, SnmpInformInfo, UserData) -> Reply
 	when
@@ -167,8 +170,9 @@ handle_inform(TargetName,
 			{target_name, TargetName},
 			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
-	UserData ! ok,
-    no_reply.
+	{self, Self} = lists:keyfind(self, 1, UserData),
+	Self ! ok,
+	no_reply.
 
 -spec handle_report(TargetName, SnmpReportInfo, UserData) -> Reply
 	when
@@ -186,8 +190,9 @@ handle_report(TargetName,
 			{target_name, TargetName},
 			{status, Status}, {index, Index}, {varbinds, Varbinds},
 			{userdata, UserData}]),
-	UserData ! ok,
-    ignore.
+	{self, Self} = lists:keyfind(self, 1, UserData),
+	Self ! ok,
+	ignore.
 
 -spec handle_invalid_result(In, Out) -> any()
 	when

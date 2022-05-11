@@ -198,9 +198,7 @@ handle_fault(TargetName, UserData, Varbinds) ->
 	of
 		ok ->
 			ignore;
-		false ->
-			{error, address_undefined};
-		{error, Reason} ->
+	{error, Reason} ->
 			{error, Reason}
 	catch
 		_:Reason ->
