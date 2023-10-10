@@ -44,29 +44,29 @@
 %%  The snmp_collector public API
 %%----------------------------------------------------------------------
 
--spec add_snmp_user(UserName, AuthPass, PrivPass) -> Result
+-spec add_snmp_user(SecName, AuthPass, PrivPass) -> Result
 	when
-		UserName :: string(),
+		SecName :: string(),
 		PrivPass :: string(),
 		AuthPass :: string(),
 		Result :: {ok, snmp_user_added} | {error, Reason},
 		Reason :: user_exists | invalid_entry | term().
 %% @doc Add a SNMP user.
-add_snmp_user(UserName, AuthPass, PrivPass) ->
+add_snmp_user(SecName, AuthPass, PrivPass) ->
 	LookUp = fun() ->
-					mnesia:read(snmp_user, UserName, read)
+					mnesia:read(snmp_user, SecName, read)
 	end,
 	case mnesia:transaction(LookUp) of
 		{atomic, [_]} ->
 			{error, user_exists};
 		{atomic, []} ->
-			add_snmp_user1(UserName, AuthPass, PrivPass);
+			add_snmp_user1(SecName, AuthPass, PrivPass);
 		{atomic, aborted} ->
 			{error, invalid_entry}
 	end.
 %$ @hidden
-add_snmp_user1(UserName, AuthPass, PrivPass) ->
-	NewUser = #snmp_user{name = UserName,
+add_snmp_user1(SecName, AuthPass, PrivPass) ->
+	NewUser = #snmp_user{name = SecName,
 			authPass = AuthPass, privPass = PrivPass},
 	AddUser = fun() ->
 					mnesia:write(snmp_user, NewUser, write)
@@ -78,20 +78,20 @@ add_snmp_user1(UserName, AuthPass, PrivPass) ->
 			{error, invalid_entry}
 	end.
 
--spec remove_snmp_user(UserName) -> Result
+-spec remove_snmp_user(SecName) -> Result
 	when
-		UserName :: string(),
+		SecName :: string(),
 		Result :: {ok, snmp_user_removed} | {error, Reason},
 		Reason :: user_does_not_exists | invalid_entry | term().
 %% @doc Remove a SNMP user.
-remove_snmp_user(UserName) ->
+remove_snmp_user(SecName) ->
 	LookUp = fun() ->
-					mnesia:read(snmp_user, UserName, read)
+					mnesia:read(snmp_user, SecName, read)
 	end,
 	case mnesia:transaction(LookUp) of
 		{atomic, [_]} ->
 			Delete = fun() ->
-							mnesia:delete({snmp_user, UserName})
+							mnesia:delete({snmp_user, SecName})
 			end,
 			case mnesia:transaction(Delete) of
 				{atomic, ok} ->
