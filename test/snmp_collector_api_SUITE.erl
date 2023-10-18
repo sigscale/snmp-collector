@@ -226,10 +226,10 @@ log_agent(_Config) ->
 	case list_to_integer(erlang:system_info(otp_release)) of
 		OtpRelease when OtpRelease >= 21 ->
 			{ok, LogName} = application:get_env(snmp_collector, queue_name),
-			{_Cont, Chunk} = disk_log:chunk(LogName, start),
+			{_Cont1, Chunk} = disk_log:chunk(LogName, start),
 			#{"reportingEntityName" := Agent} = element(4, lists:last(Chunk)),
 			MatchHead = [{#{"reportingEntityName" => Agent}, [], ['$_']}],
-			{_Cont, Events} = snmp_collector_log:fault_query(start,
+			{_Cont2, Events} = snmp_collector_log:fault_query(start,
 					PageSize, Start, End, MatchHead, '_'),
 			true = length(Events) > 0,
 			Fall = fun (Event) ->
@@ -369,7 +369,7 @@ kul_md5_5(_Config) ->
 			Ku = snmp_collector_usm:ku(md5, Password),
 			snmp_collector_usm:kul(md5, Ku, EngineID)
 	end,
-	{Elapsed, Kul} = timer:tc(F).
+	{_Elapsed, Kul} = timer:tc(F).
 
 kul_sha_5() ->
 	[{userdata, [{doc, "Verify NIF using OTP library implementation (SHA) (5 octect password)"}]}].
