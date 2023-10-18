@@ -29,7 +29,6 @@
 -export([code_change/4, handle_event/3 ,handle_info/3 ,handle_sync_event/4]).
 %% export the gen fsm states.
 -export([handle_pdu/2]).
-% add handle_trap/2
 -record(statedata, {socket :: inet:socket() | undefined,
 		address :: inet:ip_address() | undefined,
 		port :: non_neg_integer() | undefined,
@@ -587,32 +586,24 @@ dec_aes(PrivKey, MsgPrivParams, Data, EngineBoots, EngineTime) ->
 		Result :: ignore | {error, Reason},
 		Reason :: term().
 %% @doc Send Varbinds to the associated trap handler modules.
-handle_trap(undefined, undefined, Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
-		when ErrorStatus == noError ->
+handle_trap(undefined, undefined, Address, Port, {noError, _, _} = TrapInfo) ->
 	case snmp_collector_utils:agent_name(Address) of
 		{AgentName, TargetName, _} when is_list(AgentName), is_list(TargetName) ->
-			case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
-				[[Module, UserData]] ->
-					Module:handle_trap(snmp_collector_utils:strip_target_name(TargetName),
-							{ErrorStatus, ErrorIndex, Varbinds}, [{address, Address} | UserData]);
-				[] ->
-					snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-							trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
-			end;
+			handle_trap(TargetName, AgentName, Address, Port, TrapInfo);
 		{error, Reason} ->
-			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-					trap, {ErrorStatus, ErrorIndex, Varbinds}, []),
+			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4,
+					{Address, Port}, trap, TrapInfo, []),
 			{error, Reason}
 	end;
-handle_trap(TargetName, AgentName, Address, Port, {ErrorStatus, ErrorIndex, Varbinds})
-		when ErrorStatus == noError, is_list(TargetName), is_list(AgentName) ->
+handle_trap(TargetName, AgentName, Address, Port, {noError, _, _} = TrapInfo)
+		when is_list(TargetName), is_list(AgentName) ->
 	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 		[[Module, UserData]] ->
 			Module:handle_trap(snmp_collector_utils:strip_target_name(TargetName),
-					{ErrorStatus, ErrorIndex, Varbinds}, [{address, Address} | UserData]);
+					TrapInfo, [{address, Address} | UserData]);
 		[] ->
-			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4, {Address, Port},
-					trap, {ErrorStatus, ErrorIndex, Varbinds}, [])
+			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4,
+					{Address, Port}, trap, TrapInfo, [])
 	end.
 
 -spec flag(Flag) -> Result
