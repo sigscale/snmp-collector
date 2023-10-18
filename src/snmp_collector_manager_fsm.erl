@@ -598,8 +598,7 @@ handle_trap(TargetName, AgentName, Address, Port, {noError, _, _} = TrapInfo)
 		when is_list(TargetName), is_list(AgentName) ->
 	case ets:match(snmpm_user_table, {user, AgentName,'$1','$2', '_'}) of
 		[[Module, UserData]] ->
-			Module:handle_trap(snmp_collector_utils:strip_target_name(TargetName),
-					TrapInfo, [{address, Address} | UserData]);
+			Module:handle_trap(AgentName, TrapInfo, [{address, Address} | UserData]);
 		[] ->
 			snmp_collector_snmpm_user_default:handle_agent(transportDomainUdpIpv4,
 					{Address, Port}, trap, TrapInfo, [])
