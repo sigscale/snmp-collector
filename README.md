@@ -20,8 +20,8 @@ subsystem may be used to distribute fault events or they may be sent
 directly to SigScale's VES Collector, part of our Fault Surveillance project.
 
 ### Graphical User Interface (GUI)
-A web front end built with Google [Polymer](https://www.polymer-project.org)
-web components for
+A progressive web app (PWA) front end built with Google
+[Polymer](https://www.polymer-project.org) web components for
 [material design](https://material.io/guidelines/material-design/introduction.html)
-provides event views and MIB management.
+provides a dashboard, event views and MIB management.
 

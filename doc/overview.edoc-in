@@ -185,10 +185,8 @@ e.g &#058;
 ==Operation==
 
 ===Graphical User Interface (GUI)===
-A web front end built with Google [Polymer](https://www.polymer-project.org)
-web components for
-[material design](https://material.io/guidelines/material-design/introduction.html)
-provides event views and MIB management.
+A progressive web app (PWA) front end, built with web components,
+provides a dash board, event views and MIB management.
 
 ==Configuration==
 
