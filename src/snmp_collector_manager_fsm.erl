@@ -159,7 +159,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
-													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+													error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
@@ -173,7 +173,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
-													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+													error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
@@ -187,7 +187,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
-													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+													error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
@@ -214,7 +214,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
-													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+													error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
@@ -228,7 +228,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
-													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+													error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
@@ -246,7 +246,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
-															error_logger:info_report(["SNMP Manager Agent Not Recognized",
+															error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 																	{error, Reason},
 																	{engine_id, EngineID},
 																	{username, UserName},
@@ -275,7 +275,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
-															error_logger:info_report(["SNMP Manager Agent Not Recognized",
+															error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 																	{error, Reason},
 																	{engine_id, EngineID},
 																	{username, UserName},
@@ -300,7 +300,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 												ignore ->
 													{stop, shutdown, StateData};
 												{error, Reason} ->
-													error_logger:info_report(["SNMP Manager Agent Not Recognized",
+													error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 															{error, Reason},
 															{engine_id, EngineID},
 															{username, UserName},
@@ -318,7 +318,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
-															error_logger:info_report(["SNMP Manager Agent Not Found",
+															error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 																	{error, Reason},
 																	{engine_id, EngineID},
 																	{username, UserName},
@@ -347,7 +347,7 @@ handle_pdu(timeout = _Event, #statedata{socket = _Socket, address = Address,
 														ignore ->
 															{stop, shutdown, StateData};
 														{error, Reason} ->
-															error_logger:info_report(["SNMP Manager Agent Not Found",
+															error_logger:info_report(["SNMP Manager SNMPv3 Trap Handler Failed",
 																	{error, Reason},
 																	{engine_id, EngineID},
 																	{username, UserName},
